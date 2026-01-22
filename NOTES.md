@@ -1,3 +1,8 @@
+## Table of Contents
+1. [mDNS for Server Discovery](#1.-mDNS-for-server-discovery)
+2. [REST API and WebSockets for Communication](#2.-REST-API-and-WebSockets-for-communication)
+3. [API Route Design](#3.-API-Route-Design)
+---
 # 1. mDNS for server discovery
 clients do not know server's IP address, host name or port number. mDNS is a network advertisement service for local network that multicasts the IP address, host name and port number onto the devices connected to local network periodically. Clients listening on the same multicast channel can discover information that is being brodcasted. 'm' in 'mDNS' stands for multicast.
 ```
@@ -274,129 +279,53 @@ function isAlive() {
 </html>
 ```
 
----
 
+# 3. API Route Design
+### 1. Client (Mobile App) → Server Routes
 
+| Trigger (UI / Event) | Route                     | Method | Purpose                     | Payload (Summary)            |
+| -------------------- | ------------------------- | ------ | --------------------------- | ---------------------------- |
+| Connect button       | `/api/clients/register`   | POST   | Register client with server | Client name, IP, device info |
+| Disconnect button    | `/api/clients/unregister` | POST   | Remove client from server   | Client ID                    |
+| Periodic (heartbeat) | `/api/clients/status`     | POST   | Update recording state      | Client ID, state, battery    |
+| Recording stop       | `/api/audio/upload`       | POST   | Upload recorded audio       | Audio file + metadata        |
 
-# 3. Problems to be clarified
-## 0. Why are we creating this system?
-## 1. client side recorder application
-we will be using an existing open source voice recorder as a base, and sugarcoat it with our server-side communication endpoints. We will have to figure the **how** part, as well as **noise supression**.
-#### Existing Projects that I found
-- [option 1](https://github.com/FossifyOrg/Voice-Recorder)
-- [option 2](https://github.com/Dimowner/AudioRecorder)
+### 2. Server → Client Control (WebSocket)
 
-## 2. Audio Processing Pipeline
-## 3. Mr. GPT's suggestions
-Below are **critical points** you should add for completeness.
-#### A. Client Identification
-Right now:
-- All clients are treated equally
-- No identity tracking
-You should add:
-```json
-{
-  "type": "REGISTER",
-  "device_id": "android-123",
-  "name": "Alice"
-}
-```
+| Trigger (Dashboard)    | Channel       | Message Type      | Action                 |
+| ---------------------- | ------------- | ----------------- | ---------------------- |
+| Start all / mic button | `/ws/control` | `START_RECORDING` | Begin recording        |
+| Stop button            | `/ws/control` | `STOP_RECORDING`  | Stop recording         |
+| Client event           | `/ws/control` | `STATE_UPDATE`    | Update dashboard state |
 
-Server must maintain:
-```python
-clients = {
-   "android-123": websocket
-}
-```
+### 3. Server Dashboard – Device Control Routes
 
-So you can:
-✔ Control specific client  
-✔ Show names in dashboard  
-✔ Track status
+| UI Element            | Route                       | Method | Purpose                |
+| --------------------- | --------------------------- | ------ | ---------------------- |
+| Header section        | `/api/server/info`          | GET    | Fetch server name & IP |
+| Device list           | `/api/clients`              | GET    | List connected clients |
+| Start all recordings  | `/api/control/start-all`    | POST   | Start all clients      |
+| Stop all recordings   | `/api/control/stop-all`     | POST   | Stop all clients       |
+| Individual mic button | `/api/control/client/start` | POST   | Start single client    |
+| Individual stop       | `/api/control/client/stop`  | POST   | Stop single client     |
+| X button              | `/api/clients/remove`       | POST   | Remove client          |
 
-#### B. ACK Handling
-You mention ACK, but you should define:
-```json
-{
-  "type": "ACK",
-  "action": "START_RECORDING",
-  "device_id": "android-123",
-  "status": "SUCCESS"
-}
-```
+### 4. Recordings Management Routes
 
-Server should:
-- Wait for ACK
-- Update UI per client
-This improves **reliability**.
+| UI Element       | Route                                  | Method | Function               |
+| ---------------- | -------------------------------------- | ------ | ---------------------- |
+| Recordings list  | `/api/recordings`                      | GET    | List all recordings    |
+| Trash icon       | `/api/recordings/{id}`                 | DELETE | Delete recording       |
+| Delete all       | `/api/recordings`                      | DELETE | Remove all recordings  |
+| ✨ button         | `/api/recordings/{id}/enhance`         | POST   | Enhance recording      |
+| Enhance all      | `/api/recordings/enhance-all`          | POST   | Enhance all recordings |
+| Play button      | `/api/recordings/{id}/stream`          | GET    | Stream audio           |
+| Merge & download | `/api/recordings/merge`                | POST   | Merge all audio        |
+| Download         | `/api/recordings/merged/{session}.wav` | GET    | Download merged file   |
 
-#### C. File Upload Endpoints (Missing)
-You MUST define:
-```
-POST /api/audio/upload
-```
-Flow:
-1. Client finishes recording
-2. Sends file via multipart/form-data
-3. Server stores file
-4. Returns file_id
-This is a **core requirement** (FR5, FR10).
+### 5. Discovery (Non-HTTP)
 
-#### D. Recording Management APIs
-You need:
-```
-GET /api/audio/list
-GET /api/audio/{id}
-DELETE /api/audio/{id}
-POST /api/audio/merge
-POST /api/audio/{id}/enhance
-```
+|Mechanism|Purpose|
+|---|---|
+|mDNS / UDP broadcast|Discover available VocalLink servers|
 
-For dashboard features:
-- Download
-- Delete
-- Merge
-- Enhance
-
-#### E. WebSocket Protocol Design
-Right now you only have:
-```json
-{ "action": "START_RECORDING" }
-```
-
-You should formalize it:
-```json
-{
-  "type": "COMMAND",
-  "action": "START",
-  "targets": ["android-123"]
-}
-```
-
-This allows:
-✔ Broadcast  
-✔ Individual control
-
-#### F. Server-side Client State
-You should track:
-```python
-client_states = {
-   "android-123": "RECORDING"
-}
-```
-
-Used for:
-✔ Dashboard status  
-✔ Error detection
-
-#### H. Offline Continuity (NFR1)
-You mention it conceptually, but should document:
-Flow:
-1. Server goes offline
-2. Client continues recording
-3. Stores locally
-4. Periodic retry upload
-
-This is an **important design point**.
-
-## 4. Figure out everything that is needed to build the frontend UI
