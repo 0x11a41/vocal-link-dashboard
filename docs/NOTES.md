@@ -1,16 +1,53 @@
-### Table of contents
+### Table of Contents
 
-1. [Project Proposal](NOTES.md#Project-Proposal)
-
-2. [UI Mockups](NOTES.md/#UI-Mockups)
-
-3. [Anticipated Communication Architecture](NOTES.md#Anticipated-communication-architecture)
-
-4. [Communication Endpoints](NOTES.md#Communication-Endpoints)
+1. [Project Proposal](#project-proposal)
+   - [Idea](#idea)
+   - [Purpose](#purpose)
+   - [Target Audience](#target-audience)
+   - [Useful Situations](#useful-situations)
+2. [UI Mockups](#ui-mockups)
+3. [Anticipated Communication Architecture](#anticipated-communication-architecture)
+   - [1. mDNS for server discovery](#1-mdns-for-server-discovery)
+   - [2. REST API and WebSockets for communication](#2-rest-api-and-websockets-for-communication)
+   - [Backend](#backend)
+4. [Communication Endpoints](#communication-endpoints)
+   - [1. Client (Mobile App) → Server Routes](#1-client-mobile-app--server-routes)
+   - [2. Server → Client Control (WebSocket)](#2-server--client-control-websocket)
+   - [3. Server Dashboard – Device Control Routes](#3-server-dashboard--device-control-routes)
+   - [4. Recordings Management Routes](#4-recordings-management-routes)
+   - [5. Discovery (Non-HTTP)](#5-discovery-non-http)
 
 # Project Proposal
 
-A voice recorder application that can (optionally) use a client server architecture. The recorder application stays on smartphone devices. The application behaves like a regular voice recorder in the absence of a server in the local network. It can do noise-cancelled voice recording. This is the base application that the client runs. If the client detect a server application on the local network, the story changes. Now the server can control the recording as well as retrieve the recorded audio from client. A server can handle multiple client programs simultaneously (imagine a podcast scenario or an interview). The server can now further do speech enhancement using resource heavy deep learning algorithms (or something else that significantly improves the speech quality).
+## Idea
+
+VocalLink is a distributed audio recording system that functions as a sophisticated standalone mobile voice recorder while offering an enhanced client-server architecture for professional studio environments. Operating autonomously, the smartphone application provides high-quality, noise-cancelled recording for everyday use; however, upon detecting a server via mDNS, it transforms into a remote recording node capable of being managed through a centralized dashboard. This architecture allows a single server to orchestrate multiple mobile clients simultaneously—ideal for multi-speaker scenarios like podcasts or interviews—and leverages the server's superior computational power to apply resource-intensive deep learning algorithms for professional-grade speech enhancement and post-processing.
+
+## Purpose
+
+Our project makes professional audio recording easy and affordable by using the smartphones people already own. In common situations like group podcasts or interviews, it removes the hassle of trying to sync different recordings manually and solves the problem of phones not being powerful enough to handle high-end audio cleaning. By letting a central server control all the phones at once and then using ML to automatically enhance the speech, it turns basic mobile recordings into high-quality files. This gives creators a simple way to get great sound without needing to buy expensive microphones, mixers, or professional studio space.
+
+## Target Audience
+
+- **Indie Podcasters:** Individuals who record group sessions and need a way to keep all participants in sync without buying a multi-channel mixer.
+
+- **Journalists and Field Researchers:** Professionals who conduct interviews on the go and need to "fix" recordings later using the server's AI enhancement.
+
+- **Content Creators & YouTubers:** People making videos who want to use their phone as a high-quality wireless microphone that automatically sends files to their editing station.
+
+- **Educators:** Teachers recording lectures or student discussions where clear speech is vital for accessibility and transcription.
+
+## Useful Situations
+
+- **Multi-Guest Interviews:** When you have three or four people in a room, you can give each person a smartphone to use as a "mic" and control them all from one laptop dashboard.
+
+- **Recording in Noisy Places:** If you are forced to record in a cafe or a windy park, the server's deep learning algorithms can strip away the background noise better than a phone ever could.
+
+- **Low-Budget Remote Studios:** It acts as a "poor man's studio," allowing a group of people to create professional-grade multi-track audio without spending thousands on XLR microphones and acoustic foam.
+
+- **Spontaneous Inspiration:** Since the app works as a normal recorder when the server is away, you can capture ideas anywhere and have them automatically "cleaned up" the moment you walk back into your home network.
+
+
 
 # UI Mockups
 
@@ -21,8 +58,6 @@ A voice recorder application that can (optionally) use a client server architect
 #### Client's Server Selection Page
 
 ![client](mockups/client's-server-selection-view.png)
-
-
 
 >  [link to choosen client side application](https://github.com/0x11a41/fossify-voice-recorder#)
 
@@ -45,8 +80,7 @@ Server
  Client A    Client B    Client C
 ```
 
-After discovery about the server info on client side, websockets and REST api's are used to establish connection and carrying client-server communication.
-This can be achieved in python using **zeroconf** library.
+Python's **zeroconf** library enables us to use mDNS inside our server.
 
 in this example, we attach a custom server name along with the broadcast message
 
@@ -111,7 +145,7 @@ def startup_event():
     threading.Thread(target=start_mdns, daemon=True).start()
 ```
 
----
+After client's discovery about server's IP address and PORT number, REST API's and WebSockets play the rest of the story. 
 
 ## 2. REST API and WebSockets for communication
 
@@ -130,33 +164,39 @@ WebSockets is a communication protocol that enables **two-way** (full-duplex), *
 We will be using this technology to enable real time control command transfer and updation. The dataflow will be like the following
 
 1. The user clicks on "Start Recording" button
+
 2. the frontend sends a message to backend via websockets to tell the client to start recording.
    
    ```json
    {
-   "action": "START_RECORDING"
+       "action": "START_RECORDING"
    }
    ```
+
 3. The backend broadcast this message to all or specific client(s)
+
 4. each client will recieve this message
-5. the server should acknowledge the request back to server.
 
-We will be using **python** to develop the server backend. Python offers sever libraries to interfere with REST APIs.
+5. the client should acknowledge the request back to server.
 
-- Flask
-- Django REST Framework
-- FastAPI
-  From these popular options, we ought to use FastAPI. **WHY ?**
-  
-  > below are some good points that I stole from gemini
-- FastAPI is one of the fastest Python frameworks available. It is built on **Starlette** (for web parts) and **Uvicorn** (the server), allowing it to handle thousands of concurrent requests.
-- The moment you write a route, FastAPI generates a professional, interactive documentation page.
-- FastAPI uses **Python Type Hints** and a library called **Pydantic** to validate data.
-- In **FastAPI**, WebSockets are a "first-class citizen." They work out of the box with the same simple syntax as your REST routes.
+## Backend
 
-**It seems understandable just by stare-ing at example codes.**  
+We will be deploying our **backend in python**, due for the following **reasons**.
 
->  [A layman implementation of the client-server architecture we discussed](https://github.com/0x11a41/mini-project/tree/main/docs/example)
+1. familiarity of team with python code.
+2. since we are planning on adding ML based post processing on server
+3. Offers a mature ecosystem of libraries for our usecase
+
+| Technology    | Python Library we plan on use |
+| ------------- | ----------------------------- |
+| mDNS          | zeroconf                      |
+| WebSockets    | FastAPI                       |
+| routing       | FastAPI                       |
+| ML processing | librosa/PyTorch               |
+
+>  [A layman implementation architecture we discussed in python](https://github.com/0x11a41/mini-project/tree/main/docs/example)
+
+
 
 # Communication Endpoints
 
