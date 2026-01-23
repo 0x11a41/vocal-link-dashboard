@@ -156,7 +156,7 @@ We will be using **python** to develop the server backend. Python offers sever l
 
 **It seems understandable just by stare-ing at example codes.**  
 
->  [A layman implementation of the client-server architecture we discussed](https://github.com/0x11a41/mini-project/tree/main/server)
+>  [A layman implementation of the client-server architecture we discussed](https://github.com/0x11a41/mini-project/tree/main/docs/example)
 
 # Communication Endpoints
 
