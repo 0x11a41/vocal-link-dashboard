@@ -1,4 +1,4 @@
-> VocalLink - A distributed voice capturing system
+> vocal-link - A distributed voice capturing system
 
 [Read notes](NOTES.md)
 
@@ -7,8 +7,8 @@
 **NOTE:** python, pip and git should be installed.
 
 ```bash
-git clone https://github.com/0x11a41/mini-project 
-cd mini-project/docs/example
+git clone https://github.com/0x11a41/vocal-link 
+cd vocal-link
 
 python -m venv venv
 source venv/bin/active
