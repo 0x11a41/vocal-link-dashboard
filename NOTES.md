@@ -7,8 +7,8 @@
    - [Useful Situations](#useful-situations)
 2. [UI Mockups](#ui-mockups)
 3. [Anticipated Communication Architecture](#anticipated-communication-architecture)
-   - [1. mDNS for server discovery](#1-mdns-for-server-discovery)
-   - [2. REST API and WebSockets for communication](#2-rest-api-and-websockets-for-communication)
+   - [ mDNS for server discovery](#mdns-for-server-discovery)
+   - [REST API and WebSockets for communication](#rest-api-and-websockets-for-communication)
    - [Backend](#backend)
 4. [Communication Endpoints](#communication-endpoints)
    - [1. Client (Mobile App) → Server Routes](#1-client-mobile-app--server-routes)
@@ -25,7 +25,7 @@ VocalLink is a distributed audio recording system that functions as a sophistica
 
 ## Purpose
 
-Our project makes professional audio recording easy and affordable by using the smartphones people already own. In common situations like group podcasts or interviews, it removes the hassle of trying to sync different recordings manually and solves the problem of phones not being powerful enough to handle high-end audio cleaning. By letting a central server control all the phones at once and then using ML to automatically enhance the speech, it turns basic mobile recordings into high-quality files. This gives creators a simple way to get great sound without needing to buy expensive microphones, mixers, or professional studio space.
+Our project makes professional audio recording easy and affordable by using the smartphones people already own. In common situations like group podcasts or interviews, it removes the hassle of trying to sync different recordings manually and solves the problem of phones not being powerful enough to handle high-end audio cleaning. By letting a central server control all the phones at once and then using ML to automatically enhance the speech, it turns basic mobile recordings into high-quality files. This gives creators a simple way to get great sound without needing to buy expensive microphones, mixers, or professional studio space. 
 
 ## Target Audience
 
@@ -47,8 +47,6 @@ Our project makes professional audio recording easy and affordable by using the 
 
 - **Spontaneous Inspiration:** Since the app works as a normal recorder when the server is away, you can capture ideas anywhere and have them automatically "cleaned up" the moment you walk back into your home network.
 
-
-
 # UI Mockups
 
 #### Server Dashboard
@@ -63,7 +61,7 @@ Our project makes professional audio recording easy and affordable by using the 
 
 # Anticipated communication architecture
 
-## 1. mDNS for server discovery
+## mDNS for server discovery
 
 clients do not know server's IP address, host name or port number. mDNS is a network advertisement service for local network that multicasts the IP address, host name and port number onto the devices connected to local network periodically. Clients listening on the same multicast channel can discover information that is being brodcasted. 'm' in 'mDNS' stands for multicast.
 
@@ -80,74 +78,9 @@ Server
  Client A    Client B    Client C
 ```
 
-Python's **zeroconf** library enables us to use mDNS inside our server.
+Python's **zeroconf** library enables us to use mDNS inside our server. After client's discovery about server's IP address and PORT number, REST API's and WebSockets will tell rest of the story. 
 
-in this example, we attach a custom server name along with the broadcast message
-
-```python
-from zeroconf import Zeroconf, ServiceInfo
-import socket
-
-def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-    finally:
-        s.close()
-    return ip
-
-SERVER_NAME = "Studio Server"
-PORT = 8000
-
-ip_str = get_local_ip()
-ip_bytes = socket.inet_aton(ip_str)
-
-info = ServiceInfo(
-    "_vocalink._tcp.local.",
-    f"{SERVER_NAME}._vocalink._tcp.local.",
-    addresses=[ip_bytes],
-    port=PORT
-)
-
-zeroconf = Zeroconf()
-zeroconf.register_service(info)
-
-print(f"Broadcasting '{SERVER_NAME}' at {ip_str}:{PORT}")
-input("Press Enter to stop...")
-
-zeroconf.unregister_service(info)
-zeroconf.close()
-```
-
-since we support changing server name from the frontend, we need to dynamically update server name. for that, we have to do unregister and re-register nDNS server with the new name. the snippet shown below demonstrates it
-
-```python
-zeroconf.unregister_service(info)
-info = ServiceInfo(...new name...)
-zeroconf.register_service(info)
-```
-
-mDNS should be ran as a background task inside the VocalLink server like the following
-
-```python
-from fastapi import FastAPI
-import threading
-
-app = FastAPI()
-
-def start_mdns():
-    # your mDNS code here
-    pass
-
-@app.on_event("startup")
-def startup_event():
-    threading.Thread(target=start_mdns, daemon=True).start()
-```
-
-After client's discovery about server's IP address and PORT number, REST API's and WebSockets play the rest of the story. 
-
-## 2. REST API and WebSockets for communication
+## REST API and WebSockets for communication
 
 After the client discovers server information, it can now use the server's ip address and port number to communicate to that server using predefined **routes**.
 A route is a path within our server that essentially leads to a function call. For example, we can define `http://localhost:8000/ping` where **`/ping`** is a route that calls a function that lies on the server to check whether server is alive or not.
@@ -193,10 +126,6 @@ We will be deploying our **backend in python**, due for the following **reasons*
 | WebSockets    | FastAPI                       |
 | routing       | FastAPI                       |
 | ML processing | librosa/PyTorch               |
-
->  [A layman implementation architecture we discussed in python](https://github.com/0x11a41/mini-project/tree/main/docs/example)
-
-
 
 # Communication Endpoints
 

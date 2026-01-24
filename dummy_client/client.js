@@ -1,4 +1,4 @@
-let ws = new WebSocket("ws://localhost:8000/ws/control");
+let ws = new WebSocket("ws://localhost:6210/ws/control");
 
 function setState(msg) {
   document.getElementById("state").innerText = msg;
