@@ -1,21 +1,9 @@
 ### Table of Contents
 
 1. [Project Proposal](#project-proposal)
-   - [Idea](#idea)
-   - [Purpose](#purpose)
-   - [Target Audience](#target-audience)
-   - [Useful Situations](#useful-situations)
 2. [UI Mockups](#ui-mockups)
 3. [Anticipated Communication Architecture](#anticipated-communication-architecture)
-   - [ mDNS for server discovery](#mdns-for-server-discovery)
-   - [REST API and WebSockets for communication](#rest-api-and-websockets-for-communication)
-   - [Backend](#backend)
 4. [Communication Endpoints](#communication-endpoints)
-   - [1. Client (Mobile App) → Server Routes](#1-client-mobile-app--server-routes)
-   - [2. Server → Client Control (WebSocket)](#2-server--client-control-websocket)
-   - [3. Server Dashboard – Device Control Routes](#3-server-dashboard--device-control-routes)
-   - [4. Recordings Management Routes](#4-recordings-management-routes)
-   - [5. Discovery (Non-HTTP)](#5-discovery-non-http)
 
 # Project Proposal
 
@@ -140,13 +128,13 @@ We will be deploying our **backend in python**, due for the following **reasons*
 
 ### 2. Server → Client Control (WebSocket)
 
-| Trigger (Dashboard)    | Channel       | Message Type      | Action                 |
-| ---------------------- | ------------- | ----------------- | ---------------------- |
-| Start all / mic button | `/ws/control` | `START_RECORDING` | Begin recording        |
-| Stop button            | `/ws/control` | `STOP_RECORDING`  | Stop recording         |
-| Client event           | `/ws/control` | `STATE_UPDATE`    | Update dashboard state |
-| Server name change     | `/ws/server-rename` | `SERVER_RENAME`   | Rename server    |
-| Rename client     | `/ws/client-rename` | `CLIENT_RENAME`   | Rename client    |
+| Trigger (Dashboard)    | Channel             | Message Type      | Action                 |
+| ---------------------- | ------------------- | ----------------- | ---------------------- |
+| Start all / mic button | `/ws/control`       | `START_RECORDING` | Begin recording        |
+| Stop button            | `/ws/control`       | `STOP_RECORDING`  | Stop recording         |
+| Client event           | `/ws/control`       | `STATE_UPDATE`    | Update dashboard state |
+| Server name change     | `/ws/server-rename` | `SERVER_RENAME`   | Rename server          |
+| Rename client          | `/ws/client-rename` | `CLIENT_RENAME`   | Rename client          |
 
 ### 3. Server Dashboard – Device Control Routes
 

@@ -7,8 +7,7 @@ pkgs.mkShell {
     python3Packages.fastapi
     python3Packages.websockets
     python3Packages.zeroconf
-    python3Packages.python-lsp-server
-    ty # python's language server
+    ty # A python lsp
     vscode-css-languageserver
     superhtml
     vscode-json-languageserver

@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
     app.state.aiozc = AsyncZeroconf()
     app.state.current_info = create_service_info(app, app.state.server_name)
     await app.state.aiozc.async_register_service(app.state.current_info)
-    print(f"Broadcasting {app.state.server_name} at {app.state.ip_str}...")
+    print(f"Advertising {app.state.server_name} to local network...")
     
     yield
     
