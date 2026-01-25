@@ -2,6 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
 from zeroconf import ServiceInfo
 from contextlib import asynccontextmanager
 from zeroconf.asyncio import AsyncZeroconf
+import uvicorn
 import socket
 
 def get_local_ip():

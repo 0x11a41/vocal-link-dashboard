@@ -7,13 +7,13 @@ pkgs.mkShell {
     python3Packages.fastapi
     python3Packages.websockets
     python3Packages.zeroconf
+    python3Packages.livereload
     ty # A python lsp
     vscode-css-languageserver
     superhtml
     vscode-json-languageserver
     typescript-language-server
     websocat # to test websocket endpoints 
-    live-server
   ];
   shellHook = ''
   echo "entered dev-shell: $(python --version)"

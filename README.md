@@ -1,9 +1,8 @@
-> vocal-link-dashboard - Controller for vocal-link-recorder
+> **vocal-link-dashboard ~ A controller for vocal-link-recorder**
 
 [Read notes](docs/NOTES.md)
 
 ### setup
-
 **Prerequesites:** python, pip and git should be installed.
 
 ```bash
@@ -15,8 +14,7 @@ source venv/bin/active
 pip install -r requirements.txt
 ```
 
-### running the server
-
+### running
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 6210
+python runner.py
 ```
