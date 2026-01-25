@@ -8,7 +8,7 @@ import sys
 from livereload import Server
 
 # Configuration
-BACKEND_CMD = ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "6210", "--reload"]
+BACKEND_CMD = ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "6210"]
 HOST = "127.0.0.1"
 PORT = 3000
 URL = f"http://{HOST}:{PORT}"
