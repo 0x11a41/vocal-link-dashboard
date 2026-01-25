@@ -1,4 +1,4 @@
-> vocal-link - A distributed voice capturing system
+> vocal-link-dashboard - Controller for vocal-link-recorder
 
 [Read notes](NOTES.md)
 
