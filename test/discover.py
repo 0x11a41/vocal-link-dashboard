@@ -5,9 +5,9 @@ import socket
 
 PORT = 6210
 ENDPOINT = "/ping"
-EXPECTED_JSON = {"_VOCAL_LINK_SERVER_": "running"}
+EXPECTED_JSON = { "_VOCAL_LINK_SERVER_": "running" }
 TIMEOUT = 0.5 
-CONCURRENCY_LIMIT = 256 
+CONCURRENCY_LIMIT = 64 
 
 semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
