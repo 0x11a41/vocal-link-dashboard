@@ -69,8 +69,6 @@ Option 1 is not garunteed to find the server since some routers interpret the br
 
 > NOTE: option one appeared more reliable than mDNS; when tested. 
 
-
-
 ## REST API and WebSockets for communication
 
 After the client discovers server information, it can now use the server's ip address and port number to communicate to that server using predefined **routes**.
@@ -121,7 +119,11 @@ We will be deploying our **backend in python**, due for the following **reasons*
 
 #### Server Dashboard
 
+![Dashboard](mockups/dashboard.png)
+
 #### Client's Server Selection Page
+
+![client](mockups/client's-server-selection-view.png)
 
 > [link to choosen client side application](https://github.com/0x11a41/fossify-voice-recorder#)
 
