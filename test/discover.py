@@ -4,7 +4,6 @@ import ipaddress
 import socket
 
 PORT = 6210
-ENDPOINT = "/ping"
 EXPECTED_JSON = { "_VOCAL_LINK_SERVER_": "running" }
 TIMEOUT = 0.5 
 CONCURRENCY_LIMIT = 64 
@@ -13,18 +12,16 @@ semaphore = asyncio.Semaphore(CONCURRENCY_LIMIT)
 
 async def check_device(client, ip):
     async with semaphore:
+        # step 1: TCP handshake
         try:
-            _, writer = await asyncio.wait_for(
-                asyncio.open_connection(ip, PORT), 
-                timeout=0.2 # Ultra-short timeout just for the handshake
-            )
+            _, writer = await asyncio.wait_for(asyncio.open_connection(ip, PORT), timeout=0.2)
             writer.close()
             await writer.wait_closed()
         except (OSError, asyncio.TimeoutError):
             return None
 
-        # If port is open, NOW we do the heavy HTTP work
-        url = f"http://{ip}:{PORT}{ENDPOINT}"
+        # if step 1 is success, knock knock the endpoint
+        url = f"http://{ip}:{PORT}/ping"
         try:
             response = await client.get(url, timeout=TIMEOUT)
             if response.status_code == 200:

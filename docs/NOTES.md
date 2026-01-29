@@ -43,7 +43,11 @@ Our project makes professional audio recording easy and affordable by using the 
 
 ## server discovery
 
-### Option 1: Subnet Scanning
+#### Option 1: mDNS for server discovery
+
+**Multicast DNS** is a computer networking protocol that resolves hostnames to IP addresses within small networks that do not include a local name server. It is a zero-configuration service, using essentially the same programming interfaces, packet formats and operating semantics as unicast Domain Name System (DNS)
+
+#### Option 2: Subnet Scanning
 
 **How it works:**
 
@@ -57,17 +61,13 @@ Our project makes professional audio recording easy and affordable by using the 
 
 send the pings asyncronously to discover the server faster. **Optimization :** do a light-weight TCP handshake on the ip:port before sending http request.
 
-### Option 2: using QR code
+#### Option 3: using QR code
 
 server displays a qr code containing info about ip address, port number and server's name.
 
-### Option 3: (Fallback) manually entering IP address
+#### Option 4: (Fallback) manually entering IP address
 
-Option 1 is not garunteed to find the server since some routers interpret the bruite force method as a security attack and blocks the traffic. That's why option 2 exist. If option two doesn't work for some reason, manually entering the ip address will be the last resort for establishing connection.
-
-### ~~mDNS for server discovery~~
-
-> NOTE: option one appeared more reliable than mDNS when it was tested. 
+Option 1 and 2 is not garunteed to find the server since some routers interpret the bruite force method as a security attack and blocks the traffic. That's why option 3 exist. If option 3 doesn't work for some reason, manually entering the ip address will be the last resort for establishing connection.
 
 ## REST API and WebSockets for communication
 
@@ -119,10 +119,9 @@ We will be deploying our **backend in python**, due for the following **reasons*
 
 #### Server Dashboard
 
-<div>
-    <img src="mockups/dashboard.png" width="48%">
-    <img src="mockups/dashboard_unreachable.png" width="48%">
-</div>
+![dashboard](mockups/dashboard.png)
+
+![dashboard_unreachable](mockups/dashboard_unreachable.png)
 
 #### Client's Server Selection Page
 
@@ -276,6 +275,7 @@ All commands go through this endpoint.
   "recording": true,
 }
 ```
+
 ---
 
 # Problems to be identified
@@ -298,7 +298,9 @@ All commands go through this endpoint.
 
 - [WebSockets - medium.com](https://medium.com/@omargoher/websocket-explained-what-it-is-and-how-it-works-b9eafefe28d7)
 
-- [WebSockets](https://javascript.plainenglish.io/websocket-an-in-depth-beginners-guide-96f617c4c7a5)
+- [WebSockets - medium.com](https://javascript.plainenglish.io/websocket-an-in-depth-beginners-guide-96f617c4c7a5)
+
+- [mDNS - medium.com](https://medium.com/@potto_94870/understand-mdns-with-an-example-1e05ef70013b)
 
 #### Research papers
 

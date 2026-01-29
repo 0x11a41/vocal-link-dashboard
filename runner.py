@@ -9,14 +9,15 @@ from livereload import Server
 
 # Configuration
 BACKEND_CMD = ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "6210"]
-HOST = "127.0.0.1"
-PORT = 3000
-URL = f"http://{HOST}:{PORT}"
-STARTUP_DELAY = 3
 
 # running uvicorn server (non-blocking)
 backend_process = subprocess.Popen(BACKEND_CMD, start_new_session=True)
 
+
+HOST = "127.0.0.1"
+PORT = 6381
+URL = f"http://{HOST}:{PORT}"
+STARTUP_DELAY = 3
 
 def open_browser():
     time.sleep(STARTUP_DELAY)
@@ -36,12 +37,15 @@ threading.Thread(target=open_browser, daemon=True).start()
 
 server = Server()
 server.watch("frontend/")
-
 try:
     print(f"[*] Frontend running at {URL}")
     server.serve(root="frontend", host=HOST, port=PORT)
 except KeyboardInterrupt:
-    pass 
+    print("\n[!] Manual shutdown detected.")
+except Exception as e:
+    print(f"\n[X] CRITICAL ERROR: {e}")
+    import traceback
+    traceback.print_exc()
 finally:
     cleanup()
     sys.exit(0)
