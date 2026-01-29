@@ -8,6 +8,7 @@ pkgs.mkShell {
     python3Packages.websockets
     python3Packages.livereload
     python3Packages.httpx
+    python3Packages.zeroconf
     ty # A python lsp
     vscode-css-languageserver
     superhtml

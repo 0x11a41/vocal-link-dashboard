@@ -3,3 +3,4 @@ fastapi
 websockets
 livereload
 httpx
+zeroconf

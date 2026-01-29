@@ -10,7 +10,7 @@ git clone https://github.com/0x11a41/vocal-link-dashboard
 cd vocal-link-dashboard
 
 python -m venv venv
-source venv/bin/active
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
