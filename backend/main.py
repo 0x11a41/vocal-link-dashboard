@@ -2,8 +2,9 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
 from zeroconf import ServiceInfo
 from contextlib import asynccontextmanager
 from zeroconf.asyncio import AsyncZeroconf
-import uvicorn
 import socket
+import time
+import asyncio
 
 def get_local_ip() -> str:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -16,6 +17,9 @@ def get_local_ip() -> str:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.controller: WebSocket | None = None
+    app.state.recorders: set[WebSocket] = set()
+
     app.state.port = 6210
     app.state.ip_str = get_local_ip()
     app.state.server_name = "VocalLink"
@@ -38,24 +42,51 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-clients = []
 
-@app.websocket("/ws/control")
+@app.websocket("/ws/inform")
 async def handle_control_commands(ws: WebSocket):
     await ws.accept()
-    clients.append(ws)
+    app.state.recorders.add(ws)
     try:
         while True:
             data = await ws.receive_json()
-            print(f"websocket: {data}")
-            for client in clients:
-                if client != ws:
-                    await client.send_json(data)
+            if app.state.controller:
+                await app.state.controller.send_json(data)
     except WebSocketDisconnect:
-        if ws in clients:
-            clients.remove(ws)
+        app.state.recorders.discard(ws)
 
 
-@app.get("/ping")
-async def ping():
+@app.websocket("/ws/command")
+async def handle_frontend_commands(ws: WebSocket):
+    if app.state.controller is not None:
+        print("Connection rejected. Controller already attached!")
+        await ws.accept()
+        await ws.send_json({"error": "ALREADY_CONNECTED"})
+        await ws.close(code=1008) 
+        return
+
+    await ws.accept()
+    app.state.controller = ws
+    
+    try:
+        while True:
+            data = await ws.receive_json()
+            data["timestamp"] = int(time.time() * 1000)
+            print(f"/ws/command: {data}")
+            
+            if app.state.recorders:
+                # Parallel broadcast to all nodes
+                await asyncio.gather(
+                    *[r.send_json(data) for r in app.state.recorders],
+                    return_exceptions=True
+                )
+    except Exception as e:
+        print(f"Controller error or disconnect: {e}")
+    finally:
+        app.state.controller = None
+        print("Controller slot freed.")
+
+        
+@app.get("/session")
+async def session_info():
     return { "VOCAL_LINK": "running" }

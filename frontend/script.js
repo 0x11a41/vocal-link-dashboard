@@ -1,4 +1,4 @@
-let ws = new WebSocket("ws://localhost:6210/ws/control");
+let ws = new WebSocket("ws://localhost:6210/ws/command");
 
 function startRecording() {
   const msg = { action: "START_RECORDING_ALL" };

@@ -230,23 +230,15 @@ Optional body:
 | Merge           | `/export/merge`  | POST   |
 | Download merged | `/export/latest` | GET    |
 
-#### 9. WebSockets Control Channel
+#### 9. WebSockets Control Channels
 
-```
-/ws/control
-```
+1. **/ws/command** - Dedicated endpoint for controller dashboard. Multiple instances of frontend will not be allowed here.
 
-All commands go through this endpoint.
+2. **/ws/inform** - For recorders to communicate to the dashboard.
 
-**Message Format :**
 
-```json
-// status
-{
-  "active": true, 
-  "recording": true,
-}
-```
+
+**Example Message Formats :**
 
 ```json
 // record all
@@ -258,7 +250,7 @@ All commands go through this endpoint.
 ```
 
 ```json
-// record specific client
+// record specific client - /ws/command
 {
   "type": "command",
   "target": "client",
@@ -268,11 +260,12 @@ All commands go through this endpoint.
 ```
 
 ```json
-// State Updates (Client → Server)
+// State Updates (Client → Server) - /ws/inform
 {
   "type": "state",
   "client_id": 42,
   "recording": true,
+  "battery": "23%",
 }
 ```
 
