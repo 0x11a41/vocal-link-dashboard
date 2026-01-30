@@ -45,40 +45,28 @@ Our project makes professional audio recording easy and affordable by using the 
 
 #### Option 1: mDNS for server discovery
 
-**Multicast DNS** is a computer networking protocol that resolves hostnames to IP addresses within small networks that do not include a local name server. It is a zero-configuration service, using essentially the same programming interfaces, packet formats and operating semantics as unicast Domain Name System (DNS)
+VocalLink advertises it's IP address and port number on the local network using mDNS protocol. Recorder's, with the same protocol, should discover this advertisement and try to reach any endpoint.
 
-#### Option 2: Subnet Scanning
-
-**How it works:**
-
-1. The Recorder (client) identifies its own IP (e.g., `192.168.1.15`).
-
-2. It loops through every IP on that subnet (`192.168.1.1` to `192.168.1.255`).
-
-3. It sends a "ping" (a quick HTTP GET) to `http://[IP]:6210/ping`.
-
-4. The IP's that responds "alive" is identified as the Controllers.
-
-send the pings asyncronously to discover the server faster. **Optimization :** do a light-weight TCP handshake on the ip:port before sending http request.
+#### ~~Option 2: Subnet Scanning~~
 
 #### Option 3: using QR code
 
 server displays a qr code containing info about ip address, port number and server's name.
 
-#### Option 4: (Fallback) manually entering IP address
-
-Option 1 and 2 is not garunteed to find the server since some routers interpret the bruite force method as a security attack and blocks the traffic. That's why option 3 exist. If option 3 doesn't work for some reason, manually entering the ip address will be the last resort for establishing connection.
+---
 
 ## REST API and WebSockets for communication
 
 After the client discovers server information, it can now use the server's ip address and port number to communicate to that server using predefined **routes**.
 A route is a path within our server that essentially leads to a function call. For example, we can define `http://localhost:8000/ping` where **`/ping`** is a route that calls a function that lies on the server to check whether server is alive or not.
 
-**What's REST API ?** It is basically a cool name for http methods - GET, POST, PUT, DELETE ... [read more](https://restfulapi.net/http-methods/)
+#### REST API
+
+ It is basically a cool name for http methods - GET, POST, PUT, DELETE ... [read more](https://restfulapi.net/http-methods/)
 
 **Why do we need it ?** everything we will be doing apart from control commands (ie, START_RECORD, STOP_RECORD) will be using REST API methods. 
 
-## What purpose does WebSockets serve in our project?
+#### WebSockets
 
 WebSockets is a communication protocol that enables **two-way** (full-duplex), **real-time** interaction between a client  and a server over a single, persistent connection.
 We will be using this technology to enable real time control command transfer and updation. The dataflow will be like the following
@@ -98,6 +86,8 @@ We will be using this technology to enable real time control command transfer an
 4. each client will recieve this message
 
 5. the client should acknowledge the request back to server.
+   
+   ---
 
 ## Backend
 
@@ -112,6 +102,45 @@ We will be deploying our **backend in python**, due for the following **reasons*
 | WebSockets    | FastAPI                       |
 | routing       | FastAPI                       |
 | ML processing | librosa/PyTorch               |
+
+---
+
+## Clock synchronization problem
+
+In a distributed recording system, a "START" command sent via WebSocket does not reach all clients simultaneously. Factors like WiFi congestion can introduce latencies ranging from 10ms to 150ms or more. Without synchronization, merging these audio files results in "phasing" or echo effects that ruin professional recordings.
+
+To address this, VocalLink implements a simplified version of the **Network Time Protocol (NTP)**. By exchanging four high-precision timestamps, each client calculates its unique **Clock Offset (θ)** relative to the server.
+
+#### The Handshake Steps:
+
+1. **T1​ (Origin):** Client records its local time and sends a sync request.
+
+2. **T2​ (Receive):** Server records the exact time the request arrived.
+
+3. **T3​ (Transmit):** Server records the time the response is sent back.
+
+4. **T4​ (Destination):** Client records its local time upon receiving the response.
+
+> /ws/sync is the backend endpoint for perform syncing
+
+**What happens inside the Recorder (pseudo code):**
+
+```python
+def handle_sync_response(t1, t2, t3):
+    t4 = int(time.time() * 1000) # Current local time
+    rtt = (t4 - t1) - (t3 - t2)  # 1. Calculate Round Trip Time (RTT)
+    theta=((t2-t1)+(t3-t4))/2 # 2. Calculate Clock Offset (theta)
+    # This is how much the client must add/subtract to match the server
+    return theta, rtt
+```
+
+When the user clicks "Start All" on the dashboard, the server sends a future-dated command:
+
+- **Server Message:** `{"action": "START", "target_time": <CurrentServerTime + 500ms>}`
+
+- **Client Calculation:** Each phone calculates its own trigger time: `LocalTriggerTime = target_time - theta`.
+
+- **Result:** Every microphone triggers at the same absolute moment in time, regardless of individual network delays.
 
 ---
 
@@ -236,8 +265,6 @@ Optional body:
 
 2. **/ws/inform** - For recorders to communicate to the dashboard.
 
-
-
 **Example Message Formats :**
 
 ```json
@@ -273,7 +300,7 @@ Optional body:
 
 # Problems to be identified
 
-1. **Clock synchronization:** If the server sends a "START" command via WebSocket, Client A might receive it 10ms later, and Client B might receive it 150ms later due to network jitter. When we merge the files, the speakers will be out of sync, creating an echo or "phasing" effect. We need a mechanism to sync clocks (like a simplified NTP) or include a **timestamp** in the metadata of the audio file that records exactly when the "Record" button was triggered in Unix time (milliseconds).
+1. **~~Clock synchronization:~~** 
 
 2. **Android development:** This is the unknown territory we will be facing. A lot of LLM generated code will be required.
 
@@ -289,9 +316,7 @@ Optional body:
 
 - [REST API Introduction - GeeksforGeeks](https://www.geeksforgeeks.org/node-js/rest-api-introduction/)
 
-- [WebSockets - medium.com](https://medium.com/@omargoher/websocket-explained-what-it-is-and-how-it-works-b9eafefe28d7)
-
-- [WebSockets - medium.com](https://javascript.plainenglish.io/websocket-an-in-depth-beginners-guide-96f617c4c7a5)
+- [WebSockets - an article](https://siddharthsahu.com/websocket-an-in-depth-beginners-guide)
 
 - [mDNS - medium.com](https://medium.com/@potto_94870/understand-mdns-with-an-example-1e05ef70013b)
 

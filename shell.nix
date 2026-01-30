@@ -9,7 +9,9 @@ pkgs.mkShell {
     python3Packages.livereload
     python3Packages.httpx
     python3Packages.zeroconf
-    ty # A python lsp
+    python3Packages.pydantic
+    ty
+    ruff
     vscode-css-languageserver
     superhtml
     vscode-json-languageserver

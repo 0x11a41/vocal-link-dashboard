@@ -5,8 +5,45 @@
 	</head>
 	<body>
 		<h2>another client</h2>
-		<p id="state"></p>
+		<button id="state" style="font-size: 20px;" onClick="handleRecording()">connecting...</button>
 
-		<script src="client.js"></script>
+		<script>
+			let ws = new WebSocket("ws://localhost:6210/ws/inform");
+			const RECORDING = "Recording";
+			const STOPPED = "Stopped";
+			let state = STOPPED;
+			
+			function setState(current) {
+				const recordButton = document.getElementById("state");
+				recordButton.innerText = current;
+				if (current === RECORDING) {
+					recordButton.style.backgroundColor = "salmon";
+					} else if (current === STOPPED) {
+						recordButton.style.backgroundColor = "lightgreen";
+					}
+					state = current
+				}
+				
+				function handleRecording() {
+					if (state === STOPPED) {
+						setState(RECORDING)
+						} else {
+							setState(STOPPED)
+						}
+					}
+					
+					ws.onopen = () => setState("connected");
+					
+					ws.onmessage = (event) => {
+						let msg = JSON.parse(event.data);
+						
+						if (msg.action === "START_RECORDING") {
+							setState(RECORDING)
+							} else if (msg.action === "STOP_RECORDING") {
+								setState(STOPPED)
+							}
+							console.log("Server: " + event.data)
+						}
+		</script>
 	</body>
 </html>

@@ -5,6 +5,7 @@ from zeroconf.asyncio import AsyncZeroconf
 import socket
 import time
 import asyncio
+from backend.interfaces import SyncResponse
 
 def get_local_ip() -> str:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -43,21 +44,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.websocket("/ws/inform")
-async def handle_control_commands(ws: WebSocket):
-    await ws.accept()
-    app.state.recorders.add(ws)
-    try:
-        while True:
-            data = await ws.receive_json()
-            if app.state.controller:
-                await app.state.controller.send_json(data)
-    except WebSocketDisconnect:
-        app.state.recorders.discard(ws)
-
-
 @app.websocket("/ws/command")
-async def handle_frontend_commands(ws: WebSocket):
+async def handle_commander(ws: WebSocket):
     if app.state.controller is not None:
         print("Connection rejected. Controller already attached!")
         await ws.accept()
@@ -71,7 +59,6 @@ async def handle_frontend_commands(ws: WebSocket):
     try:
         while True:
             data = await ws.receive_json()
-            data["timestamp"] = int(time.time() * 1000)
             print(f"/ws/command: {data}")
             
             if app.state.recorders:
@@ -86,7 +73,42 @@ async def handle_frontend_commands(ws: WebSocket):
         app.state.controller = None
         print("Controller slot freed.")
 
-        
+
+@app.websocket("/ws/inform")
+async def handle_sevants(ws: WebSocket):
+    await ws.accept()
+    app.state.recorders.add(ws)
+    try:
+        while True:
+            data = await ws.receive_json()
+            print(f"/ws/inform: {data}")
+            if app.state.controller:
+                await app.state.controller.send_json(data)
+    except WebSocketDisconnect:
+        app.state.recorders.discard(ws)
+
+
+# documentation in docs/NOTES.md
+@app.websocket("/ws/sync")
+async def websocket_sync(ws: WebSocket):
+    await ws.accept()
+    while True:
+        try:
+            data = await ws.receive_json()
+            t1 = int(data.get("t1"))  # validate early
+            t2 = int(time.time() * 1000)
+            t3 = int(time.time() * 1000)
+            await ws.send_json(SyncResponse(t1=t1, t2=t2, t3=t3).model_dump())
+
+        except WebSocketDisconnect:
+            return
+        except Exception as e:
+            print("Sync error:", e)
+            break
+    await ws.close()
+
+
+
 @app.get("/session")
 async def session_info():
     return { "VOCAL_LINK": "running" }

@@ -1,3 +1,23 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
 body {
-  background-color: peachpuff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background-color: lightyellow;
+}
+
+#state {
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  background-color: lightgreen;
+  padding: 20px;
+  margin: 10px;
+  border-radius: 40px;
+  border: 8px solid grey;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
