@@ -409,7 +409,7 @@ class AppState:
             print("[error] invalid event received: " + event)
 
 
-    async def _get_trigger_time(self) -> int:
+    async def _calc_trigger_time(self) -> int:
         SAFETY_MS = 200
         MIN_DELAY = 500
         DEFAULT_DELAY = 800
@@ -440,7 +440,9 @@ class AppState:
 
 
     async def handle_ws_actions(self, msg: ActionMsg, ws: WebSocket):
-        if not await self.sessions.session_id(ws) or ws != self.dashboard.ws():
+        from_session = await self.sessions.session_id(ws)
+        from_dashboard = ws == self.dashboard.ws()
+        if not from_dashboard or not from_session:
             print("[error]! A session tried to send actions without proper handshake")
             return
 
@@ -453,10 +455,12 @@ class AppState:
         if msg.action == WSAction.START_ALL:
             action = ActionMsg(
                                action=msg.action,
-                               trigger_time= await self._get_trigger_time()
+                               trigger_time= await self._calc_trigger_time()
                            )
-            await self.sessions.broadcast(action)
-            await self.dashboard.notify(action)
+            if from_dashboard:
+                await self.sessions.broadcast(action)
+            elif from_session:
+                await self.dashboard.notify(action)
 
         elif msg.action == WSAction.START_ONE:
             session_id = msg.session_id
@@ -464,21 +468,25 @@ class AppState:
                 action = ActionMsg(
                                   action=msg.action,
                                   session_id = session_id,
-                                  trigger_time= await self._get_trigger_time()
+                                  trigger_time= await self._calc_trigger_time()
                                 )
-                await self.sessions.send_to_one(session_id, action)
-                await self.dashboard.notify(action)
+                if from_dashboard:
+                    await self.sessions.send_to_one(session_id, action)
+                elif from_session:
+                    await self.dashboard.notify(action)
                                         
-                                        
-            
         elif msg.action == WSAction.STOP_ALL:
-            await self.sessions.broadcast(msg)
-            await self.dashboard.notify(msg)
+            if from_dashboard:
+                await self.sessions.broadcast(msg)
+            elif from_session:
+                await self.dashboard.notify(msg)
             
         elif msg.action == WSAction.STOP_ONE:
             if msg.session_id:
-                await self.sessions.send_to_one(msg.session_id, msg)
-                await self.dashboard.notify(msg)
+                if from_dashboard:
+                    await self.sessions.send_to_one(msg.session_id, msg)
+                elif from_session:
+                    await self.dashboard.notify(msg)
         
 
     
