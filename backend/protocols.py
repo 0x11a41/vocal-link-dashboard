@@ -3,7 +3,7 @@ from typing import Optional, List, Dict, Union, Literal
 import asyncio
 import socket
 import time
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import WebSocket
 from pydantic import BaseModel, Field
 from zeroconf.asyncio import AsyncZeroconf, AsyncServiceInfo
 
@@ -16,11 +16,18 @@ class SessionState(str, Enum):
     UPLOADING = "uploading"
     ERROR = "error"
 
-class WSEvent(str, Enum): # these are facts that should be notified
-    SESSION_INIT = "session_init"
+class RESTEvents(str, Enum):
+    SESSION_STAGE = "session_stage" # stage request
+    SESSION_STAGED = "session_staged" # staging acknoledgement
+
+class WSEvents(str, Enum): # these are facts that should be notified
+    DASHBOARD_INIT = "dashboard_init"
     DASHBOARD_RENAME = "dashboard_rename"
     SESSION_RENAME = "session_rename"
-    SESSION_REGISTERED = "session_registered" # to update session registration to frontend
+    # events produced by server
+    SESSION_ACTIVATED = "session_activated" # to update session registration to frontend
+    SESSION_ACTIVATE = "session_activate"
+    SESSION_LEFT = "session_left"
 
 class WSActionRequest(str, Enum): # these are intents of session or dashboard
     START_ALL = "start_all"
@@ -44,33 +51,43 @@ class SessionMetadata(BaseModel):
 class ServerInfo(BaseModel):
     name: str = Field(min_length=1, max_length=50)
     ip: str
-    session_count: int
+    sessions: List[SessionMetadata]
 
 
 
 # WebSocket Payload Schemas (Discriminated)
-class BaseWSMsg(BaseModel):
-    version: float = 1.0
-    timestamp: int = Field(default_factory=lambda: int(time.time() * 1000))
-
-
-class SessionInitResponseMsg(BaseWSMsg): # session -> server -> session
-    event: Literal[WSEvent.SESSION_INIT] = WSEvent.SESSION_INIT
+class SessionStageRequestMsg(BaseModel):
+    event: Literal[RESTEvents.SESSION_STAGE] = RESTEvents.SESSION_STAGE
     body: SessionMetadata
 
-class SessionRenameMsg(BaseWSMsg): # session -> server -> dashboard
-    event: Literal[WSEvent.SESSION_RENAME] = WSEvent.SESSION_RENAME
+class SessionStageResponseMsg(BaseModel): # server -> session
+    event: Literal[RESTEvents.SESSION_STAGED] = RESTEvents.SESSION_STAGED
+    body: SessionMetadata
+
+class SessionActivateRequestMsg(BaseModel): # session -> server
+    event: Literal[WSEvents.SESSION_ACTIVATE] = WSEvents.SESSION_ACTIVATE
+    body: str # session id
+
+class SessionActivateResponseMsg(BaseModel): # server -> dashboard
+    event: Literal[WSEvents.SESSION_ACTIVATED] = WSEvents.SESSION_ACTIVATED
+    body: SessionMetadata
+
+class SessionLeftMsg(BaseModel):
+    event: Literal[WSEvents.SESSION_LEFT] = WSEvents.SESSION_LEFT
+    body: SessionMetadata
+    
+class DashboardInitMsg(BaseModel): # dashboard -> server
+    event: Literal[WSEvents.DASHBOARD_INIT] = WSEvents.DASHBOARD_INIT
+    body: Optional[str] = None
+
+class SessionRenameMsg(BaseModel): # session -> server -> dashboard
+    event: Literal[WSEvents.SESSION_RENAME] = WSEvents.SESSION_RENAME
     session_id: str
     body: str # new_name
 
-class DashboardRenameMsg(BaseWSMsg): # dashboard -> server -> sessions
-    event: Literal[WSEvent.DASHBOARD_RENAME] = WSEvent.DASHBOARD_RENAME
+class DashboardRenameMsg(BaseModel): # dashboard -> server -> sessions
+    event: Literal[WSEvents.DASHBOARD_RENAME] = WSEvents.DASHBOARD_RENAME
     body: str # new_name
-
-# informs dashboard that a new device just joined, send on ws connection success
-class SessionInitReportMsg(BaseWSMsg): # server -> dashboard
-    event: Literal[WSEvent.SESSION_REGISTERED] = WSEvent.SESSION_REGISTERED
-    body: SessionMetadata
 
 # to contain action messages like start_all, end_all...
 class ActionMsg(BaseModel): # bidirectional
@@ -78,11 +95,15 @@ class ActionMsg(BaseModel): # bidirectional
     session_id: Optional[str] = None
     trigger_time: Optional[int] = None
 
+
+
 WSPayload = Union[
-    SessionInitResponseMsg,
+    DashboardInitMsg,
     SessionRenameMsg,
     DashboardRenameMsg,
-    SessionInitReportMsg,
+    SessionActivateRequestMsg,
+    SessionActivateResponseMsg,
+    SessionLeftMsg,
     ActionMsg,
 ]
 
@@ -109,36 +130,31 @@ class DashboardHandler:
         self._dashboard: Optional[WebSocket] = None
         self.lock = asyncio.Lock()
 
+    def ws(self) -> Optional[WebSocket]:
+        return self._dashboard
 
-    async def connect(self, ws: WebSocket):
-        await ws.accept()
+    async def assign(self, ws: WebSocket):
         async with self.lock:
-            self._dashboard = ws
+            if self._dashboard is None:
+                self._dashboard = ws
 
 
-    async def disconnect(self):
+    async def drop(self):
         async with self.lock:
-            if not self._dashboard:
-                return
-            try:
-                await self._dashboard.close()
-            except Exception:
-                pass
             self._dashboard = None
 
 
-    async def notify(self, data: WSPayload):
-        async with self.lock:
-            ws = self._dashboard
-        if not ws:
+    async def notify(self, payload: WSPayload):
+        if not self._dashboard:
+            print("failed to update UI: dashboard is offline")
             return
         try:
-            await ws.send_json(data.model_dump())
+            await self._dashboard.send_json(payload.model_dump())
         except Exception:
-            await self.disconnect()
+            pass
 
 
-    async def is_active(self) -> bool:
+    async def available(self) -> bool:
         async with self.lock:
             return self._dashboard is not None
 
@@ -147,81 +163,76 @@ class DashboardHandler:
 
 class SessionsHandler: # thread safe
     def __init__(self):
-        self._sessions: Dict[str, Dict] = {}
-        self.lock = asyncio.Lock()
-        self._pending_sessions: Dict[str, SessionMetadata] = {} # session_id, meta
-        self.pending_lock = asyncio.Lock()
+        self._active: Dict[str, Dict] = {}
+        self._active_lock = asyncio.Lock()
+        self._staging: Dict[str, SessionMetadata] = {} # session_id, meta
+        self._staging_lock = asyncio.Lock()
 
 
     async def getAllMeta(self) -> List[SessionMetadata]:
-        async with self.lock:
-            return [s["meta"] for s in self._sessions.values()]
+        async with self._active_lock:
+            return [s["meta"] for s in self._active.values()]
 
 
     async def count(self) -> int:
-        async with self.lock:
-            return len(self._sessions)
+        async with self._active_lock:
+            return len(self._active)
 
 
     async def is_active(self, session_id: str) -> bool:
-        async with self.lock:
-            return session_id in self._sessions
+        async with self._active_lock:
+            return session_id in self._active
 
 
     async def exists(self, session_id: str) -> bool:
-        async with self.lock, self.pending_lock:
-            return (
-                session_id in self._sessions or
-                session_id in self._pending_sessions
-            )
+        async with self._staging_lock:
+            async with self._active_lock:
+                return (session_id in self._active or session_id in self._staging)
 
 
     async def getMeta(self, session_id: str) -> Optional[SessionMetadata]:
-        async with self.lock:
-            s = self._sessions.get(session_id)
+        async with self._active_lock:
+            s = self._active.get(session_id)
             return s["meta"] if s else None
 
 
+    # puts metadata into staging
     async def stage(self, meta: SessionMetadata) -> None:
-        async with self.pending_lock:
-            self._pending_sessions[meta.id] = meta
+        async with self._staging_lock:
+            self._staging[meta.id] = meta
+            print(self._staging)
 
-
-    async def claim(self, session_id: str, session_ws: WebSocket) -> SessionMetadata | None:
-        async with self.pending_lock:
-            meta = self._pending_sessions.pop(session_id, None)
+    # release session_id entry from staging and put it into active 
+    async def commit(self, session_id: str, session_ws: WebSocket) -> SessionMetadata | None:
+        async with self._staging_lock:
+            meta = self._staging.pop(session_id, None)
         if not meta:
             return None
 
-        async with self.lock:
-            self._sessions[meta.id] = { "meta": meta, "ws": session_ws }
+        async with self._active_lock:
+            self._active[meta.id] = { "meta": meta, "ws": session_ws }
         return meta
 
 
-    async def terminate(self, session_id: str) -> None:
-        async with self.lock:
-            session = self._sessions.get(session_id)
+    async def drop(self, session_id: str):
+        async with self._active_lock:
+            session = self._active.get(session_id)
             if not session:
                 return
-            try:
-                await session["ws"].close()
-            except Exception:
-                pass
-
-            del self._sessions[session_id]
+            del self._active[session_id]
 
 
     async def send_to_one(self, session_id: str, data: WSPayload) -> None:
-        async with self.lock:
-            session = self._sessions.get(session_id)
+        async with self._active_lock:
+            session = self._active.get(session_id)
         if not session:
             return
         await session["ws"].send_json(data.model_dump())
 
 
     async def broadcast(self, data: WSPayload) -> None:
-        async with self.lock:
-            session_ids = list(self._sessions.keys())
+        async with self._active_lock:
+            session_ids = list(self._active.keys())
         dead = []
         for sid in session_ids:
             try:
@@ -230,7 +241,7 @@ class SessionsHandler: # thread safe
                 dead.append(sid)
 
         for sid in dead:
-            await self.terminate(sid)
+            await self.drop(sid)
 
     
     async def update_sync(self, session_id: str, report: SyncReport):
@@ -238,11 +249,19 @@ class SessionsHandler: # thread safe
         if not meta:
             return
 
-        async with self.lock:
+        async with self._active_lock:
             meta.theta = report.theta
             meta.last_rtt = report.rtt
             meta.last_sync = int(time.time() * 1000)
 
+
+    async def session_id(self, ws: WebSocket) -> Optional[str]:
+        async with self._active_lock:
+            for session_id, data in self._active.items():
+                if data["ws"] is ws:
+                    return session_id
+        return None
+        
 
 
 class SyncHandler:
@@ -303,19 +322,16 @@ class AppState:
 
         self.dashboard: DashboardHandler = DashboardHandler()
         self.sessions: SessionsHandler = SessionsHandler()
-        self.sync: SyncHandler = SyncHandler()
+        self.clock: SyncHandler = SyncHandler()
 
         self.mdns: AsyncZeroconf = AsyncZeroconf()
         self.mdns_conf: Optional[AsyncServiceInfo] = None
-
-        self.sync_channels: dict[str, WebSocket] = {}
-        self.sync_lock = asyncio.Lock()
 
     async def server_info(self) -> ServerInfo:
         return ServerInfo(
             name=self.name,
             ip=self.ip,
-            session_count = await self.sessions.count()
+            sessions=await self.sessions.getAllMeta()
         )
 
     def _make_mdns_conf(self) -> AsyncServiceInfo:
@@ -362,3 +378,56 @@ class AppState:
         if self.mdns_conf:
             await self.mdns.async_unregister_service(self.mdns_conf)
         await self.mdns.async_close()
+
+
+    async def handle_ws_events(self, data, ws: WebSocket):
+        event: WSEvents = data.get("event")
+
+        if event == WSEvents.DASHBOARD_INIT:
+            await self.dashboard.assign(ws)            
+            print("dashboard online.")
+
+        elif event == WSEvents.DASHBOARD_RENAME:
+            payload = DashboardRenameMsg.model_validate(data)            
+            await self.sessions.broadcast(payload)
+
+        elif event == WSEvents.SESSION_RENAME:
+            payload = SessionRenameMsg.model_validate(data)
+            await self.dashboard.notify(payload)
+
+        elif event == WSEvents.SESSION_ACTIVATE:
+            request = SessionActivateRequestMsg.model_validate(data)
+            session_id = str(request.body)
+            sessionMeta = await self.sessions.commit(session_id, ws)
+            if not sessionMeta:
+                print(session_id + "was not found in staging area")
+                return
+
+            await self.dashboard.notify(SessionActivateResponseMsg(body=sessionMeta))
+
+        else:
+            print("[error] invalid event received: " + event)
+
+
+    async def handle_ws_actions(self, data, ws: WebSocket):
+        pass
+
+    
+    async def handle_disconnect(self, ws: WebSocket):
+        if ws == self.dashboard.ws():
+            await self.dashboard.drop()
+            print("dashboard went offline.")
+            return
+
+        session_id = await self.sessions.session_id(ws)
+        if session_id:
+            meta = await self.sessions.getMeta(session_id)
+            meta and await self.dashboard.notify(SessionLeftMsg(body=meta))
+
+            await self.sessions.drop(session_id)
+            await self.clock.remove(session_id)
+
+
+            print("session [" + session_id + "] disconnected.")
+        else:
+            print("unknown session disconnected")

@@ -4,7 +4,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uuid
 
-from backend.protocols import AppState, SessionMetadata, SessionState, SessionInitReportMsg, WSActionRequest, ActionMsg, SyncResponse, SyncReport, SyncRequest, SessionInitResponseMsg
+from backend.protocols import (
+    AppState, 
+    SessionState,
+    SessionStageRequestMsg, 
+    SessionStageResponseMsg, 
+    SyncRequest, 
+    SyncReport,
+    ServerInfo,
+)
+
 
 
 app_state = AppState(port = 6210) # source of truth
@@ -26,63 +35,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.websocket("/ws/command")
-async def handle_commander(ws: WebSocket):
-    if await app_state.dashboard.is_active():
-        await ws.accept()
-        await ws.send_json({"error": "ALREADY_CONNECTED"})
-        await ws.close(code=1008)
-        return
-
-    await app_state.dashboard.connect(ws)
-    sessionMetas = await app_state.sessions.getAllMeta()
-
-    for meta in sessionMetas:
-        await ws.send_json(SessionInitReportMsg(body=meta).model_dump())
-
+@app.websocket("/ws/control")
+async def orchistrate_messages(ws: WebSocket):
+    await ws.accept()
     try:
         while True:
             data = await ws.receive_json()
-            if "action" not in data:
-                await ws.send_json({"error": "MISSING_ACTION"})
-                continue
-
-            try:
-                action = WSActionRequest(data["action"])
-            except ValueError:
-                await ws.send_json({"error": "INVALID_ACTION"})
-                continue
-
-            payload = ActionMsg(action=action)
-            if action in (WSActionRequest.START_ALL, WSActionRequest.STOP_ALL):
-                await app_state.sessions.broadcast(payload.model_dump())
-
-            elif action in (WSActionRequest.START_ONE, WSActionRequest.STOP_ONE):
-                session_id = data.get("session_id")
-                if not session_id:
-                    await ws.send_json({"error": "MISSING_SESSION_ID"})
-                    continue
-
-                await app_state.sessions.send_to_one(
-                    session_id,
-                    payload.model_dump()
-                )
+            if "event" in data:
+                await app_state.handle_ws_events(data, ws)
+            elif "action" in data:
+                await app_state.handle_ws_actions(data, ws)
             else:
-                await ws.send_json({
-                    "error": "UNKNOWN_ACTION",
-                    "action": action.value
-                })
+                ws.send_json({"error": "INVALID_MESSAGE"})
+                
     except WebSocketDisconnect:
-        print("Dashboard disconnected")
+        await app_state.handle_disconnect(ws)
     except Exception as e:
-        print("Dashboard error:", e)
-    finally:
-        await app_state.dashboard.disconnect()
-
-
-@app.websocket("/ws/inform")
-async def handle_sessions(ws: WebSocket):
-    pass
+        print("/ws/control: unexpected problem: ", e)
+        try:
+            await ws.close()
+        except Exception:
+            pass
 
 
 @app.websocket("/ws/sync/{session_id}")
@@ -92,16 +65,16 @@ async def sync_endpoint(websocket: WebSocket, session_id: str):
         return
 
     await websocket.accept()
-    await app_state.sync.add(session_id, websocket)
+    await app_state.clock.add(session_id, websocket)
     try:
         while True:
-            if not await app_state.sync.get(session_id):
+            if not await app_state.clock.get(session_id):
                 return
 
             data = await websocket.receive_json()
             if "t1" in data:
-                req = SyncRequest.model_validate(data)
-                await app_state.sync.handle_ping(session_id, req)
+                req: SyncRequest = SyncRequest.model_validate(data)
+                await app_state.clock.handle_ping(session_id, req)
             elif "theta" in data:
                 report = SyncReport.model_validate(data)
                 await app_state.sessions.update_sync(session_id, report)
@@ -110,25 +83,19 @@ async def sync_endpoint(websocket: WebSocket, session_id: str):
         meta = await app_state.sessions.getMeta(session_id)
         print(f"Sync disconnected: {meta and meta.name}")
     finally:
-        await app_state.sync.remove(session_id)
+        await app_state.clock.remove(session_id)
 
 
 
-@app.get("/dashboard")
+@app.get("/dashboard", response_model=ServerInfo)
 async def getServerInfo():
-    serverinfo = await app_state.server_info()
-    return serverinfo.model_dump()
+    return await app_state.server_info()
 
 
-@app.post("/sessions", response_model=SessionInitResponseMsg)
-async def register_session(meta: SessionMetadata):
-    session_id = str(uuid.uuid4())
+@app.post("/sessions", response_model=SessionStageResponseMsg)
+async def stage_session(req: SessionStageRequestMsg):
+    req.body.id = str(uuid.uuid4())
+    req.body.state = SessionState.IDLE
 
-    meta.id = session_id
-    meta.state = SessionState.IDLE
-    meta.theta = 0.0 # latency
-    meta.last_rtt = 0.0 # round trip time
-    meta.last_sync = None # to resync
-
-    await app_state.sessions.stage(meta)
-    return SessionInitResponseMsg(body=meta).model_dump()
+    await app_state.sessions.stage(req.body)
+    return SessionStageResponseMsg(body=req.body).model_dump()
