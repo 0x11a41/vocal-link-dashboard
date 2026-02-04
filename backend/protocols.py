@@ -164,58 +164,56 @@ class DashboardHandler:
 class SessionsHandler: # thread safe
     def __init__(self):
         self._active: Dict[str, Dict] = {}
-        self._active_lock = asyncio.Lock()
         self._staging: Dict[str, SessionMetadata] = {} # session_id, meta
-        self._staging_lock = asyncio.Lock()
+        self._lock = asyncio.Lock()
 
 
     async def getAllMeta(self) -> List[SessionMetadata]:
-        async with self._active_lock:
+        async with self._lock:
             return [s["meta"] for s in self._active.values()]
 
 
     async def count(self) -> int:
-        async with self._active_lock:
+        async with self._lock:
             return len(self._active)
 
 
     async def is_active(self, session_id: str) -> bool:
-        async with self._active_lock:
+        async with self._lock:
             return session_id in self._active
 
 
     async def exists(self, session_id: str) -> bool:
-        async with self._staging_lock:
-            async with self._active_lock:
-                return (session_id in self._active or session_id in self._staging)
+        async with self._lock:
+            return (session_id in self._active or session_id in self._staging)
 
 
     async def getMeta(self, session_id: str) -> Optional[SessionMetadata]:
-        async with self._active_lock:
+        async with self._lock:
             s = self._active.get(session_id)
             return s["meta"] if s else None
 
 
     # puts metadata into staging
     async def stage(self, meta: SessionMetadata) -> None:
-        async with self._staging_lock:
+        async with self._lock:
             self._staging[meta.id] = meta
             print(self._staging)
 
     # release session_id entry from staging and put it into active 
     async def commit(self, session_id: str, session_ws: WebSocket) -> SessionMetadata | None:
-        async with self._staging_lock:
+        async with self._lock:
             meta = self._staging.pop(session_id, None)
         if not meta:
             return None
 
-        async with self._active_lock:
+        async with self._lock:
             self._active[meta.id] = { "meta": meta, "ws": session_ws }
         return meta
 
 
     async def drop(self, session_id: str):
-        async with self._active_lock:
+        async with self._lock:
             session = self._active.get(session_id)
             if not session:
                 return
@@ -223,7 +221,7 @@ class SessionsHandler: # thread safe
 
 
     async def send_to_one(self, session_id: str, data: WSPayload) -> None:
-        async with self._active_lock:
+        async with self._lock:
             session = self._active.get(session_id)
         if not session:
             return
@@ -231,7 +229,7 @@ class SessionsHandler: # thread safe
 
 
     async def broadcast(self, data: WSPayload) -> None:
-        async with self._active_lock:
+        async with self._lock:
             session_ids = list(self._active.keys())
         dead = []
         for sid in session_ids:
@@ -249,14 +247,14 @@ class SessionsHandler: # thread safe
         if not meta:
             return
 
-        async with self._active_lock:
+        async with self._lock:
             meta.theta = report.theta
             meta.last_rtt = report.rtt
             meta.last_sync = int(time.time() * 1000)
 
 
     async def session_id(self, ws: WebSocket) -> Optional[str]:
-        async with self._active_lock:
+        async with self._lock:
             for session_id, data in self._active.items():
                 if data["ws"] is ws:
                     return session_id
