@@ -1,0 +1,4 @@
+{ "kind": "action", "msg_type": "start_one", "body": { "session_id": "cam_001", "trigger_time": 1707135000000 } }
+{ "kind": "event", "msg_type": "session_activated", "body": { "id": "node_42", "name": "Thermal_Sensor", "ip": "192.168.1.15", "state": "idle", "battery_level": 85, "theta": 0.012, "last_rtt": 4.5 } }
+{ "kind": "event", "msg_type": "session_rename", "body": { "new_name": "Living_Room_Camera", "session_id": "node_42"  } }
+{ "kind": "event", "msg_type": "dashboard_init", "body": null }
