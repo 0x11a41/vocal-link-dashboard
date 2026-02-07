@@ -56,7 +56,7 @@ class WSKind(str, Enum):
     ERROR= "error"
 
 class WSErrors(str, Enum):
-    INVALID_KIND = "invlaid_kind" # kind field is invalid inside payload
+    INVALID_KIND = "invalid_kind" # kind field is invalid inside payload
     INVALID_EVENT = "invalid_event" # event field is invalid
     INVALID_BODY = "invalid_body" # couldn't validate body
     ACTION_NOT_ALLOWED = "action_not_allowed"
@@ -119,18 +119,25 @@ class DashboardHandler:
         self._dashboard: Optional[WebSocket] = None
         self.lock = asyncio.Lock()
 
+
     def ws(self) -> Optional[WebSocket]:
         return self._dashboard
 
+
     async def assign(self, ws: WebSocket):
         async with self.lock:
-            if self._dashboard is None:
-                self._dashboard = ws
+            if self._dashboard and self._dashboard != ws:
+                try:
+                    await self._dashboard.close()
+                except Exception:
+                    pass 
+            self._dashboard = ws
 
 
-    async def drop(self):
+    async def drop(self, ws: WebSocket):
         async with self.lock:
-            self._dashboard = None
+            if self._dashboard == ws:
+                self._dashboard = None
 
 
     async def notify(self, payload: WSPayload):
@@ -212,8 +219,10 @@ class SessionsHandler: # thread safe
     async def commit(self, session_id: str, session_ws: WebSocket) -> Optional[SessionMetadata]:
         async with self._lock:
             meta = self._staging.pop(session_id, None)
+        
             if not meta:
                 if session_id in self._active:
+                    self._active[session_id].ws = session_ws
                     return self._active[session_id].meta
                 return None
 
@@ -437,6 +446,10 @@ class AppState:
                 rename = Rename.model_validate(payload.body)
             except ValidationError:
                 await send_error(ws, WSErrors.INVALID_BODY)
+                try:
+                    ws.close(code=1007)
+                except Exception:
+                    pass
                 return
 
             await self.rename(rename)
@@ -447,6 +460,10 @@ class AppState:
                 rename = Rename.model_validate(payload.body)
             except ValidationError:
                 await send_error(ws, WSErrors.INVALID_BODY)
+                try:
+                    ws.close(code=1007)
+                except Exception:
+                    pass
                 return
             
             await self.dashboard.notify(payload)
@@ -457,12 +474,20 @@ class AppState:
                 meta = SessionMetadata.model_validate(payload.body)
             except ValidationError:
                 await send_error(ws, WSErrors.INVALID_BODY)
+                try:
+                    ws.close(code=1007)
+                except Exception:
+                    pass
                 return
 
             session_id = meta.id
             sessionMeta = await self.sessions.commit(session_id, ws)
             if not sessionMeta:
-                print(session_id + "was not found in staging area")
+                send_error(ws, WSErrors.SESSION_NOT_FOUND)
+                try:
+                    ws.close(code=1007)
+                except Exception:
+                    pass
                 return
 
             await self.dashboard.notify(WSPayload(
@@ -477,6 +502,10 @@ class AppState:
                 meta = SessionMetadata.model_validate(payload.body)
             except ValidationError:
                 await send_error(ws, WSErrors.INVALID_BODY)
+                try:
+                    ws.close(code=1007)
+                except Exception:
+                    pass
                 return
 
             await self.dashboard.notify(payload)
@@ -487,6 +516,10 @@ class AppState:
 
         else:
             await send_error(ws, WSErrors.INVALID_EVENT)
+            try:
+                ws.close(code=1007)
+            except Exception:
+                pass
 
 
     async def handle_ws_actions(self, payload: WSPayload, ws: WebSocket):
@@ -498,6 +531,10 @@ class AppState:
         if not from_dashboard and not from_session:
             print("[error] Unauthenticated action sender")
             await send_error(ws, WSErrors.ACTION_NOT_ALLOWED)
+            try:
+                ws.close(code=1007)
+            except Exception:
+                pass
             return
 
         action_type = payload.msg_type
@@ -505,6 +542,10 @@ class AppState:
         if action_type in (WSActions.START_ALL, WSActions.START_ONE) and not from_dashboard:
             print("[warn] Session attempted to start recording")
             await send_error(ws, WSErrors.ACTION_NOT_ALLOWED)
+            try:
+                ws.close(code=1007)
+            except Exception:
+                pass
             return
 
         trigger = None
@@ -551,7 +592,7 @@ class AppState:
     
     async def handle_disconnect(self, ws: WebSocket):
         if ws == self.dashboard.ws():
-            await self.dashboard.drop()
+            await self.dashboard.drop(ws)
             print("dashboard went offline.")
             return
 

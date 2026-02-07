@@ -13,8 +13,8 @@ from backend.protocols import (
     ServerInfo,
     WSPayload,
     WSKind,
-    send_error,
     WSErrors,
+    send_error,
 )
 
 
