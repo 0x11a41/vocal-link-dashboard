@@ -1,3 +1,42 @@
+export var RESTEvents;
+(function (RESTEvents) {
+    RESTEvents["SESSION_STAGE"] = "session_stage";
+    RESTEvents["SESSION_STAGED"] = "session_staged";
+})(RESTEvents || (RESTEvents = {}));
+export var WSKind;
+(function (WSKind) {
+    WSKind["ACTION"] = "action";
+    WSKind["EVENT"] = "event";
+    WSKind["ERROR"] = "error";
+})(WSKind || (WSKind = {}));
+export var WSErrors;
+(function (WSErrors) {
+    WSErrors["INVALID_KIND"] = "invalid_kind";
+    WSErrors["INVALID_EVENT"] = "invalid_event";
+    WSErrors["INVALID_BODY"] = "invalid_body";
+    WSErrors["ACTION_NOT_ALLOWED"] = "action_not_allowed";
+    WSErrors["SESSION_NOT_FOUND"] = "session_not_found";
+})(WSErrors || (WSErrors = {}));
+export var WSEvents;
+(function (WSEvents) {
+    WSEvents["DASHBOARD_INIT"] = "dashboard_init";
+    WSEvents["DASHBOARD_RENAME"] = "dashboard_rename";
+    WSEvents["SESSION_RENAME"] = "session_rename";
+    WSEvents["SESSION_ACTIVATE"] = "session_activate";
+    WSEvents["SESSION_ACTIVATED"] = "session_activated";
+    WSEvents["SESSION_LEFT"] = "session_left";
+    WSEvents["SESSION_SELF_START"] = "session_self_start";
+    WSEvents["SESSION_SELF_STOP"] = "session_self_stop";
+    WSEvents["SUCCESS"] = "success";
+    WSEvents["FAIL"] = "failed";
+})(WSEvents || (WSEvents = {}));
+export var WSActions;
+(function (WSActions) {
+    WSActions["START_ALL"] = "start_all";
+    WSActions["STOP_ALL"] = "stop_all";
+    WSActions["START_ONE"] = "start_one";
+    WSActions["STOP_ONE"] = "stop_one";
+})(WSActions || (WSActions = {}));
 class VLApp {
     URL = "http://localhost:6210";
     ws = null;
@@ -9,7 +48,7 @@ class VLApp {
             if (!res.ok)
                 return false;
             this.server = await res.json();
-            this.ws = new WebSocket(this.URL.replace(/^http/, "ws") + "/ws/command");
+            this.ws = new WebSocket(this.URL.replace(/^http/, "ws") + "/ws/control");
             this.ws.onmessage = (ev) => {
                 const msg = JSON.parse(ev.data);
                 console.log(msg);
@@ -47,4 +86,3 @@ app.setup().then((ok) => {
     }
     render(app);
 });
-export {};

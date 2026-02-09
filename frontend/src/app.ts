@@ -1,17 +1,88 @@
-interface SessionMetadata {
+export interface SessionMetadata {
   id: string;
   name: string;
   ip: string;
   battery_level: number;
-  theta: number;
-  last_rtt: number;
-  last_sync?: number;  
+  theta: number; 
+  last_rtt: number; 
+  last_sync?: number | null;
 }
 
-interface ServerInfo {
+export interface ServerInfo {
   name: string;
   ip: string;
   active_sessions: number;
+}
+
+export enum RESTEvents {
+  SESSION_STAGE = "session_stage",
+  SESSION_STAGED = "session_staged",
+}
+
+export interface SessionStageRequestMsg {
+  event: RESTEvents.SESSION_STAGE;
+  body: SessionMetadata;
+}
+
+export interface SessionStageResponseMsg {
+  event: RESTEvents.SESSION_STAGED;
+  body: SessionMetadata;
+}
+
+export enum WSKind {
+  ACTION = "action",
+  EVENT = "event",
+  ERROR = "error",
+}
+
+export enum WSErrors {
+  INVALID_KIND = "invalid_kind",
+  INVALID_EVENT = "invalid_event",
+  INVALID_BODY = "invalid_body",
+  ACTION_NOT_ALLOWED = "action_not_allowed",
+  SESSION_NOT_FOUND = "session_not_found",
+}
+
+export enum WSEvents {
+  DASHBOARD_INIT = "dashboard_init",
+  DASHBOARD_RENAME = "dashboard_rename",
+  SESSION_RENAME = "session_rename",
+  SESSION_ACTIVATE = "session_activate",
+  SESSION_ACTIVATED = "session_activated",
+  SESSION_LEFT = "session_left",
+  SESSION_SELF_START = "session_self_start",
+  SESSION_SELF_STOP = "session_self_stop",
+  SUCCESS = "success",
+  FAIL = "failed",
+}
+
+export enum WSActions {
+  START_ALL = "start_all",
+  STOP_ALL = "stop_all",
+  START_ONE = "start_one",
+  STOP_ONE = "stop_one",
+}
+
+export interface Rename {
+  new_name: string;
+  session_id?: string | null;
+}
+
+export interface WSActionTarget {
+  session_id?: string | null;
+  trigger_time?: number | null;
+}
+
+export interface WSPayload {
+  kind: WSKind;
+  msg_type: WSActions | WSEvents | WSErrors;
+  body?: SessionMetadata | WSActionTarget | Rename | null;
+}
+
+export interface QRData {
+  type: "vocal_link_server";
+  name: string;
+  ip: string;
 }
 
 class VLApp {
@@ -26,7 +97,7 @@ class VLApp {
       if (!res.ok) return false;
       this.server = await res.json();
 
-      this.ws = new WebSocket(this.URL.replace(/^http/, "ws") + "/ws/command");
+      this.ws = new WebSocket(this.URL.replace(/^http/, "ws") + "/ws/control");
 
       this.ws.onmessage = (ev) => {
         const msg = JSON.parse(ev.data);
