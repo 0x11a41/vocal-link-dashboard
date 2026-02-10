@@ -13,6 +13,7 @@ pkgs.mkShell {
     python3Packages.qrcode
     python3Packages.faster-whisper
     python3Packages.pillow
+    python3Packages.pydub
     ty
     ruff
     vscode-css-languageserver
