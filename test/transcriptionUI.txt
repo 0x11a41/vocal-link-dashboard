@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Transcription UI</title>
+
+<style>
+body {
+    font-family: "Segoe UI", sans-serif;
+    background: #f3f4f6;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+.card {
+    width: 520px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px;
+}
+
+/* Header */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.icon {
+    width: 18px;
+    height: 18px;
+    stroke: #374151;
+}
+
+.icon-btn.success .icon {
+    stroke: #22c55e; /* green tick */
+}
+
+/* Close button (short & minimal) */
+.close-btn {
+    font-size: 10px;
+    line-height: 1;
+    color: #374151;
+    padding: 2px;
+}
+
+.close-btn:hover {
+    color: #ef4444;
+}
+
+/* Content */
+.content {
+    margin-top: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.person {
+    font-size: 13px;
+    font-weight: 600;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.text {
+    font-size: 14px;
+    color: #374151;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* scrollbar */
+.content::-webkit-scrollbar {
+    width: 6px;
+}
+.content::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 6px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="card">
+    <div class="header">
+
+        <!-- Copy / Tick button -->
+        <button id="copyBtn" class="icon-btn" onclick="copyText()" title="Copy">
+            <!-- Copy icon -->
+            <svg id="copyIcon" class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+
+            <!-- Tick icon -->
+            <svg id="tickIcon" class="icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+                <path d="M5 13l4 4L19 7"></path>
+            </svg>
+        </button>
+
+        <div class="title">Transcription of interview_host_final.m4a</div>
+
+        <!-- Close button -->
+        <button class="icon-btn close-btn" onclick="closeCard()" title="Close">✕</button>
+    </div>
+
+    <div class="content">
+        <div class="person">~ Harli</div>
+
+        <div id="transcript" class="text">
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla id ligula ac metus laoreet molestie nec vel tellus. In hac habitasse platea dictumst. Phasellus tempus eget orci id vulputate. Nunc neque metus, sollicitudin a ornare in, maximus vel metus. Cras interdum quam sit amet sem tincidunt fringilla. Vestibulum luctus vehicula gravida.
+
+Quisque aliquam non ipsum eu finibus. Proin ultrices vitae augue sit amet pellentesque. Sed ex orci, hendrerit nec odio nec, sagittis porta ipsum. Vestibulum augue tortor, congue et efficitur eu, egestas rutrum diam. Fusce dignissim erat a risus varius mollis.
+        </div>
+    </div>
+</div>
+
+<script>
+function copyText() {
+    const person = document.querySelector(".person").innerText;
+    const text = document.getElementById("transcript").innerText;
+
+    navigator.clipboard.writeText(person + "\n\n" + text);
+
+    const copyIcon = document.getElementById("copyIcon");
+    const tickIcon = document.getElementById("tickIcon");
+    const btn = document.getElementById("copyBtn");
+
+    copyIcon.style.display = "none";
+    tickIcon.style.display = "block";
+    btn.classList.add("success");
+
+    setTimeout(() => {
+        copyIcon.style.display = "block";
+        tickIcon.style.display = "none";
+        btn.classList.remove("success");
+    }, 1500);
+}
+
+function closeCard() {
+    document.querySelector(".card").style.display = "none";
+}
+</script>
+
+</body>
+</html>
