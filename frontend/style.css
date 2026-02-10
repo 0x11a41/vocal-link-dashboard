@@ -39,7 +39,89 @@ body {
   overflow: hidden;
 }
 
+/* ======================= icons ========================= */
+.record-icon {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 19'%3E%3Cpath fill='white' d='M7 0C7.79565 0 8.55871 0.316071 9.12132 0.87868C9.68393 1.44129 10 2.20435 10 3V9C10 9.79565 9.68393 10.5587 9.12132 11.1213C8.55871 11.6839 7.79565 12 7 12C6.20435 12 5.44129 11.6839 4.87868 11.1213C4.31607 10.5587 4 9.79565 4 9V3C4 2.20435 4.31607 1.44129 4.87868 0.87868C5.44129 0.316071 6.20435 0 7 0ZM14 9C14 12.53 11.39 15.44 8 15.93V19H6V15.93C2.61 15.44 0 12.53 0 9H2C2 10.3261 2.52678 11.5979 3.46447 12.5355C4.40215 13.4732 5.67392 14 7 14C8.32608 14 9.59785 13.4732 10.5355 12.5355C11.4732 11.5979 12 10.3261 12 9H14Z'/%3E%3C/svg%3E");
+  background-size: 18px;
+}
+
+.stop-icon {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: var(--danger);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6' y='6' width='12' height='12' fill='white'/%3E%3C/svg%3E");
+  background-size: 24px;
+}
+
+.play-icon {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-color: var(--accent);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14'%3E%3Cpath d='M0 0V14L12 7L0 0Z' fill='white'/%3E%3C/svg%3E");
+  background-position: calc(50% + 2px) center;
+  background-size: 18px;
+}
+
+.pause-icon {
+  background-color: var(--accent);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M0 0H4V14H0V0ZM6 0H10V14H6V0Z' fill='white'/%3E%3C/svg%3E");
+  background-size: 15px;
+}
+
+.enhance-icon {
+  background-color: var(--border);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M11.4545 0L10.6527 1.75L8.90909 2.54545L10.6527 3.34727L11.4545 5.09091L12.25 3.34727L14 2.54545L12.25 1.75M5.09091 1.90909L3.5 5.40909L0 7L3.5 8.59091L5.09091 12.0909L6.68182 8.59091L10.1818 7L6.68182 5.40909M11.4545 8.90909L10.6527 10.6527L8.90909 11.4545L10.6527 12.25L11.4545 14L12.25 12.25L14 11.4545L12.25 10.6527' fill='%23777'/%3E%3C/svg%3E");
+  background-size: 20px;
+}
+
+.transcript-icon {
+  background-color: var(--border);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 4C20.5304 4 21.0391 4.21071 21.4142 4.58579C21.7893 4.96086 22 5.46957 22 6V18C22 18.5304 21.7893 19.0391 21.4142 19.4142C21.0391 19.7893 20.5304 20 20 20H4C3.46957 20 2.96086 19.7893 2.58579 19.4142C2.21071 19.0391 2 18.5304 2 18V6C2 5.46957 2.21071 4.96086 2.58579 4.58579C2.96086 4.21071 3.46457 4 4 4H20ZM20 18V6H4V18H20ZM6 10H8V12H6V10ZM6 14H14V16H6V14ZM16 14H18V16H16V14ZM10 10H18V12H10V10Z' fill='%23777'/%3E%3C/svg%3E");
+  background-size: 22px;
+  background-position: calc(50% + 1px) center;
+}
+
+.trash-icon {
+  background-color: #F49999;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20.37 8.91L19.37 10.64L7.24 3.64L8.24 1.91L11.28 3.66L12.64 3.29L16.97 5.79L17.34 7.16L20.37 8.91ZM6 19V7H11.07L18 11V19C18 19.5305 17.7893 20.0392 17.4142 20.4142C17.0391 20.7893 16.5304 21 16 21H8C7.46957 21 6.96086 20.7893 6.58579 20.4142C6.21071 20.0392 6 19.5305 6 19Z' fill='%237C1212'/%3E%3C/svg%3E");
+  background-size: 26px;
+  background-position: calc(50% + 1px) center;
+}
+
+
+
 /* ================== Generic classess ================ */
+button {
+  padding: 0.7rem 1.2rem;
+  border: 0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: var(--border);
+  margin: 4px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+}
+
+button:hover:not(.accent) {
+  filter: brightness(1.05);
+}
+
+button:active:not(.accent) {
+  filter: brightness(1.00);
+}
+
 .btn-circle {
   border-radius: 50%;
   width: 45px;
@@ -52,12 +134,38 @@ body {
 }
 
 .btn-circle:hover {
-  filter: brightness(1.1);
+  filter: brightness(1.05);
   cursor: pointer;
 }
 
 .btn-circle:active {
   filter: brightness(0.95);
+}
+
+.accent {
+  background-color: var(--accent);
+  color: white;
+}
+
+.accent:hover {
+  background-color: var(--accent-hover);
+}
+
+.accent:active {
+  background-color: var(--accent);
+}
+
+.immutable {
+  background-color: #F49999;
+  color: #7C1212;
+}
+
+.immutable:hover {
+  filter: brightness(1.05);
+}
+
+.immutable:active {
+  filter: brightness(1.00);
 }
 
 hr {
@@ -86,41 +194,6 @@ hr {
 }
 
 
-/* ======================= icons ========================= */
-.record-icon {
-  background-repeat: no-repeat;
-  background-position: center;
-  background-color: var(--accent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 19'%3E%3Cpath fill='white' d='M7 0C7.79565 0 8.55871 0.316071 9.12132 0.87868C9.68393 1.44129 10 2.20435 10 3V9C10 9.79565 9.68393 10.5587 9.12132 11.1213C8.55871 11.6839 7.79565 12 7 12C6.20435 12 5.44129 11.6839 4.87868 11.1213C4.31607 10.5587 4 9.79565 4 9V3C4 2.20435 4.31607 1.44129 4.87868 0.87868C5.44129 0.316071 6.20435 0 7 0ZM14 9C14 12.53 11.39 15.44 8 15.93V19H6V15.93C2.61 15.44 0 12.53 0 9H2C2 10.3261 2.52678 11.5979 3.46447 12.5355C4.40215 13.4732 5.67392 14 7 14C8.32608 14 9.59785 13.4732 10.5355 12.5355C11.4732 11.5979 12 10.3261 12 9H14Z'/%3E%3C/svg%3E");
-  background-size: 18px;
-}
-
-.stop-icon {
-  background-repeat: no-repeat;
-  background-position: center;
-  background-color: var(--danger);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect x='6' y='6' width='12' height='12' fill='white'/%3E%3C/svg%3E");
-  background-size: 24px;
-}
-
-.play-icon {
-  background-repeat: no-repeat;
-  background-position: center;
-  background-color: var(--accent);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14'%3E%3Cpath d='M0 0V14L12 7L0 0Z' fill='white'/%3E%3C/svg%3E");
-  background-position: calc(50% + 3px) center;
-  background-size: 18px;
-}
-
-.pause-icon {
-  background-color: var(--accent);
-  background-repeat: no-repeat;
-  background-position: center;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M0 0H4V14H0V0ZM6 0H10V14H6V0Z' fill='white'/%3E%3C/svg%3E");
-  background-size: 15px;
-}
-
-
 #app {
   display: flex;
   width: 100vw;
@@ -129,6 +202,8 @@ hr {
 
 .view-header {
   margin-bottom: 1rem;
+  display: flex;
+  justify-content: space-between;
 }
 
 .view-header p {
@@ -229,9 +304,12 @@ hr {
   padding: 3rem;
   flex: 1;
   height: 100%;
+  overflow: hidden;
 }
 
+/* ====================================== */
 /* ============== dashboard ============= */
+/* ====================================== */
 .dashboard-view {
   flex: 1;
   display: none;
@@ -311,30 +389,41 @@ hr {
 
 
 
-
+/* ============================================= */
 /* ================ recordings-view ============ */
+/* ============================================= */
 .recordings-view {
   flex: 1;
+  overflow: hidden;
+  height: 100%;
   /* display: none; */
 }
 
-.recordings-segment {
+.recordings-view .head {
+  display: flex;
+  justify-content: space-between;
+}
+
+.recordings-view .body {
   flex: 1;
   display: flex;
   gap: 10px;
+  height: 100%;
+  overflow: hidden;
 }
 
 /* =============== recordings ================ */
 .recordings-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  flex: 1;
+  height: auto;
+  align-items: stretch;
+  max-height: 100%;
+  height: fit-content;
   border: 2px solid var(--border);
   border-radius: var(--border-radius);
-  height: fit-content;
-  overflow: hidden;
-  width: 100%;
-  min-width: 40ch;
+  overflow: auto;
 }
 
 .recordings-wrapper .recording {
@@ -342,6 +431,9 @@ hr {
   justify-content: space-between;
   align-items: center;
   padding: 1rem;
+  width: 100%;
+  background-color: var(--bg-sidebar);
+  flex-shrink: 0;
 }
 
 .recording+.recording {
@@ -355,17 +447,207 @@ hr {
 }
 
 
+.recordings-wrapper .left .info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.recordings-wrapper .left .info b {
+  font-size: 1.1rem;
+}
+
+.recordings-wrapper .left .badges {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.recordings-wrapper .right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 14px;
+}
+
+.badge.raw {
+  background: #e5e5e5;
+  color: #555;
+}
+
+.badge.transcribed {
+  background: #ffd6b3;
+  color: #b05a00;
+}
+
+.badge.processing {
+  background: #cfeeff;
+  color: #0077b6;
+}
+
+.badge.enhanced {
+  background: #d6ffcc;
+  color: #2d7a00;
+}
 
 /* =============== transcription ============== */
 .transcript-wrapper {
-  position: absolute;
-  right: 2rem;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 60ch;
-  min-width: 36ch;
+  /* position: absolute; */
+  /* right: 2rem; */
+  /* top: 50%; */
+  /* transform: translateY(-50%); */
+  max-height: 60ch;
+  height: fit-content;
+  min-width: 20ch;
+  max-width: 40ch;
+  overflow-y: auto;
   border: 2px solid var(--border);
   border-radius: var(--border-radius);
   z-index: 10;
+  background-color: var(--bg-card);
+  display: flex;
+  flex-direction: column;
+  padding: 2ch;
+  overflow: hidden;
+  /* display: none; */
+}
+
+.transcript-wrapper .controls {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+}
+
+.transcript-wrapper .controls svg {
+  fill: var(--text-muted);
+  cursor: pointer;
+}
+
+.transcript-wrapper .controls svg:hover {
+  fill: var(--text-main);
+}
+
+.transcript-wrapper b {
+  margin-top: 1ch;
+}
+
+.transcript-wrapper p {
+  margin-top: 2ch;
+  overflow-y: scroll;
+}
+
+
+/* ================================================= */
+/* ================= Settings View ================= */
+/* ================================================= */
+.settings-view {
   display: none;
+}
+
+.options-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.setting-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--bg-sidebar);
+  border: 2px solid var(--border);
+  border-radius: var(--border-radius);
+  padding: 1rem;
+  transition: background-color 0.3s ease;
+}
+
+.setting-card .text-group {
+  display: flex;
+  flex-direction: column;
+  max-width: 70%;
+}
+
+.setting-card b {
+  font-size: 1.05rem;
+  color: var(--text-main);
+}
+
+.setting-card .muted {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* Fix for the Change button margin */
+.setting-card button {
+  margin: 0;
+  padding: 0.7rem 1.5rem;
+}
+
+/* ================= Toggle Switch Component ================= */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  /* Default inactive color */
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Checked State (Active) */
+input:checked+.slider {
+  background-color: var(--accent);
+}
+
+input:checked+.slider:before {
+  transform: translateX(24px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
+}
+
+/* Dark theme support for the toggle background */
+body.dark-theme .slider {
+  background-color: #555;
 }
