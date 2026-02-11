@@ -111,7 +111,6 @@ body {
   position: absolute;
   inset: 0;
   background-color: currentColor;
-  /* Matches text color, or use black/white */
   opacity: 0;
   transition: opacity 0.2s;
   pointer-events: none;
@@ -119,12 +118,10 @@ body {
 
 .highlight-on-cursor:hover::before {
   opacity: 0.08;
-  /* Very subtle tint */
 }
 
 .highlight-on-cursor:active::before {
   opacity: 0.15;
-  /* Deeper tint for the "press" effect */
 }
 
 button {
@@ -214,7 +211,7 @@ hr {
 
 
 /* =============== side-panel ================= */
-#side-panel {
+aside {
   flex: 0 0 320px;
   display: flex;
   flex-direction: column;
@@ -223,15 +220,15 @@ hr {
   gap: 1.5rem;
   padding: 1.5rem;
   background-color: var(--bg-sidebar);
-  /* display: none; */
 }
 
-#side-panel h2 {
+aside h2 {
   color: var(--accent);
   width: 100%;
+  user-select: none;
 }
 
-#side-panel .qrcode-wrapper {
+aside .qrcode-wrapper {
   background-color: var(--bg-body);
   border-radius: var(--border-radius);
   padding: 1.2rem;
@@ -240,50 +237,51 @@ hr {
   width: 100%;
 }
 
-#side-panel .label {
+aside .label {
   margin-top: 0.2rem;
   font-size: 1rem;
   color: var(--text-muted);
 }
 
-#side-panel .ip-address {
+aside .ip-address {
   margin-top: 0.2rem;
   font-family: monospace;
   font-size: 1.4rem;
   color: var(--accent);
 }
 
-#side-panel img {
+aside img {
   max-width: 180px;
   border-radius: 4px;
   height: 180px;
 }
 
-#side-panel menu {
+aside menu {
   list-style: none;
   width: 100%;
 }
 
-#side-panel li {
+aside li {
   padding: 0.85rem 1.5rem;
   color: var(--text-muted);
   cursor: pointer;
   transition: 0.2s;
   margin-bottom: 0.5rem;
-  border-radius: var(--border-radius)
+  border-radius: var(--border-radius);
+  user-select: none;
 }
 
-#side-panel li:hover:not(.active) {
+aside li:hover:not(.active) {
   background-color: var(--bg-hover);
   color: var(--text-main);
 }
 
-#side-panel .active {
+aside .active {
   background-color: var(--accent);
   color: white;
 }
 
-#side-panel .active:hover {
+aside .active:hover {
   background-color: var(--accent-hover);
 }
 
@@ -297,7 +295,7 @@ hr {
 
 
 /* ============== main view ================*/
-#main-view-wrapper {
+#app>main {
   display: flex;
   gap: 10px;
   overflow-y: auto;
@@ -312,12 +310,10 @@ hr {
 /* ====================================== */
 .dashboard-view {
   flex: 1;
-  display: none;
 }
 
 .no-sessions-wrapper {
   align-items: center;
-  display: none;
 }
 
 .no-sessions-wrapper svg {
@@ -396,7 +392,6 @@ hr {
   flex: 1;
   overflow: hidden;
   height: 100%;
-  /* display: none; */
 }
 
 .recordings-view .head {
@@ -515,7 +510,6 @@ hr {
   flex-direction: column;
   padding: 2ch;
   overflow: hidden;
-  /* display: none; */
 }
 
 .transcript-wrapper .controls {
@@ -546,9 +540,7 @@ hr {
 /* ================================================= */
 /* ================= Settings View ================= */
 /* ================================================= */
-.settings-view {
-  display: none;
-}
+.settings-view {}
 
 .options-wrapper {
   display: flex;

@@ -14,8 +14,8 @@ class SessionMetadata(BaseModel):
     name: str = Field(min_length=1, max_length=50)
     ip: str
     battery_level: int = -1
-    theta: float = 0.0
-    last_rtt: float = 0.0
+    theta: float = -999
+    last_rtt: float = -999
     last_sync: Optional[int] = None
 
 class ServerInfo(BaseModel):
