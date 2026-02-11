@@ -87,7 +87,6 @@ body {
   background-position: center;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 4C20.5304 4 21.0391 4.21071 21.4142 4.58579C21.7893 4.96086 22 5.46957 22 6V18C22 18.5304 21.7893 19.0391 21.4142 19.4142C21.0391 19.7893 20.5304 20 20 20H4C3.46957 20 2.96086 19.7893 2.58579 19.4142C2.21071 19.0391 2 18.5304 2 18V6C2 5.46957 2.21071 4.96086 2.58579 4.58579C2.96086 4.21071 3.46457 4 4 4H20ZM20 18V6H4V18H20ZM6 10H8V12H6V10ZM6 14H14V16H6V14ZM16 14H18V16H16V14ZM10 10H18V12H10V10Z' fill='%23777'/%3E%3C/svg%3E");
   background-size: 22px;
-  background-position: calc(50% + 1px) center;
 }
 
 .trash-icon {
@@ -102,6 +101,32 @@ body {
 
 
 /* ================== Generic classess ================ */
+.highlight-on-cursor {
+  position: relative;
+  overflow: hidden;
+}
+
+.highlight-on-cursor::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: currentColor;
+  /* Matches text color, or use black/white */
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.highlight-on-cursor:hover::before {
+  opacity: 0.08;
+  /* Very subtle tint */
+}
+
+.highlight-on-cursor:active::before {
+  opacity: 0.15;
+  /* Deeper tint for the "press" effect */
+}
+
 button {
   padding: 0.7rem 1.2rem;
   border: 0;
@@ -114,14 +139,6 @@ button {
   cursor: pointer;
 }
 
-button:hover:not(.accent) {
-  filter: brightness(1.05);
-}
-
-button:active:not(.accent) {
-  filter: brightness(1.00);
-}
-
 .btn-circle {
   border-radius: 50%;
   width: 45px;
@@ -131,15 +148,6 @@ button:active:not(.accent) {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.btn-circle:hover {
-  filter: brightness(1.05);
-  cursor: pointer;
-}
-
-.btn-circle:active {
-  filter: brightness(0.95);
 }
 
 .accent {
@@ -158,14 +166,6 @@ button:active:not(.accent) {
 .immutable {
   background-color: #F49999;
   color: #7C1212;
-}
-
-.immutable:hover {
-  filter: brightness(1.05);
-}
-
-.immutable:active {
-  filter: brightness(1.00);
 }
 
 hr {
