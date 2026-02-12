@@ -104,12 +104,6 @@ export const Payloads = {
 
 
 
-function createMicBtn(): HTMLElement {
-  const micBtn = document.createElement('div');
-  micBtn.classList.add('btn-circle', 'record-icon', 'highlight-on-cursor');
-  return micBtn;
-}
-
 function createTimerDisplayComp(): HTMLElement {
   const timerDisplay = document.createElement('p');
   timerDisplay.classList.add('timer');
@@ -117,11 +111,11 @@ function createTimerDisplayComp(): HTMLElement {
   return timerDisplay;
 }
 
+
 export enum SessionState {
   IDLE = "idle",
   RECORDING = "recording"
 }
-
 // when user clicks start/stop button on a session, it notifies the session
 // about it. The session to send an acknowledgement back to UI, and only then
 // the visible changes are made using start() or stop() methods.
@@ -135,21 +129,19 @@ export class Session {
   public card: HTMLElement;
   public timerDisplay: HTMLElement;
   public micBtn: HTMLElement;
-  private status: HTMLElement;
+  private statusRow: HTMLElement;
 
   constructor(meta: SessionMetadata) {
     this.meta = meta;
     this.timerDisplay = createTimerDisplayComp();
-    this.micBtn = createMicBtn();
-    
-    this.micBtn.onmouseup = () => {
+    this.micBtn = createRoundBtn({iconName:"record-icon",onClick:() => {
       if (this.state === SessionState.IDLE) {
         this.notify(WSActions.START);
       } else if (this.state === SessionState.RECORDING) {
         this.notify(WSActions.STOP);
       }
-    };
-
+    }});
+    
     this.card = document.createElement('div');
     this.card.classList.add("session-card");
     
@@ -162,10 +154,10 @@ export class Session {
         </div>
         `;
 
-    this.status = document.createElement('div');
-    this.status.classList.add('status-row');
-    this.status.innerText = `🔋${meta.battery}%  📶${meta.last_rtt}ms`;
-    left.appendChild(this.status);
+    this.statusRow = document.createElement('div');
+    this.statusRow.classList.add('status-row');
+    this.statusRow.innerText = `🔋${meta.battery}%  📶${meta.last_rtt}ms`;
+    left.appendChild(this.statusRow);
     
     const right = document.createElement('div');
     right.classList.add('right');
@@ -204,7 +196,7 @@ export class Session {
     this.meta.theta = newMeta.theta;
     this.meta.last_sync = newMeta.last_sync;
 
-    this.status.innerText = `🔋${this.meta.battery}%  📶${this.meta.last_rtt}ms`;
+    this.statusRow.innerText = `🔋${this.meta.battery}%  📶${this.meta.last_rtt}ms`;
   }
 
   private startTimer(): void {
@@ -260,6 +252,14 @@ export class View {
   }
 }
 
+
+interface RoundButtonOptions { iconName: string; onClick: () => void; }
+function createRoundBtn({ iconName, onClick }: RoundButtonOptions): HTMLElement {
+  const micBtn = document.createElement('div');
+  micBtn.classList.add('btn-circle', iconName, 'highlight-on-cursor');
+  micBtn.onclick = onClick;
+  return micBtn;
+}
 
 interface ButtonOptions { label: string; classes?: string[]; onClick: () => void; }
 export function buttonComp({ label, classes = [], onClick }: ButtonOptions): HTMLButtonElement {

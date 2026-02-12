@@ -179,14 +179,6 @@ button {
   color: white;
 }
 
-.accent:hover {
-  background-color: var(--accent-hover);
-}
-
-.accent:active {
-  background-color: var(--accent);
-}
-
 .immutable {
   background-color: #F49999;
   color: #7C1212;
@@ -331,7 +323,7 @@ aside .active:hover {
   display: flex;
   gap: 10px;
   overflow-y: auto;
-  padding: 3rem;
+  padding: 2rem;
   flex: 1;
   height: 100%;
   overflow: hidden;
