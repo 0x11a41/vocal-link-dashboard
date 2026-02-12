@@ -1,6 +1,6 @@
 export const VERSION = "v0.5-alpha";
 export const URL = "http://localhost:6210";
-export const ws = new WebSocket("ws://127.0.0.1:6210/ws/control");
+export const ws = new WebSocket("ws://localhost:6210/ws/control");
 export var RESTEvents;
 (function (RESTEvents) {
 })(RESTEvents || (RESTEvents = {}));

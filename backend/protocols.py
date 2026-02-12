@@ -70,8 +70,6 @@ class WSEvents(str, Enum): # these are facts that should be notified
     SESSION_ACTIVATE = "session_activate" # session[SessionMetadata]::
     SESSION_ACTIVATED = "session_activated" # server[SessionMetadata]::dashboard
     SESSION_LEFT = "session_left" # server[SessionMetadata]::dashboard
-    SESSION_SELF_START = "session_self_start" # session[SessionMetadata]::server::dashboard
-    SESSION_SELF_STOP = "session_self_stop" # session[SessionMetadata]::server::dashboard
     SUCCESS="success" # session[SessionMetadata]::server::dashboard
     FAIL="failed" # session[SessionMetadata]::server::dashboard
 
@@ -506,21 +504,6 @@ class AppState:
                           body=sessionMeta
                       )
                 )
-
-
-        elif event_type in (WSEvents.SESSION_SELF_START, WSEvents.SESSION_SELF_STOP):
-            try:
-                meta = SessionMetadata.model_validate(payload.body)
-            except ValidationError:
-                await send_error(ws, WSErrors.INVALID_BODY)
-                try:
-                    await ws.close(code=1007)
-                except Exception:
-                    pass
-                return
-
-            await self.dashboard.notify(payload)
-
 
         elif event_type in (WSEvents.SUCCESS, WSEvents.FAIL):
             await self.dashboard.notify(payload)
