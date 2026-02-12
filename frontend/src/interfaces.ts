@@ -1,6 +1,8 @@
 export const VERSION = "v0.5-alpha";
 export const URL = "http://localhost:6210";
+
 export const ws: WebSocket = new WebSocket("ws://localhost:6210/ws/control");
+ws.onopen = ():void => ws.send(JSON.stringify(Payloads.event(WSEvents.DASHBOARD_INIT)));
 
 export interface SessionMetadata {
   id: string;
@@ -39,7 +41,7 @@ export enum WSErrors {
 export enum WSEvents {
   DASHBOARD_INIT = "dashboard_init",
   DASHBOARD_RENAME = "dashboard_rename",
-  SESSION_RENAME = "session_rename",
+  SESSION_UPDATE = "session_update",
   SESSION_ACTIVATE = "session_activate",
   SESSION_ACTIVATED = "session_activated",
   SESSION_LEFT = "session_left",
@@ -58,7 +60,6 @@ export enum WSActions {
 
 export interface Rename {
   new_name: string;
-  session_id?: string | null;
 }
 
 export interface WSActionTarget {
@@ -75,12 +76,6 @@ export interface WSPayload {
   body: WSBodyTypes;
 }
 
-export enum ViewStates {
-  DASHBOARD = "dashboard",
-  RECORDINGS = "recordings",
-  SETTINGS = "settings"
-}
-
 export const Payloads = {
   action: (type: WSActions, session_id: string = "all"): WSPayload => ({
     kind: WSKind.ACTION,
@@ -88,13 +83,13 @@ export const Payloads = {
     body: { session_id, trigger_time: null }
   }),
 
-  rename: (newName: string, sessionId: string | null = null): WSPayload => ({
-    kind: WSKind.ACTION, // or EVENT depending on who sends it
-    msg_type: sessionId ? WSEvents.SESSION_RENAME : WSEvents.DASHBOARD_RENAME,
-    body: { new_name: newName, session_id: sessionId }
+  rename: (newName: string): WSPayload => ({
+    kind: WSKind.ACTION,
+    msg_type: WSEvents.DASHBOARD_RENAME,
+    body: { new_name: newName }
   }),
 
-  event: (type: WSEvents, body: WSBodyTypes): WSPayload => ({
+  event: (type: WSEvents, body: WSBodyTypes | null = null): WSPayload => ({
     kind: WSKind.EVENT,
     msg_type: type,
     body: body
@@ -122,7 +117,7 @@ function createTimerDisplayComp(): HTMLElement {
   return timerDisplay;
 }
 
-enum SessionState {
+export enum SessionState {
   IDLE = "idle",
   RECORDING = "recording"
 }
@@ -131,7 +126,7 @@ enum SessionState {
 // about it. The session to send an acknowledgement back to UI, and only then
 // the visible changes are made using start() or stop() methods.
 export class Session {
-  private state: SessionState = SessionState.IDLE;
+  public state: SessionState = SessionState.IDLE;
   
   private intervalId: number | null = null;
   private secondsElapsed: number = 0;
@@ -140,6 +135,7 @@ export class Session {
   public card: HTMLElement;
   public timerDisplay: HTMLElement;
   public micBtn: HTMLElement;
+  private status: HTMLElement;
 
   constructor(meta: SessionMetadata) {
     this.meta = meta;
@@ -164,11 +160,12 @@ export class Session {
             <b>${meta.name}</b>
             <div class="device-name">${meta.device}</div>
         </div>
-        <div class="status-row">
-            <span>🔋 ${meta.battery}%</span>
-            <span>📶 ${meta.last_rtt || 0}ms</span> 
+        `;
 
-        </div>`;
+    this.status = document.createElement('div');
+    this.status.classList.add('status-row');
+    this.status.innerText = `🔋${meta.battery}%  📶${meta.last_rtt}ms`;
+    left.appendChild(this.status);
     
     const right = document.createElement('div');
     right.classList.add('right');
@@ -201,6 +198,15 @@ export class Session {
     this.resetTimer();
   }
 
+  public updateMeta(newMeta: SessionMetadata): void {
+    this.meta.battery = newMeta.battery;
+    this.meta.last_rtt = newMeta.last_rtt;
+    this.meta.theta = newMeta.theta;
+    this.meta.last_sync = newMeta.last_sync;
+
+    this.status.innerText = `🔋${this.meta.battery}%  📶${this.meta.last_rtt}ms`;
+  }
+
   private startTimer(): void {
     if (this.intervalId) return; 
     this.intervalId = window.setInterval(() => {
@@ -226,6 +232,12 @@ export class Session {
 }
 
 
+export enum ViewStates {
+  DASHBOARD = "dashboard",
+  RECORDINGS = "recordings",
+  SETTINGS = "settings"
+}
+
 export class View {
   private state: ViewStates;
   public menu: HTMLElement = document.createElement('menu');
@@ -249,12 +261,7 @@ export class View {
 }
 
 
-interface ButtonOptions {
-  label: string;
-  classes?: string[];
-  onClick: () => void;
-}
-
+interface ButtonOptions { label: string; classes?: string[]; onClick: () => void; }
 export function buttonComp({ label, classes = [], onClick }: ButtonOptions): HTMLButtonElement {
   const btn = document.createElement('button');
   btn.innerText = label;

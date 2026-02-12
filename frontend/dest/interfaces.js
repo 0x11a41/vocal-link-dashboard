@@ -1,6 +1,7 @@
 export const VERSION = "v0.5-alpha";
 export const URL = "http://localhost:6210";
 export const ws = new WebSocket("ws://localhost:6210/ws/control");
+ws.onopen = () => ws.send(JSON.stringify(Payloads.event(WSEvents.DASHBOARD_INIT)));
 export var RESTEvents;
 (function (RESTEvents) {
 })(RESTEvents || (RESTEvents = {}));
@@ -22,7 +23,7 @@ export var WSEvents;
 (function (WSEvents) {
     WSEvents["DASHBOARD_INIT"] = "dashboard_init";
     WSEvents["DASHBOARD_RENAME"] = "dashboard_rename";
-    WSEvents["SESSION_RENAME"] = "session_rename";
+    WSEvents["SESSION_UPDATE"] = "session_update";
     WSEvents["SESSION_ACTIVATE"] = "session_activate";
     WSEvents["SESSION_ACTIVATED"] = "session_activated";
     WSEvents["SESSION_LEFT"] = "session_left";
@@ -38,24 +39,18 @@ export var WSActions;
     WSActions["STARTED"] = "started";
     WSActions["STOPPED"] = "stopped";
 })(WSActions || (WSActions = {}));
-export var ViewStates;
-(function (ViewStates) {
-    ViewStates["DASHBOARD"] = "dashboard";
-    ViewStates["RECORDINGS"] = "recordings";
-    ViewStates["SETTINGS"] = "settings";
-})(ViewStates || (ViewStates = {}));
 export const Payloads = {
     action: (type, session_id = "all") => ({
         kind: WSKind.ACTION,
         msg_type: type,
         body: { session_id, trigger_time: null }
     }),
-    rename: (newName, sessionId = null) => ({
+    rename: (newName) => ({
         kind: WSKind.ACTION,
-        msg_type: sessionId ? WSEvents.SESSION_RENAME : WSEvents.DASHBOARD_RENAME,
-        body: { new_name: newName, session_id: sessionId }
+        msg_type: WSEvents.DASHBOARD_RENAME,
+        body: { new_name: newName }
     }),
-    event: (type, body) => ({
+    event: (type, body = null) => ({
         kind: WSKind.EVENT,
         msg_type: type,
         body: body
@@ -77,7 +72,7 @@ function createTimerDisplayComp() {
     timerDisplay.innerText = '00:00';
     return timerDisplay;
 }
-var SessionState;
+export var SessionState;
 (function (SessionState) {
     SessionState["IDLE"] = "idle";
     SessionState["RECORDING"] = "recording";
@@ -90,6 +85,7 @@ export class Session {
     card;
     timerDisplay;
     micBtn;
+    status;
     constructor(meta) {
         this.meta = meta;
         this.timerDisplay = createTimerDisplayComp();
@@ -111,11 +107,11 @@ export class Session {
             <b>${meta.name}</b>
             <div class="device-name">${meta.device}</div>
         </div>
-        <div class="status-row">
-            <span>🔋 ${meta.battery}%</span>
-            <span>📶 ${meta.last_rtt || 0}ms</span> 
-
-        </div>`;
+        `;
+        this.status = document.createElement('div');
+        this.status.classList.add('status-row');
+        this.status.innerText = `🔋${meta.battery}%  📶${meta.last_rtt}ms`;
+        left.appendChild(this.status);
         const right = document.createElement('div');
         right.classList.add('right');
         right.appendChild(this.timerDisplay);
@@ -142,6 +138,13 @@ export class Session {
         this.card.classList.remove('border-recording');
         this.resetTimer();
     }
+    updateMeta(newMeta) {
+        this.meta.battery = newMeta.battery;
+        this.meta.last_rtt = newMeta.last_rtt;
+        this.meta.theta = newMeta.theta;
+        this.meta.last_sync = newMeta.last_sync;
+        this.status.innerText = `🔋${this.meta.battery}%  📶${this.meta.last_rtt}ms`;
+    }
     startTimer() {
         if (this.intervalId)
             return;
@@ -164,6 +167,12 @@ export class Session {
         this.timerDisplay.innerText = `${mins}:${secs}`;
     }
 }
+export var ViewStates;
+(function (ViewStates) {
+    ViewStates["DASHBOARD"] = "dashboard";
+    ViewStates["RECORDINGS"] = "recordings";
+    ViewStates["SETTINGS"] = "settings";
+})(ViewStates || (ViewStates = {}));
 export class View {
     state;
     menu = document.createElement('menu');

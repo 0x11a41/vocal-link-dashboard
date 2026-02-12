@@ -346,6 +346,7 @@ aside .active:hover {
 
 .no-sessions-wrapper {
   align-items: center;
+  width: 100%;
 }
 
 .no-sessions-wrapper svg {
@@ -364,7 +365,7 @@ aside .active:hover {
 .session-card {
   display: flex;
   justify-content: space-between;
-  background-color: var(--bg-card);
+  background-color: var(--bg-sidebar);
   min-width: 300px;
   padding: 16px;
   border-radius: 14px;

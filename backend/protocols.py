@@ -44,10 +44,9 @@ class SessionStageResponseMsg(BaseModel): # server -> session
 ############# WebSocket messages #####################
 class Rename(BaseModel):
     new_name: str
-    session_id: Optional[str] = None
 
 class WSActionTarget(BaseModel):
-    session_id: str # "session_id=all" is multicast message
+    session_id: str
     trigger_time: Optional[int] = None
 
 class WSKind(str, Enum):
@@ -66,7 +65,7 @@ class WSErrors(str, Enum):
 class WSEvents(str, Enum): # these are facts that should be notified
     DASHBOARD_INIT = "dashboard_init" # dashboard[None]::server 
     DASHBOARD_RENAME = "dashboard_rename" # dashboard[Rename]::server::session
-    SESSION_RENAME = "session_rename" # session[Rename]::server::dashboard
+    SESSION_UPDATE = "session_update" # session[SessionMetadata]::server::dashboard
     SESSION_ACTIVATE = "session_activate" # session[SessionMetadata]::
     SESSION_ACTIVATED = "session_activated" # server[SessionMetadata]::dashboard
     SESSION_LEFT = "session_left" # server[SessionMetadata]::dashboard
@@ -100,7 +99,6 @@ class SyncResponse(BaseModel): # server -> client (The pong)
 class SyncReport(BaseModel): # client -> server (The report)
     theta: float
     rtt: float
-
 
 
 # QR code data interface
@@ -149,12 +147,11 @@ class DashboardHandler:
 
     async def notify(self, payload: WSPayload):
         if not self._dashboard:
-            print("failed to update UI: dashboard is offline")
-            return
+            return 
         try:
             await self._dashboard.send_json(payload.model_dump())
-        except Exception as e:
-            print(f"Error sending to dashboard: {e}")
+        except Exception:
+            await self.drop(self._dashboard)
 
 
     async def available(self) -> bool:
@@ -176,11 +173,14 @@ class SessionsHandler: # thread safe
         self._staging: Dict[str, SessionMetadata] = {} # session_id, meta
         self._lock = asyncio.Lock()
 
-    async def replaceMeta(self, new_meta: SessionMetadata):
+    async def updateMeta(self, new_meta: SessionMetadata) -> SessionMetadata | None:
         async with self._lock:
             session = self._active.get(new_meta.id)
             if session:
-                session.meta = session.meta.model_copy(update=new_meta.model_dump())
+                update_data = new_meta.model_dump(exclude_unset=True)
+                session.meta = session.meta.model_copy(update=update_data)
+                return session.meta
+            return None
                 
 
     async def rename(self, session_id: str, new_name: str):
@@ -271,13 +271,15 @@ class SessionsHandler: # thread safe
                 pass
 
     
-    async def update_sync(self, session_id: str, report: SyncReport) -> None:
+    async def update_sync(self, session_id: str, report: SyncReport) -> SessionMetadata | None:
         async with self._lock:
             session = self._active.get(session_id)
             if session:
                 session.meta.theta = report.theta
                 session.meta.last_rtt = report.rtt
                 session.meta.last_sync = now_ms()
+                return session.meta
+            return None
 
 
     async def session_id(self, ws: WebSocket) -> Optional[str]:
@@ -462,18 +464,19 @@ class AppState:
             await self.rename(rename)
 
 
-        elif event_type == WSEvents.SESSION_RENAME:
+        elif event_type == WSEvents.SESSION_UPDATE:
             try:
-                rename = Rename.model_validate(payload.body)
+                incoming_meta = SessionMetadata.model_validate(payload.body)
             except ValidationError:
                 await send_error(ws, WSErrors.INVALID_BODY)
-                try:
-                    await ws.close(code=1007)
-                except Exception:
-                    pass
                 return
-            
-            await self.dashboard.notify(payload)
+
+            updated_meta = await self.sessions.updateMeta(incoming_meta)
+            if updated_meta:
+                payload.body = updated_meta
+                await self.dashboard.notify(payload)
+            else:
+                await send_error(ws, WSErrors.SESSION_NOT_FOUND)
 
 
         elif event_type == WSEvents.SESSION_ACTIVATE:
@@ -548,13 +551,10 @@ class AppState:
                 target.trigger_time = trigger
                 payload.body = target
 
-            if target.session_id.lower() == "all":
-                await self.sessions.broadcast(payload)
+            if await self.sessions.is_active(target.session_id):
+                await self.sessions.send_to_one(target.session_id, payload)
             else:
-                if await self.sessions.is_active(target.session_id):
-                    await self.sessions.send_to_one(target.session_id, payload)
-                else:
-                    await send_error(ws, WSErrors.SESSION_NOT_FOUND)
+                await send_error(ws, WSErrors.SESSION_NOT_FOUND)
 
         elif action_type in (WSActions.STARTED, WSActions.STOPPED):
             if not from_session_id:
@@ -578,25 +578,24 @@ class AppState:
         
 
     async def handle_disconnect(self, ws: WebSocket):
-        if ws == self.dashboard.ws():
+        if await self.dashboard.available() and ws == self.dashboard.ws():
             await self.dashboard.drop(ws)
-            print("dashboard went offline.")
+            print("Dashboard went offline (refresh or close).")
             return
 
         session_id = await self.sessions.session_id(ws)
         if session_id:
             meta = await self.sessions.getMetaFromActive(session_id)
-            meta and await self.dashboard.notify(
-                WSPayload(
-                    kind=WSKind.EVENT,
-                    msg_type=WSEvents.SESSION_LEFT,
-                    body=meta
+        
+            if meta and await self.dashboard.available():
+                await self.dashboard.notify(
+                    WSPayload(
+                        kind=WSKind.EVENT,
+                        msg_type=WSEvents.SESSION_LEFT,
+                        body=meta
+                    )
                 )
-            )
 
             await self.sessions.drop(session_id)
             await self.clock.remove(session_id)
-
-            print("session [" + session_id + "] disconnected.")
-        else:
-            print("unknown session disconnected")
+            print(f"Session [{session_id}] disconnected.")

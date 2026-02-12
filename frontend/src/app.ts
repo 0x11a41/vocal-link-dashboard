@@ -6,10 +6,15 @@ import {
   ViewStates, 
   WSEvents, 
   WSActions,
+	SessionState,
   VERSION,
   URL,
   ws,
   buttonComp,
+  WSPayload,
+  WSKind,
+  SessionMetadata,
+  WSActionTarget,
 } from './interfaces.js'
 
 
@@ -21,6 +26,7 @@ class VLApp {
   public canvas = document.getElementById("app");
   public sidePanel = document.createElement('aside');
   public mainPanel: HTMLElement = document.createElement('main');
+
 
   constructor() {
     this.view = new View(ViewStates.DASHBOARD);
@@ -38,7 +44,7 @@ class VLApp {
     });
   }
 
-  public syncView(newView: ViewStates = this.view.get()) {
+  public syncView(newView: ViewStates) {
     this.view.set(newView);
     this.setActiveMenuItem();
 
@@ -79,52 +85,65 @@ class VLApp {
         }
       }
     };
-    
     this.setActiveMenuItem();
   }
 
 
+  private viewHeaderComp():HTMLElement {
+    const header = document.createElement('div');
+    header.classList.add("view-header");
+    header.insertAdjacentHTML('beforeend', `
+				<div class="head">
+					<h1>${this.serverInfo?.name || "undefined"}</h1>
+					<p class="status">status: <span class="${this.serverInfo ? "success" : "danger"}">${this.serverInfo ? "Active" : "Offline"}</span></p>
+				</div>
+      `); 
+    if (this.sessions.size > 0) {
+      header.appendChild(buttonComp({ label: "Start All", classes: ["accent"], onClick: () => {
+      	this.sessions.forEach((session) => {
+      		if (session.state == SessionState.IDLE) {
+	          const msg = Payloads.action(WSActions.START, session.meta.id);
+	          ws.send(JSON.stringify(msg));
+      		}
+      	})
+      }}));
+    }
+    return header;
+  }
+
+  private sessionsWrapperComp():HTMLElement {
+    const wrapper = document.createElement('section');
+    wrapper.classList.add('sessions-wrapper');
+    if (this.sessions.size > 0) {
+	    this.sessions.forEach((session) => {
+	    	wrapper.appendChild(session.card);
+	    })
+    } else {
+    	wrapper.innerHTML = `
+			<section class="no-sessions-wrapper stack">
+				<b>No Active Connections</b>
+				<p class="muted">Waiting for recording nodes to join the network...</p>
+				<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<path d="M1.90909 0C1.20273 0 0.636364 0.566364 0.636364 1.27273V3.81818C0.636364 4.52455 1.20273 5.09091 1.90909 5.09091H0V6.36364H7.63636V5.09091H5.72727C6.43364 5.09091 7 4.52455 7 3.81818V1.27273C7 0.566364 6.43364 0 5.72727 0H1.90909ZM1.90909 1.27273H5.72727V3.81818H1.90909V1.27273ZM8.27273 7.63636C7.56636 7.63636 7 8.20273 7 8.90909V11.4546C7 12.1609 7.56636 12.7273 8.27273 12.7273H6.36364V14H14V12.7273H12.0909C12.7973 12.7273 13.3636 12.1609 13.3636 11.4546V8.90909C13.3636 8.20273 12.7973 7.63636 12.0909 7.63636H8.27273ZM1.83273 7.92909L0.929091 8.83273L2.28455 10.1818L0.929091 11.5309L1.83273 12.4346L3.18182 11.0791L4.53091 12.4346L5.43455 11.5309L4.07909 10.1818L5.43455 8.83273L4.53091 7.92909L3.18182 9.28455L1.83273 7.92909ZM8.27273 8.90909H12.0909V11.4546H8.27273V8.90909Z"/>
+				</svg>
+			</section>
+    	`;
+    }
+    return wrapper;
+  }
+
   private renderDashboardView() {
-    const serverName = this.serverInfo?.name || "Undefined";
-    const server = this.serverInfo;
-    const sessions = this.sessions;
-
-    function viewHeaderComp():HTMLElement {
-      const header = document.createElement('div');
-      header.classList.add("view-header");
-      header.insertAdjacentHTML('beforeend', `
-					<div class="head">
-						<h1>${serverName}</h1>
-						<p class="status">status: <span class="${server ? "success" : "danger"}">${server ? "Active" : "Offline"}</span></p>
-					</div>
-        `); 
-      if (sessions.size > 0) {
-        header.appendChild(buttonComp({ label: "Start All", classes: ["accent"], onClick: () => {
-            const msg = Payloads.action(WSActions.START, "all");
-            console.log(msg);
-            ws.send(JSON.stringify(msg));
-          }}));
-      }
-      return header;
-    }
-
-    function sessionsWrapperComp():HTMLElement {
-      const wrapper = document.createElement('section');
-      wrapper.classList.add('sessions-wrapper');
-
-      return wrapper;
-    }
 
 
     const dashboardView = document.createElement('section');
     dashboardView.classList.add("dashboard-view", "stack");
 
-    dashboardView.appendChild(viewHeaderComp());
+    dashboardView.appendChild(this.viewHeaderComp());
     dashboardView.insertAdjacentHTML('beforeend', `
-			<b class="muted">Connected devices (${sessions.size})</b>
+			<b class="muted">Connected devices (${this.sessions.size})</b>
       `);
     dashboardView.insertAdjacentHTML('beforeend', '<hr>');
-    dashboardView.appendChild(sessionsWrapperComp())
+    dashboardView.appendChild(this.sessionsWrapperComp())
 
     this.mainPanel.replaceChildren(dashboardView);
   }
@@ -246,27 +265,86 @@ class VLApp {
 
   async init(): Promise<void> {
     try {
-      const res = await fetch(URL + "/dashboard");
-      if (!res.ok) {
+      const serverInfoResponse = await fetch(URL + "/dashboard");
+      if (!serverInfoResponse.ok) {
         console.error("failed to fetch dashboard information");
         return;
       }
+      this.serverInfo = await serverInfoResponse.json() as ServerInfo;
 
-      this.serverInfo = await res.json() as ServerInfo;
+      const sessionsResponse = await fetch(URL + "/sessions");
+	    const sessions: SessionMetadata[] = await sessionsResponse.json();
+	    sessions.forEach(meta => {
+	        this.sessions.set(meta.id, new Session(meta));
+	    });
+
       this.renderSidebar(); 
-      this.syncView();
+      this.syncView(this.view.get());
 
-
-      ws.onopen = ():void => ws.send(JSON.stringify(Payloads.event(WSEvents.DASHBOARD_INIT, null)));
-      ws.onmessage = (ev: MessageEvent) => this.handleWsMessages(ev.data);
+      ws.onmessage = (ev: MessageEvent) => this.handleWsMessages(JSON.parse(ev.data));
     } catch (err) {
       console.error("Init failed:", err);
     }
   }
 
-  handleWsMessages(payload: any): void {
-    console.log(payload);
-  }
+  handleWsMessages(payload: WSPayload): void {
+	  if (payload.kind === WSKind.ERROR) {
+	    console.error("Server error:", payload.msg_type);
+	    return;
+	  }
+
+	  if (payload.kind === WSKind.EVENT) {
+	    switch (payload.msg_type) {
+	      case WSEvents.SESSION_ACTIVATED: {
+	        payload.body = payload.body as SessionMetadata;
+	        if (!this.sessions.has(payload.body.id)) {
+	          const s = new Session(payload.body);
+	          this.sessions.set(payload.body.id, s);
+	          this.syncView(ViewStates.DASHBOARD);
+	        }
+	        break;
+	      } case WSEvents.SESSION_LEFT: {
+	        payload.body = payload.body as SessionMetadata;
+	        this.sessions.delete(payload.body.id);
+	        this.syncView(ViewStates.DASHBOARD);
+	        break;
+	      } case WSEvents.SESSION_UPDATE: {
+	        payload.body = payload.body as SessionMetadata;
+					const session = this.sessions.get(payload.body.id);
+					if (session) {
+						session.updateMeta(payload.body);
+					}
+	      	break;
+	      } case "success": case "failed":
+	        console.log("Session result:", payload.msg_type, payload.body);
+	        break;
+	      default:
+	        console.warn("Unhandled event:", payload.msg_type, payload);
+	    }
+	    return;
+	  }
+
+	  if (payload.kind === WSKind.ACTION) {
+	    switch (payload.msg_type) {
+	      case WSActions.STARTED: {
+	      	payload.body = payload.body as WSActionTarget;
+	        const id = payload.body.session_id;
+	        const session = this.sessions.get(id);
+	        session?.start();
+	        break;
+	      } case WSActions.STOPPED: {
+	      	payload.body = payload.body as WSActionTarget;
+	        const id = payload.body.session_id;
+	        const s = this.sessions.get(id);
+	        s?.stop();
+	        break;
+	      } default:
+	        console.warn("Unhandled action:", payload.msg_type, payload);
+	    }
+	    return;
+	  }
+	  console.warn("Unknown WS message:", payload);
+	}
 }
 
 const app = new VLApp();

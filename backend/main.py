@@ -3,6 +3,7 @@ from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from pydantic import ValidationError
+from typing import List
 import uuid
 import qrcode
 import io
@@ -11,11 +12,13 @@ from backend.protocols import (
     AppState, 
     SessionStageRequestMsg, 
     SessionStageResponseMsg, 
+    SessionMetadata,
     SyncRequest, 
     SyncReport,
     ServerInfo,
     WSPayload,
     WSKind,
+    WSEvents,
     WSErrors,
     QRData,
     send_error,
@@ -75,31 +78,40 @@ async def orchistrate_messages(ws: WebSocket):
 
 
 @api.websocket("/ws/sync/{session_id}")
-async def sync_endpoint(websocket: WebSocket, session_id: str):
+async def sync_endpoint(ws: WebSocket, session_id: str):
     if not await app.sessions.is_active(session_id):
-        await websocket.close(code=4003)
+        await ws.close(code=4003)
         return
 
-    await websocket.accept()
-    await app.clock.add(session_id, websocket)
+    await ws.accept()
+    await app.clock.add(session_id, ws)
+    
     try:
         while True:
             if not await app.clock.get(session_id):
-                return
+                break
 
-            data = await websocket.receive_json()
+            data = await ws.receive_json()
+            
             if "t1" in data:
                 try:
                     req = SyncRequest.model_validate(data)
+                    await app.clock.handle_ping(session_id, req)
                 except ValidationError:
                     continue
-
-                await app.clock.handle_ping(session_id, req)
-
             elif "theta" in data:
-                report = SyncReport.model_validate(data)
-                await app.sessions.update_sync(session_id, report)
-                
+                try:
+                    report = SyncReport.model_validate(data)
+                    meta = await app.sessions.update_sync(session_id, report)
+                    if meta:
+                        update = WSPayload(
+                            kind=WSKind.EVENT, 
+                            msg_type=WSEvents.SESSION_UPDATE, 
+                            body=meta
+                        )
+                        await app.dashboard.notify(update)
+                except ValidationError:
+                    continue
     except WebSocketDisconnect:
         meta = await app.sessions.getMetaFromActive(session_id)
         print(f"Sync disconnected: {meta and meta.name}")
@@ -114,6 +126,11 @@ async def stage_session(req: SessionStageRequestMsg):
     req.body.id = str(uuid.uuid4())
     await app.sessions.stage(req.body)
     return SessionStageResponseMsg(body=req.body).model_dump()
+
+
+@api.get("/sessions", response_model=List[SessionMetadata])
+async def list_sessions():
+    return await app.sessions.getMetaFromAllActive()
 
 
 
