@@ -64,7 +64,7 @@ class SessionCard {
     this.micBtn.classList.remove('record-icon');
     this.micBtn.classList.add('stop-icon');
     this.card.classList.add('border-recording');
-    this.stopWatch.startTimer();
+    this.stopWatch.start();
   }
 
   public stop(): void {
@@ -72,7 +72,7 @@ class SessionCard {
     this.micBtn.classList.remove('stop-icon');
     this.micBtn.classList.add('record-icon');
     this.card.classList.remove('border-recording');
-    this.stopWatch.resetTimer();
+    this.stopWatch.reset();
   }
 
   public updateMeta(newMeta: SessionMetadata): void {

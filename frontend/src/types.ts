@@ -46,12 +46,6 @@ export interface SessionMetadata {
   last_sync?: number | null;
 }
 
-export interface ServerInfo {
-  name: string;
-  ip: string;
-  active_sessions: number;
-}
-
 export enum RESTEvents {
   // TODO
 }
@@ -104,3 +98,9 @@ export const Payloads = {
 // =============================================
 // ================= INTERFACE =================
 // =============================================
+export enum Views {
+  DASHBOARD = "dashboard",
+  RECORDINGS = "recordings",
+  SETTINGS = "settings"
+}
+

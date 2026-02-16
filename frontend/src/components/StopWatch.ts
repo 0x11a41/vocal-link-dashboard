@@ -9,15 +9,15 @@ class StopWatch {
     this.element.innerText = '00:00';
   }
 
-  public startTimer(): void {
+  public start(): void {
     if (this.intervalId) return; 
     this.intervalId = window.setInterval(() => {
       this.secondsElapsed++;
-      this.updateTimerDisplay();
+      this.updateDisplay();
     }, 1000);
   }
 
-  public resetTimer(): void {
+  public reset(): void {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
@@ -26,7 +26,7 @@ class StopWatch {
     this.element.innerText = "00:00";
   }
 
-  private updateTimerDisplay(): void {
+  private updateDisplay(): void {
     const mins = Math.floor(this.secondsElapsed / 60).toString().padStart(2, '0');
     const secs = (this.secondsElapsed % 60).toString().padStart(2, '0');
     this.element.innerText = `${mins}:${secs}`;

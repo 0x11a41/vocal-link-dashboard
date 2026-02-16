@@ -57,3 +57,9 @@ export const Payloads = {
         body: null,
     }),
 };
+export var Views;
+(function (Views) {
+    Views["DASHBOARD"] = "dashboard";
+    Views["RECORDINGS"] = "recordings";
+    Views["SETTINGS"] = "settings";
+})(Views || (Views = {}));

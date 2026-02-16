@@ -1,0 +1,58 @@
+import { SessionCard } from '../components/SessionCard.js'
+import { server } from '../serverInfo.js'
+
+interface DashboardProps {
+	sessions: Map<string, SessionCard>,
+	triggerAllBtn: HTMLElement,
+};
+
+export function DashboardView({ sessions, triggerAllBtn }:DashboardProps): HTMLElement {
+  const dashboardHeader = document.createElement('div');
+  dashboardHeader.classList.add("view-header");
+  dashboardHeader.insertAdjacentHTML('beforeend', `
+			<div class="head">
+				<h1>${server.data.name}</h1>
+				<p class="status">status:
+  				${
+  				  server.data.active_sessions < 0
+  				  ?  '<span class="danger">Offline</span>'
+  				  : '<span class="success">Active</span>'
+  				}
+				</p>
+			</div>
+    `); 
+  if (sessions.size > 0) {
+    dashboardHeader.appendChild(triggerAllBtn);
+  }
+
+  const sessionsWrapper = document.createElement('section');
+  sessionsWrapper.classList.add('sessions-wrapper');
+  if (sessions.size > 0) {
+    sessions.forEach((session) => {
+    	sessionsWrapper.appendChild(session.card);
+    })
+  } else {
+  	sessionsWrapper.innerHTML = `
+		<section class="no-sessions-wrapper stack">
+			<b>No Active Connections</b>
+			<p class="muted">Waiting for recording nodes to join the network...</p>
+			<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+				<path d="M1.90909 0C1.20273 0 0.636364 0.566364 0.636364 1.27273V3.81818C0.636364 4.52455 1.20273 5.09091 1.90909 5.09091H0V6.36364H7.63636V5.09091H5.72727C6.43364 5.09091 7 4.52455 7 3.81818V1.27273C7 0.566364 6.43364 0 5.72727 0H1.90909ZM1.90909 1.27273H5.72727V3.81818H1.90909V1.27273ZM8.27273 7.63636C7.56636 7.63636 7 8.20273 7 8.90909V11.4546C7 12.1609 7.56636 12.7273 8.27273 12.7273H6.36364V14H14V12.7273H12.0909C12.7973 12.7273 13.3636 12.1609 13.3636 11.4546V8.90909C13.3636 8.20273 12.7973 7.63636 12.0909 7.63636H8.27273ZM1.83273 7.92909L0.929091 8.83273L2.28455 10.1818L0.929091 11.5309L1.83273 12.4346L3.18182 11.0791L4.53091 12.4346L5.43455 11.5309L4.07909 10.1818L5.43455 8.83273L4.53091 7.92909L3.18182 9.28455L1.83273 7.92909ZM8.27273 8.90909H12.0909V11.4546H8.27273V8.90909Z"/>
+			</svg>
+		</section>
+  	`;
+  }
+
+
+  const dashboardView = document.createElement('section');
+  dashboardView.classList.add("dashboard-view", "stack");
+
+  dashboardView.appendChild(dashboardHeader);
+  dashboardView.insertAdjacentHTML('beforeend', `
+		<b class="muted">Connected devices (${sessions.size})</b>
+  `);
+  dashboardView.insertAdjacentHTML('beforeend', '<hr>');
+  dashboardView.appendChild(sessionsWrapper)
+
+  return dashboardView;
+}

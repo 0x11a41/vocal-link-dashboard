@@ -53,14 +53,14 @@ class SessionCard {
         this.micBtn.classList.remove('record-icon');
         this.micBtn.classList.add('stop-icon');
         this.card.classList.add('border-recording');
-        this.stopWatch.startTimer();
+        this.stopWatch.start();
     }
     stop() {
         this.state = SessionState.IDLE;
         this.micBtn.classList.remove('stop-icon');
         this.micBtn.classList.add('record-icon');
         this.card.classList.remove('border-recording');
-        this.stopWatch.resetTimer();
+        this.stopWatch.reset();
     }
     updateMeta(newMeta) {
         this.meta.battery = newMeta.battery;

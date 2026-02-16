@@ -7,15 +7,15 @@ class StopWatch {
         this.element.classList.add('timer');
         this.element.innerText = '00:00';
     }
-    startTimer() {
+    start() {
         if (this.intervalId)
             return;
         this.intervalId = window.setInterval(() => {
             this.secondsElapsed++;
-            this.updateTimerDisplay();
+            this.updateDisplay();
         }, 1000);
     }
-    resetTimer() {
+    reset() {
         if (this.intervalId) {
             clearInterval(this.intervalId);
             this.intervalId = null;
@@ -23,7 +23,7 @@ class StopWatch {
         this.secondsElapsed = 0;
         this.element.innerText = "00:00";
     }
-    updateTimerDisplay() {
+    updateDisplay() {
         const mins = Math.floor(this.secondsElapsed / 60).toString().padStart(2, '0');
         const secs = (this.secondsElapsed % 60).toString().padStart(2, '0');
         this.element.innerText = `${mins}:${secs}`;
