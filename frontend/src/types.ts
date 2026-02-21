@@ -24,6 +24,8 @@ export enum WSEvents {
   SESSION_LEFT = "session_left",
   SESSION_SELF_START = "session_self_start",
   SESSION_SELF_STOP = "session_self_stop",
+  STARTED = "started",
+  STOPPED = "stopped",
   SUCCESS = "success",
   FAIL = "failed",
 }
@@ -31,8 +33,6 @@ export enum WSEvents {
 export enum WSActions {
   START = "start",
   STOP = "stop",
-  STARTED = "started",
-  STOPPED = "stopped",
 }
 
 export interface SessionMetadata {

@@ -1,4 +1,4 @@
-import { WSKind, WSEvents, WSActions, Views } from './types.js';
+import { WSKind, WSEvents, Views } from './types.js';
 import { SessionCard } from './components/SessionCard.js';
 function handleEvents(app, payload) {
     switch (payload.msg_type) {
@@ -21,23 +21,23 @@ function handleEvents(app, payload) {
             app.sessions.get(body.id)?.updateMeta(body);
             break;
         }
-        case "success":
-        case "failed":
-            console.log("Session result:", payload.msg_type, payload.body);
-            break;
-    }
-}
-function handleActions(app, payload) {
-    const body = payload.body;
-    const session = app.sessions.get(body.session_id);
-    switch (payload.msg_type) {
-        case WSActions.STARTED:
+        case WSEvents.STARTED: {
+            const body = payload.body;
+            const session = app.sessions.get(body.session_id);
             session?.start();
             app.triggerAllBtn.update(+1);
             break;
-        case WSActions.STOPPED:
+        }
+        case WSEvents.STOPPED: {
+            const body = payload.body;
+            const session = app.sessions.get(body.session_id);
             session?.stop();
             app.triggerAllBtn.update(-1);
+            break;
+        }
+        case "success":
+        case "failed":
+            console.log("Session result:", payload.msg_type, payload.body);
             break;
     }
 }
@@ -45,9 +45,6 @@ export function msgHandler(app, payload) {
     switch (payload.kind) {
         case WSKind.ERROR:
             console.error("Server error:", payload.msg_type);
-            break;
-        case WSKind.ACTION:
-            handleActions(app, payload);
             break;
         case WSKind.EVENT:
             handleEvents(app, payload);

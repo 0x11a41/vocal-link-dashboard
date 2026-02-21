@@ -69,14 +69,14 @@ class WSEvents(str, Enum): # these are facts that should be notified
     SESSION_ACTIVATE = "session_activate" # session[SessionMetadata]::
     SESSION_ACTIVATED = "session_activated" # server[SessionMetadata]::dashboard
     SESSION_LEFT = "session_left" # server[SessionMetadata]::dashboard
+    STARTED = "started" # session[session_id]::server::dashboard
+    STOPPED = "stopped" # session[session_id]::server::dashboard
     SUCCESS="success" # session[SessionMetadata]::server::dashboard
     FAIL="failed" # session[SessionMetadata]::server::dashboard
 
 class WSActions(str, Enum): # these are intents of session or dashboard
     START = "start" # dashboard[WSActionTarget]::server::target_session
     STOP = "stop" # dashboard[WSActionTarget]::server::target_session
-    STARTED = "started" # session[session_id]::server::dashboard
-    STOPPED = "stopped" # session[session_id]::server::dashboard
 
 
 class WSPayload(BaseModel):
@@ -511,6 +511,15 @@ class AppState:
         elif event_type in (WSEvents.SUCCESS, WSEvents.FAIL):
             await self.dashboard.notify(payload)
 
+        elif event_type in (WSEvents.STARTED, WSEvents.STOPPED):
+            try:
+                WSActionTarget.model_validate(payload.body)
+            except ValidationError:
+                await send_error(ws, WSErrors.INVALID_BODY)
+                return
+
+            await self.dashboard.notify(payload)
+
         else:
             await send_error(ws, WSErrors.INVALID_EVENT)
             try:
@@ -555,23 +564,6 @@ class AppState:
                 await self.sessions.send_to_one(target.session_id, payload)
             else:
                 await send_error(ws, WSErrors.SESSION_NOT_FOUND)
-
-        elif action_type in (WSActions.STARTED, WSActions.STOPPED):
-            if not from_session_id:
-                print("[warn] Dashboard attempted to fake a status update")
-                return
-
-            try:
-                status_update = WSActionTarget.model_validate(payload.body)
-            except ValidationError:
-                await send_error(ws, WSErrors.INVALID_BODY)
-                return
-
-            if status_update.session_id != from_session_id:
-                print(f"[warn] Spoofing attempt: {from_session_id} tried to report for {status_update.session_id}")
-                return
-
-            await self.dashboard.notify(payload)
         else:
             await send_error(ws, WSErrors.INVALID_ACTION)
                 

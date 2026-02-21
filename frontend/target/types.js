@@ -22,6 +22,8 @@ export var WSEvents;
     WSEvents["SESSION_LEFT"] = "session_left";
     WSEvents["SESSION_SELF_START"] = "session_self_start";
     WSEvents["SESSION_SELF_STOP"] = "session_self_stop";
+    WSEvents["STARTED"] = "started";
+    WSEvents["STOPPED"] = "stopped";
     WSEvents["SUCCESS"] = "success";
     WSEvents["FAIL"] = "failed";
 })(WSEvents || (WSEvents = {}));
@@ -29,8 +31,6 @@ export var WSActions;
 (function (WSActions) {
     WSActions["START"] = "start";
     WSActions["STOP"] = "stop";
-    WSActions["STARTED"] = "started";
-    WSActions["STOPPED"] = "stopped";
 })(WSActions || (WSActions = {}));
 export var RESTEvents;
 (function (RESTEvents) {

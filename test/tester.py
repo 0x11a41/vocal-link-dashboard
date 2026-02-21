@@ -78,7 +78,7 @@ async def control_client(session_id, name, ready_evt):
 
                 if t == "start":
                     await ws.send(json.dumps({
-                        "kind": "action",
+                        "kind": "event",
                         "msg_type": "started",
                         "body": {"session_id": session_id}
                     }))
@@ -86,7 +86,7 @@ async def control_client(session_id, name, ready_evt):
 
                 elif t == "stop":
                     await ws.send(json.dumps({
-                        "kind": "action",
+                        "kind": "event",
                         "msg_type": "stopped",
                         "body": {"session_id": session_id}
                     }))
@@ -158,7 +158,7 @@ async def run_session(instance_id):
 # ---------------------------------------------------
 
 async def main():
-    count = random.randint(1, 5)
+    count = random.randint(1, 20)
     log(f"Starting {count} session(s)\n")
 
     tasks = [
