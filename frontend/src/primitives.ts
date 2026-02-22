@@ -40,8 +40,8 @@ export enum WSActions {
   GET_STATE = "get_state",
 }
 
-enum SessionStates {
-  RECORDING = "recording",
+export enum SessionStates {
+  STOPPED = "stopped",
   RUNNING = "running",
   PAUSED = "paused",
 }

@@ -1,17 +1,13 @@
-import { SessionMetadata, WSActions, Payloads } from "../primitives.js";
+import { SessionMetadata, WSActions, Payloads, SessionStates } from "../primitives.js";
 import { circleButton } from "./circleButton.js";
 import { sendPayload } from "../websockets.js";
 import { StopWatch } from "./StopWatch.js";
 
-enum SessionState {
-  IDLE = "idle",
-  RECORDING = "recording"
-}
 // when user clicks start/stop button on a session, it notifies the session
 // about it. The session to send an acknowledgement back to UI, and only then
 // the visible changes are made using start() or stop() methods.
 class SessionCard {
-  public state: SessionState = SessionState.IDLE;
+  public state: SessionStates = SessionStates.STOPPED;
   public meta: SessionMetadata;
 
   public card: HTMLElement;
@@ -22,9 +18,9 @@ class SessionCard {
   constructor(meta: SessionMetadata) {
     this.meta = meta;
     this.micBtn = circleButton({iconName:"record-icon",onClick:() => {
-      if (this.state === SessionState.IDLE) {
+      if (this.state === SessionStates.STOPPED) {
         this.notify(WSActions.START);
-      } else if (this.state === SessionState.RECORDING) {
+      } else if (this.state === SessionStates.RUNNING) {
         this.notify(WSActions.STOP);
       }
     }});
@@ -60,7 +56,7 @@ class SessionCard {
   }
 
   public start(): void {
-    this.state = SessionState.RECORDING;
+    this.state = SessionStates.RUNNING;
     this.micBtn.classList.remove('record-icon');
     this.micBtn.classList.add('stop-icon');
     this.card.classList.add('border-recording');
@@ -68,7 +64,7 @@ class SessionCard {
   }
 
   public stop(): void {
-    this.state = SessionState.IDLE;
+    this.state = SessionStates.STOPPED;
     this.micBtn.classList.remove('stop-icon');
     this.micBtn.classList.add('record-icon');
     this.card.classList.remove('border-recording');
@@ -85,4 +81,4 @@ class SessionCard {
   }
 }
 
-export { SessionState, SessionCard };
+export { SessionCard };

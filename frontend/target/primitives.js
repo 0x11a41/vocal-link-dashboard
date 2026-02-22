@@ -37,9 +37,9 @@ export var WSActions;
     WSActions["CANCEL"] = "cancel";
     WSActions["GET_STATE"] = "get_state";
 })(WSActions || (WSActions = {}));
-var SessionStates;
+export var SessionStates;
 (function (SessionStates) {
-    SessionStates["RECORDING"] = "recording";
+    SessionStates["STOPPED"] = "stopped";
     SessionStates["RUNNING"] = "running";
     SessionStates["PAUSED"] = "paused";
 })(SessionStates || (SessionStates = {}));

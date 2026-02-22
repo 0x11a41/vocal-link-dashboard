@@ -91,7 +91,7 @@ class WSEventTarget(BaseModel):
     id: str
 
 class SessionStates(str, Enum):
-    RECORDING = "recording"
+    STOPPED = "stopped"
     RUNNING = "running"
     PAUSED = "paused"
 

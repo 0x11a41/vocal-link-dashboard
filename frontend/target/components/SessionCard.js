@@ -1,14 +1,9 @@
-import { WSActions, Payloads } from "../primitives.js";
+import { WSActions, Payloads, SessionStates } from "../primitives.js";
 import { circleButton } from "./circleButton.js";
 import { sendPayload } from "../websockets.js";
 import { StopWatch } from "./StopWatch.js";
-var SessionState;
-(function (SessionState) {
-    SessionState["IDLE"] = "idle";
-    SessionState["RECORDING"] = "recording";
-})(SessionState || (SessionState = {}));
 class SessionCard {
-    state = SessionState.IDLE;
+    state = SessionStates.STOPPED;
     meta;
     card;
     micBtn;
@@ -17,10 +12,10 @@ class SessionCard {
     constructor(meta) {
         this.meta = meta;
         this.micBtn = circleButton({ iconName: "record-icon", onClick: () => {
-                if (this.state === SessionState.IDLE) {
+                if (this.state === SessionStates.STOPPED) {
                     this.notify(WSActions.START);
                 }
-                else if (this.state === SessionState.RECORDING) {
+                else if (this.state === SessionStates.RUNNING) {
                     this.notify(WSActions.STOP);
                 }
             } });
@@ -49,14 +44,14 @@ class SessionCard {
         sendPayload(Payloads.action(action, this.meta.id));
     }
     start() {
-        this.state = SessionState.RECORDING;
+        this.state = SessionStates.RUNNING;
         this.micBtn.classList.remove('record-icon');
         this.micBtn.classList.add('stop-icon');
         this.card.classList.add('border-recording');
         this.stopWatch.start();
     }
     stop() {
-        this.state = SessionState.IDLE;
+        this.state = SessionStates.STOPPED;
         this.micBtn.classList.remove('stop-icon');
         this.micBtn.classList.add('record-icon');
         this.card.classList.remove('border-recording');
@@ -70,4 +65,4 @@ class SessionCard {
         this.statusRow.innerText = `🔋${this.meta.battery}%  📶${this.meta.lastRTT}ms`;
     }
 }
-export { SessionState, SessionCard };
+export { SessionCard };

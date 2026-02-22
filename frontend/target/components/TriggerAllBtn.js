@@ -1,5 +1,4 @@
-import { SessionState } from './SessionCard.js';
-import { Payloads, WSActions } from '../primitives.js';
+import { Payloads, WSActions, SessionStates } from '../primitives.js';
 import { sendPayload } from '../websockets.js';
 import { button } from './button.js';
 export class TriggerAllBtn {
@@ -17,14 +16,14 @@ export class TriggerAllBtn {
     handleClick() {
         if (this.activeRecordings == 0) {
             this.sessions.forEach((session) => {
-                if (session.state == SessionState.IDLE) {
+                if (session.state == SessionStates.STOPPED) {
                     sendPayload(Payloads.action(WSActions.START, session.meta.id));
                 }
             });
         }
         else {
             this.sessions.forEach((session) => {
-                if (session.state == SessionState.RECORDING) {
+                if (session.state == SessionStates.RUNNING) {
                     sendPayload(Payloads.action(WSActions.STOP, session.meta.id));
                 }
             });
