@@ -1,4 +1,4 @@
-import { SessionMetadata, WSActions, Payloads } from "../types.js";
+import { SessionMetadata, WSActions, Payloads } from "../primitives.js";
 import { circleButton } from "./circleButton.js";
 import { sendPayload } from "../websockets.js";
 import { StopWatch } from "./StopWatch.js";

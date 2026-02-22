@@ -1,5 +1,5 @@
 import { URL } from "./env.js";
-import { Payloads, WSEvents, WSPayload } from "./types.js";
+import { Payloads, WSEvents, WSPayload } from "./primitives.js";
 
 
 export const ws = new WebSocket(`${URL.replace(/^http/, 'ws')}/ws/control`);

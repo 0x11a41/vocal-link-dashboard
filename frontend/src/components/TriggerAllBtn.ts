@@ -1,5 +1,5 @@
 import { SessionCard, SessionState } from './SessionCard.js';
-import { Payloads, WSActions } from '../types.js'
+import { Payloads, WSActions } from '../primitives.js'
 import { sendPayload } from '../websockets.js';
 import { button } from './button.js';
 

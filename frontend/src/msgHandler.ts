@@ -1,4 +1,4 @@
-import {WSKind, WSEvents, Views, WSPayload, SessionMetadata, WSActionTarget} from './types.js';
+import {WSKind, WSEvents, Views, WSPayload, SessionMetadata, WSActionTarget} from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import type { VLApp } from './app.js'; 
 

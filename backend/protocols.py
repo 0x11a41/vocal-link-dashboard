@@ -22,6 +22,7 @@ class SessionMetadata(BaseModel):
 class ServerInfo(BaseModel):
     name: str = Field(min_length=1, max_length=50)
     ip: str
+    version: str = 'v0.5-alpha'
     active_sessions: int = 0
 
 

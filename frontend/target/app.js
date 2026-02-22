@@ -1,5 +1,5 @@
-import { VERSION, URL } from './env.js';
-import { Views } from './types.js';
+import { URL } from './constants.js';
+import { Views } from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import { SettingsView } from './views/settings.js';
 import { RecordingsView } from './views/recordings.js';
@@ -63,7 +63,7 @@ export class VLApp {
     `;
         this.sidePanel.appendChild(this.viewSelector);
         this.sidePanel.insertAdjacentHTML('beforeend', `
-    	<i class="version">vocal-link-dashboard ${VERSION}</i>
+    	<i class="version">vocal-link-dashboard ${server.data.version}</i>
   	`);
         this.viewSelector.onmouseup = (ev) => {
             const target = ev.target.closest('li');

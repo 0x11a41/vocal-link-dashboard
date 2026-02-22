@@ -3,6 +3,7 @@ class ServerStateManager {
     data = {
         name: "Loading...",
         ip: "0.0.0.0",
+        version: "v0.0",
         active_sessions: 0
     };
     constructor() {

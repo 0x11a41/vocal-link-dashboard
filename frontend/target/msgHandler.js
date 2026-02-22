@@ -1,4 +1,4 @@
-import { WSKind, WSEvents, Views } from './types.js';
+import { WSKind, WSEvents, Views } from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 function handleEvents(app, payload) {
     switch (payload.msg_type) {

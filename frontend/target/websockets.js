@@ -1,5 +1,5 @@
 import { URL } from "./env.js";
-import { Payloads, WSEvents } from "./types.js";
+import { Payloads, WSEvents } from "./primitives.js";
 export const ws = new WebSocket(`${URL.replace(/^http/, 'ws')}/ws/control`);
 ws.onopen = () => ws.send(JSON.stringify(Payloads.event(WSEvents.DASHBOARD_INIT)));
 export const sendPayload = (payload) => {
