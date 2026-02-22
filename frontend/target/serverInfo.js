@@ -1,10 +1,10 @@
-import { URL } from "./env.js";
+import { URL } from "./constants.js";
 class ServerStateManager {
     data = {
         name: "Loading...",
         ip: "0.0.0.0",
         version: "v0.0",
-        active_sessions: 0
+        activeSessions: 0
     };
     constructor() {
         this.updateServerInfo();

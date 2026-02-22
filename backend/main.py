@@ -8,21 +8,8 @@ import uuid
 import qrcode
 import io
 
-from backend.protocols import (
-    AppState, 
-    SessionStageRequestMsg, 
-    SessionStageResponseMsg, 
-    SessionMetadata,
-    SyncRequest, 
-    SyncReport,
-    ServerInfo,
-    WSPayload,
-    WSKind,
-    WSEvents,
-    WSErrors,
-    QRData,
-    send_error,
-)
+from backend.handlers import AppState, send_error
+import backend.primitives as P
 
 
 app = AppState(port = 6210) # source of truth
@@ -52,19 +39,19 @@ async def orchistrate_messages(ws: WebSocket):
     try:
         while True:
             try:
-                raw = WSPayload.model_validate(await ws.receive_json())
+                raw = P.WSPayload.model_validate(await ws.receive_json())
             except ValidationError as e:
                 print(e)
                 continue
 
-            if raw.kind == WSKind.ACTION:
+            if raw.kind == P.WSKind.ACTION:
                 await app.handle_ws_actions(raw, ws)
-            elif raw.kind == WSKind.EVENT:
+            elif raw.kind == P.WSKind.EVENT:
                 await app.handle_ws_events(raw, ws)
-            elif raw.kind == WSKind.ERROR:
+            elif raw.kind == P.WSKind.ERROR:
                 pass # todo
             else:
-                await send_error(ws, WSErrors.INVALID_KIND)
+                await send_error(ws, P.WSErrors.INVALID_KIND)
                 
     except WebSocketDisconnect:
         await app.handle_disconnect(ws)
@@ -95,18 +82,18 @@ async def sync_endpoint(ws: WebSocket, session_id: str):
             
             if "t1" in data:
                 try:
-                    req = SyncRequest.model_validate(data)
+                    req = P.SyncRequest.model_validate(data)
                     await app.clock.handle_ping(session_id, req)
                 except ValidationError:
                     continue
             elif "theta" in data:
                 try:
-                    report = SyncReport.model_validate(data)
+                    report = P.SyncReport.model_validate(data)
                     meta = await app.sessions.update_sync(session_id, report)
                     if meta:
-                        update = WSPayload(
-                            kind=WSKind.EVENT, 
-                            msg_type=WSEvents.SESSION_UPDATE, 
+                        update = P.WSPayload(
+                            kind=P.WSKind.EVENT, 
+                            msgType=P.WSEvents.SESSION_UPDATE, 
                             body=meta
                         )
                         await app.dashboard.notify(update)
@@ -121,20 +108,20 @@ async def sync_endpoint(ws: WebSocket, session_id: str):
 
 
 
-@api.post("/sessions", response_model=SessionStageResponseMsg)
-async def stage_session(req: SessionStageRequestMsg):
+@api.post("/sessions", response_model=P.SessionStageResponseMsg)
+async def stage_session(req: P.SessionStageRequestMsg):
     req.body.id = str(uuid.uuid4())
     await app.sessions.stage(req.body)
-    return SessionStageResponseMsg(body=req.body).model_dump()
+    return P.SessionStageResponseMsg(body=req.body).model_dump()
 
 
-@api.get("/sessions", response_model=List[SessionMetadata])
+@api.get("/sessions", response_model=List[P.SessionMetadata])
 async def list_sessions():
     return await app.sessions.getMetaFromAllActive()
 
 
 
-@api.get("/dashboard", response_model=ServerInfo)
+@api.get("/dashboard", response_model=P.ServerInfo)
 async def getServerInfo():
     return await app.server_info()
 
@@ -142,7 +129,7 @@ async def getServerInfo():
 
 @api.get("/dashboard/qr")
 async def get_server_qr():
-    payload = QRData(name=app.name, ip=app.ip)
+    payload = P.QRData(name=app.name, ip=app.ip)
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_M,

@@ -1,9 +1,153 @@
+from enum import Enum
+from pydantic import BaseModel, Field
+from typing import Optional, Literal, Union
 import asyncio
-import json
 import random
 import httpx
 import websockets
 from datetime import datetime
+
+
+VERSION = "v0.6-alpha"
+
+
+# =========================================================
+# ================== PRIMITIVES ============================
+# =========================================================
+
+class SessionMetadata(BaseModel):
+    id: str
+    name: str = Field(min_length=1, max_length=50)
+    ip: str
+    battery: int = -1
+    device: str
+    theta: float = -1
+    lastRTT: float = -1
+    lastSync: Optional[int] = None
+
+
+class ServerInfo(BaseModel):
+    name: str = Field(min_length=1, max_length=50)
+    ip: str
+    version: str = VERSION
+    activeSessions: int = 0
+
+
+class RESTEvents(str, Enum):
+    SESSION_STAGE = "session_stage"
+    SESSION_STAGED = "session_staged"
+
+
+class SessionStageRequestMsg(BaseModel):
+    event: Literal[RESTEvents.SESSION_STAGE] = RESTEvents.SESSION_STAGE
+    body: SessionMetadata
+
+
+class SessionStageResponseMsg(BaseModel):
+    event: Literal[RESTEvents.SESSION_STAGED] = RESTEvents.SESSION_STAGED
+    body: SessionMetadata
+
+
+class WSKind(str, Enum):
+    ACTION = "action"
+    EVENT = "event"
+    ERROR = "error"
+
+
+class WSErrors(str, Enum):
+    INVALID_KIND = "invalid_kind"
+    INVALID_EVENT = "invalid_event"
+    INVALID_ACTION = "invalid_action"
+    INVALID_BODY = "invalid_body"
+    ACTION_NOT_ALLOWED = "action_not_allowed"
+    SESSION_NOT_FOUND = "session_not_found"
+
+
+class WSEvents(str, Enum):
+    DASHBOARD_INIT = "dashboard_init"
+    DASHBOARD_RENAME = "dashboard_rename"
+
+    SESSION_UPDATE = "session_update"
+    SESSION_ACTIVATE = "session_activate"
+    SESSION_ACTIVATED = "session_activated"
+    SESSION_LEFT = "session_left"
+    SUCCESS = "success"
+    FAIL = "failed"
+
+    SESSION_STATE_REPORT = "session_state_report"
+    STARTED = "started"
+    STOPPED = "stopped"
+    PAUSED = "paused"
+    RESUMED = "resumed"
+
+
+class WSActions(str, Enum):
+    START = "start"
+    STOP = "stop"
+    PAUSE = "pause"
+    RESUME = "resume"
+    CANCEL = "cancel"
+    GET_STATE = "get_state"
+
+
+class WSActionTarget(BaseModel):
+    id: str
+    triggerTime: Optional[int] = None
+
+
+class Rename(BaseModel):
+    name: str
+
+
+class WSEventTarget(BaseModel):
+    id: str
+
+
+class SessionStates(str, Enum):
+    RECORDING = "recording"
+    RUNNING = "running"
+    PAUSED = "paused"
+
+
+class StateReport(BaseModel):
+    id: str
+    status: SessionStates
+    duration: int = 0
+
+
+class WSPayload(BaseModel):
+    kind: WSKind
+    msgType: Union[WSActions, WSEvents, WSErrors]
+    body: Optional[
+        Union[
+            WSEventTarget,
+            StateReport,
+            SessionMetadata,
+            WSActionTarget,
+            Rename,
+        ]
+    ] = None
+
+
+class SyncRequest(BaseModel):
+    t1: int
+
+
+class SyncResponse(BaseModel):
+    type: str = "SYNC_RESPONSE"
+    t1: int
+    t2: int
+    t3: int
+
+
+class SyncReport(BaseModel):
+    theta: float
+    rtt: float
+
+
+# =========================================================
+# ================= CONFIG ================================
+# =========================================================
 
 BASE = "http://localhost:6210"
 WS = "ws://localhost:6210"
@@ -13,83 +157,92 @@ def log(msg):
     print(f"[{datetime.now().strftime('%H:%M:%S')}] {msg}")
 
 
-# ---------------------------------------------------
-# STAGE SESSION
-# ---------------------------------------------------
+# =========================================================
+# ================= STAGE SESSION =========================
+# =========================================================
 
-async def stage_session(name):
+async def stage_session(name: str) -> SessionMetadata:
     async with httpx.AsyncClient() as client:
-        payload = {
-            "event": "session_stage",
-            "body": {
-                "id": "placeholder",
-                "name": name,
-                "ip": "127.0.0.1",
-                "battery": random.randint(40, 100),
-                "device": "pytest",
-                "theta": -1,
-                "last_rtt": -1,
-                "last_sync": None
-            }
-        }
 
-        r = await client.post(f"{BASE}/sessions", json=payload)
+        req = SessionStageRequestMsg(
+            body=SessionMetadata(
+                id="placeholder",
+                name=name,
+                ip="127.0.0.1",
+                battery=random.randint(40, 100),
+                device="pytest"
+            )
+        )
+
+        r = await client.post(f"{BASE}/sessions", json=req.model_dump())
         r.raise_for_status()
-        sid = r.json()["body"]["id"]
 
-        log(f"[{name}] STAGED {sid}")
-        return sid
+        resp = SessionStageResponseMsg.model_validate(r.json())
+        meta = resp.body
+
+        log(f"[{name}] STAGED {meta.id}")
+        return meta
 
 
-# ---------------------------------------------------
-# CONTROL SOCKET
-# ---------------------------------------------------
+# =========================================================
+# ================= CONTROL SOCKET ========================
+# =========================================================
 
-async def control_client(session_id, name, ready_evt):
+async def control_client(meta: SessionMetadata, ready_evt: asyncio.Event):
+    name = meta.name
+    sid = meta.id
+
     try:
         async with websockets.connect(f"{WS}/ws/control") as ws:
 
-            meta = {
-                "id": session_id,
-                "name": name,
-                "ip": "127.0.0.1",
-                "battery": 100,
-                "device": "pytest",
-                "theta": 0,
-                "last_rtt": 0,
-                "last_sync": None
-            }
+            activate = WSPayload(
+                kind=WSKind.EVENT,
+                msgType=WSEvents.SESSION_ACTIVATE,
+                body=WSEventTarget(id=sid)
+            )
 
-            await ws.send(json.dumps({
-                "kind": "event",
-                "msg_type": "session_activate",
-                "body": meta
-            }))
+            await ws.send(activate.model_dump_json())
             log(f"[{name}] ACTIVATE SENT")
 
-            ready_evt.set()
-
             while True:
-                msg = await ws.recv()
-                data = json.loads(msg)
-                t = data["msg_type"]
+                try:
+                    raw = await ws.recv()
+                except websockets.ConnectionClosed:
+                    log(f"[{name}] control disconnected")
+                    return
 
-                log(f"[{name}] GOT {t}")
+                payload = WSPayload.model_validate_json(raw)
 
-                if t == "start":
-                    await ws.send(json.dumps({
-                        "kind": "event",
-                        "msg_type": "started",
-                        "body": {"session_id": session_id}
-                    }))
+                log(f"[{name}] GOT {payload.kind}:{payload.msgType}")
+
+                # activation ack
+                if payload.msgType == WSEvents.SESSION_ACTIVATED:
+                    ready_evt.set()
+                    continue
+
+                if payload.kind != WSKind.ACTION:
+                    continue
+
+                target: WSActionTarget = payload.body
+
+                # START
+                if payload.msgType == WSActions.START:
+                    reply = WSPayload(
+                        kind=WSKind.EVENT,
+                        msgType=WSEvents.STARTED,
+                        body=WSEventTarget(id=target.id)
+                    )
+                    await ws.send(reply.model_dump_json())
                     log(f"[{name}] SENT started")
 
-                elif t == "stop":
-                    await ws.send(json.dumps({
-                        "kind": "event",
-                        "msg_type": "stopped",
-                        "body": {"session_id": session_id}
-                    }))
+                # STOP
+                elif payload.msgType == WSActions.STOP:
+                    reply = WSPayload(
+                        kind=WSKind.EVENT,
+                        msgType=WSEvents.STOPPED,
+                        body=WSEventTarget(id=target.id)
+                    )
+                    await ws.send(reply.model_dump_json())
                     log(f"[{name}] SENT stopped")
 
     except asyncio.CancelledError:
@@ -97,65 +250,68 @@ async def control_client(session_id, name, ready_evt):
         raise
 
 
-# ---------------------------------------------------
-# SYNC SOCKET (REPEATS FOREVER)
-# ---------------------------------------------------
+# =========================================================
+# ================= SYNC SOCKET ===========================
+# =========================================================
 
-async def sync_client(session_id, name, ready_evt):
+async def sync_client(meta: SessionMetadata, ready_evt: asyncio.Event):
     await ready_evt.wait()
-    await asyncio.sleep(0.5)
+    await asyncio.sleep(0.3)
+
+    name = meta.name
+    sid = meta.id
 
     try:
-        async with websockets.connect(f"{WS}/ws/sync/{session_id}") as ws:
+        async with websockets.connect(f"{WS}/ws/sync/{sid}") as ws:
             log(f"[{name}] SYNC CONNECTED")
 
             while True:
-                t1 = int(datetime.now().timestamp() * 1000)
+                req = SyncRequest(
+                    t1=int(datetime.now().timestamp() * 1000)
+                )
 
-                await ws.send(json.dumps({"t1": t1}))
+                await ws.send(req.model_dump_json())
                 log(f"[{name}] SYNC PING")
 
-                resp = json.loads(await ws.recv())
-
-                if resp.get("type") != "SYNC_RESPONSE":
-                    log(f"[{name}] INVALID SYNC RESPONSE")
-                    continue
+                raw = await ws.recv()
+                SyncResponse.model_validate_json(raw)
 
                 log(f"[{name}] SYNC OK")
 
-                await ws.send(json.dumps({
-                    "theta": round(random.uniform(-2, 2), 3),
-                    "rtt": random.randint(10, 80)
-                }))
+                report = SyncReport(
+                    theta=round(random.uniform(-2, 2), 3),
+                    rtt=random.randint(10, 80)
+                )
 
+                await ws.send(report.model_dump_json())
                 log(f"[{name}] SYNC REPORT")
 
-                await asyncio.sleep(5)
+                await asyncio.sleep(5 + random.random())
 
     except asyncio.CancelledError:
         log(f"[{name}] sync closed")
         raise
 
 
-# ---------------------------------------------------
-# SESSION INSTANCE
-# ---------------------------------------------------
+# =========================================================
+# ================= SESSION INSTANCE ======================
+# =========================================================
 
-async def run_session(instance_id):
-    name = f"Client-{instance_id}"
-    sid = await stage_session(name)
+async def run_session(idx: int):
+    name = f"Client-{idx}"
+    meta = await stage_session(name)
 
-    ready_evt = asyncio.Event()
+    ready = asyncio.Event()
 
     await asyncio.gather(
-        control_client(sid, name, ready_evt),
-        sync_client(sid, name, ready_evt)
+        control_client(meta, ready),
+        sync_client(meta, ready)
     )
 
 
-# ---------------------------------------------------
-# MAIN
-# ---------------------------------------------------
+# =========================================================
+# ================= MAIN ==================================
+# =========================================================
 
 async def main():
     count = random.randint(1, 20)

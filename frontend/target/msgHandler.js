@@ -1,7 +1,7 @@
 import { WSKind, WSEvents, Views } from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 function handleEvents(app, payload) {
-    switch (payload.msg_type) {
+    switch (payload.msgType) {
         case WSEvents.SESSION_ACTIVATED: {
             const body = payload.body;
             if (!app.sessions.has(body.id)) {
@@ -18,33 +18,45 @@ function handleEvents(app, payload) {
         }
         case WSEvents.SESSION_UPDATE: {
             const body = payload.body;
-            app.sessions.get(body.id)?.updateMeta(body);
+            app.sessions.get(body.id)?.syncMeta(body);
             break;
         }
         case WSEvents.STARTED: {
             const body = payload.body;
-            const session = app.sessions.get(body.session_id);
+            const session = app.sessions.get(body.id);
             session?.start();
             app.triggerAllBtn.update(+1);
             break;
         }
         case WSEvents.STOPPED: {
             const body = payload.body;
-            const session = app.sessions.get(body.session_id);
+            const session = app.sessions.get(body.id);
             session?.stop();
             app.triggerAllBtn.update(-1);
             break;
         }
-        case "success":
-        case "failed":
-            console.log("Session result:", payload.msg_type, payload.body);
+        case WSEvents.PAUSED: {
+            break;
+        }
+        case WSEvents.RESUMED: {
+            break;
+        }
+        case WSEvents.PAUSED: {
+            break;
+        }
+        case WSEvents.SESSION_STATE_REPORT: {
+            break;
+        }
+        case WSEvents.SUCCESS:
+        case WSEvents.FAIL:
+            console.log("Session result:", payload.msgType, payload.body);
             break;
     }
 }
 export function msgHandler(app, payload) {
     switch (payload.kind) {
         case WSKind.ERROR:
-            console.error("Server error:", payload.msg_type);
+            console.error("Server error:", payload.msgType);
             break;
         case WSKind.EVENT:
             handleEvents(app, payload);

@@ -36,7 +36,7 @@ class SessionCard {
         `;
         this.statusRow = document.createElement('div');
         this.statusRow.classList.add('status-row');
-        this.statusRow.innerText = `🔋${meta.battery}%  📶${meta.last_rtt}ms`;
+        this.statusRow.innerText = `🔋${meta.battery}%  📶${meta.lastRTT}ms`;
         left.appendChild(this.statusRow);
         const right = document.createElement('div');
         right.classList.add('right');
@@ -62,12 +62,12 @@ class SessionCard {
         this.card.classList.remove('border-recording');
         this.stopWatch.reset();
     }
-    updateMeta(newMeta) {
+    syncMeta(newMeta) {
         this.meta.battery = newMeta.battery;
-        this.meta.last_rtt = newMeta.last_rtt;
+        this.meta.lastRTT = newMeta.lastRTT;
         this.meta.theta = newMeta.theta;
-        this.meta.last_sync = newMeta.last_sync;
-        this.statusRow.innerText = `🔋${this.meta.battery}%  📶${this.meta.last_rtt}ms`;
+        this.meta.lastSync = newMeta.lastSync;
+        this.statusRow.innerText = `🔋${this.meta.battery}%  📶${this.meta.lastRTT}ms`;
     }
 }
 export { SessionState, SessionCard };

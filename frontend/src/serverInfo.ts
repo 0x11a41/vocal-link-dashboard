@@ -1,18 +1,12 @@
-import { URL } from "./env.js";
-
-export interface ServerInfo {
-    name: string;
-    ip: string;
-    version: string;
-    active_sessions: number;
-}
+import { URL } from "./constants.js";
+import { ServerInfo } from "./primitives.js";
 
 class ServerStateManager {
   public data: ServerInfo = {
       name: "Loading...",
       ip: "0.0.0.0",
       version: "v0.0",
-      active_sessions: 0
+      activeSessions: 0
   };
 
   constructor() {

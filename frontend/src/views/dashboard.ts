@@ -14,7 +14,7 @@ export function DashboardView({ sessions, triggerAllBtn }:DashboardProps): HTMLE
 				<h1>${server.data.name}</h1>
 				<p class="status">status:
   				${
-  				  server.data.active_sessions < 0
+  				  server.data.activeSessions < 0
   				  ?  '<span class="danger">Offline</span>'
   				  : '<span class="success">Active</span>'
   				}

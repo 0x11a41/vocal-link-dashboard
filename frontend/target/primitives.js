@@ -20,10 +20,11 @@ export var WSEvents;
     WSEvents["SESSION_ACTIVATE"] = "session_activate";
     WSEvents["SESSION_ACTIVATED"] = "session_activated";
     WSEvents["SESSION_LEFT"] = "session_left";
-    WSEvents["SESSION_SELF_START"] = "session_self_start";
-    WSEvents["SESSION_SELF_STOP"] = "session_self_stop";
+    WSEvents["SESSION_STATE_REPORT"] = "session_state_report";
     WSEvents["STARTED"] = "started";
     WSEvents["STOPPED"] = "stopped";
+    WSEvents["PAUSED"] = "paused";
+    WSEvents["RESUMED"] = "resumed";
     WSEvents["SUCCESS"] = "success";
     WSEvents["FAIL"] = "failed";
 })(WSEvents || (WSEvents = {}));
@@ -31,29 +32,44 @@ export var WSActions;
 (function (WSActions) {
     WSActions["START"] = "start";
     WSActions["STOP"] = "stop";
+    WSActions["PAUSE"] = "pause";
+    WSActions["RESUME"] = "resume";
+    WSActions["CANCEL"] = "cancel";
+    WSActions["GET_STATE"] = "get_state";
 })(WSActions || (WSActions = {}));
+var SessionStates;
+(function (SessionStates) {
+    SessionStates["RECORDING"] = "recording";
+    SessionStates["RUNNING"] = "running";
+    SessionStates["PAUSED"] = "paused";
+})(SessionStates || (SessionStates = {}));
 export var RESTEvents;
 (function (RESTEvents) {
 })(RESTEvents || (RESTEvents = {}));
 export const Payloads = {
     action: (type, session_id = "all") => ({
         kind: WSKind.ACTION,
-        msg_type: type,
-        body: { session_id, trigger_time: null }
-    }),
-    rename: (newName) => ({
-        kind: WSKind.ACTION,
-        msg_type: WSEvents.DASHBOARD_RENAME,
-        body: { new_name: newName }
+        msgType: type,
+        body: {
+            id: session_id,
+            triggerTime: null
+        }
     }),
     event: (type, body = null) => ({
         kind: WSKind.EVENT,
-        msg_type: type,
+        msgType: type,
         body: body
+    }),
+    rename: (newName) => ({
+        kind: WSKind.ACTION,
+        msgType: WSEvents.DASHBOARD_RENAME,
+        body: {
+            name: newName
+        }
     }),
     error: (type) => ({
         kind: WSKind.ERROR,
-        msg_type: type,
+        msgType: type,
         body: null,
     }),
 };

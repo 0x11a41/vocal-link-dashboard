@@ -1,4 +1,4 @@
-import { URL } from "./env.js";
+import { URL } from "./constants.js";
 import { Payloads, WSEvents, WSPayload } from "./primitives.js";
 
 

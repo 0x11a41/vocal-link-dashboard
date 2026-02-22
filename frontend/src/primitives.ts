@@ -22,10 +22,11 @@ export enum WSEvents {
   SESSION_ACTIVATE = "session_activate",
   SESSION_ACTIVATED = "session_activated",
   SESSION_LEFT = "session_left",
-  SESSION_SELF_START = "session_self_start",
-  SESSION_SELF_STOP = "session_self_stop",
+  SESSION_STATE_REPORT = "session_state_report",
   STARTED = "started",
   STOPPED = "stopped",
+  PAUSED = "paused",
+  RESUMED = "resumed",
   SUCCESS = "success",
   FAIL = "failed",
 }
@@ -33,6 +34,16 @@ export enum WSEvents {
 export enum WSActions {
   START = "start",
   STOP = "stop",
+  PAUSE = "pause",
+  RESUME = "resume",
+  CANCEL = "cancel",
+  GET_STATE = "get_state",
+}
+
+enum SessionStates {
+  RECORDING = "recording",
+  RUNNING = "running",
+  PAUSED = "paused",
 }
 
 export interface SessionMetadata {
@@ -42,8 +53,15 @@ export interface SessionMetadata {
   battery: number;
   device: string;
   theta: number; 
-  last_rtt: number; 
-  last_sync?: number | null;
+  lastRTT: number; 
+  lastSync?: number | null;
+}
+
+export interface ServerInfo {
+    name: string;
+    ip: string;
+    version: string;
+    activeSessions: number;
 }
 
 export enum RESTEvents {
@@ -51,19 +69,38 @@ export enum RESTEvents {
 }
 
 export interface Rename {
-  new_name: string;
+  name: string;
 }
 
 export interface WSActionTarget {
-  session_id: string;
-  trigger_time?: number | null;
+  id: string;
+  triggerTime?: number | null;
 }
-type WSBodyTypes = SessionMetadata | WSActionTarget | Rename | null;
-type WSMsgTypes = WSActions | WSEvents | WSErrors;
+
+export interface WSEventTarget {
+  id: string;
+}
+
+export interface StateReport {
+  id: string;
+  status: SessionStates;
+  duration: number
+}
+
+type WSBodyTypes = SessionMetadata |
+  WSActionTarget |
+  WSEventTarget |
+  StateReport |
+  Rename |
+  null;
+
+type WSMsgTypes = WSActions |
+  WSEvents |
+  WSErrors;
 
 export interface WSPayload {
   kind: WSKind;
-  msg_type: WSMsgTypes;
+  msgType: WSMsgTypes;
   body: WSBodyTypes;
 }
 
@@ -71,25 +108,30 @@ export interface WSPayload {
 export const Payloads = {
   action: (type: WSActions, session_id: string = "all"): WSPayload => ({
     kind: WSKind.ACTION,
-    msg_type: type,
-    body: { session_id, trigger_time: null }
-  }),
-
-  rename: (newName: string): WSPayload => ({
-    kind: WSKind.ACTION,
-    msg_type: WSEvents.DASHBOARD_RENAME,
-    body: { new_name: newName }
+    msgType: type,
+    body: {
+      id: session_id,
+      triggerTime: null
+    }
   }),
 
   event: (type: WSEvents, body: WSBodyTypes | null = null): WSPayload => ({
     kind: WSKind.EVENT,
-    msg_type: type,
+    msgType: type,
     body: body
+  }),
+
+  rename: (newName: string): WSPayload => ({
+    kind: WSKind.ACTION,
+    msgType: WSEvents.DASHBOARD_RENAME,
+    body: {
+      name: newName
+    }
   }),
 
   error: (type: WSErrors): WSPayload => ({
     kind: WSKind.ERROR,
-    msg_type: type,
+    msgType: type,
     body: null,
   }),
 };
