@@ -61,7 +61,6 @@ class WSEvents(str, Enum): # these are facts that should be notified
     SESSION_UPDATE = "session_update" # session[SessionMetadata]::server::dashboard
     SESSION_ACTIVATE = "session_activate" # session[WSEventTarget]::server
     SESSION_ACTIVATED = "session_activated" # server[SessionMetadata]::dashboard
-    SESSION_LEFT = "session_left" # server[SessionMetadata]::dashboard
     SUCCESS="success" # session[SessionMetadata]::server::dashboard
     FAIL="failed" # session[SessionMetadata]::server::dashboard
 
@@ -70,6 +69,7 @@ class WSEvents(str, Enum): # these are facts that should be notified
     STOPPED = "stopped" # session[WSEventTarget]::server::dashboard
     PAUSED = "paused" # session[WSEventTarget]::server::dashboard
     RESUMED = "resumed" # session[WSEventTarget]::server::dashboard
+    DROPPED = "dropped" # server[WSEventTarget]::dashboard
 
 class WSActions(str, Enum): # these are intents of session or dashboard
     START = "start" # dashboard[WSActionTarget]::server::target_session
@@ -77,6 +77,7 @@ class WSActions(str, Enum): # these are intents of session or dashboard
     PAUSE = "pause" # dashboard[WSActionTarget]::server::target_session
     RESUME = "resume"# dashboard[WSActionTarget]::server::target_session
     CANCEL = "cancel"# dashboard[WSActionTarget]::server::target_session
+    DROP = "drop" # dashboard[WSActionTarget]::server
     GET_STATE = "get_state" # dashboard[WSActionTarget]::server::target_session
 
 

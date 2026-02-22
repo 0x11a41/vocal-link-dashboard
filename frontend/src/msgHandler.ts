@@ -1,4 +1,4 @@
-import {WSKind, WSEvents, Views, WSPayload, SessionMetadata, WSActionTarget} from './primitives.js';
+import {WSKind, WSEvents, Views, WSPayload, SessionMetadata, WSEventTarget} from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import type { VLApp } from './app.js'; 
 
@@ -9,31 +9,29 @@ function handleEvents(app: VLApp, payload: WSPayload) {
       const body = payload.body as SessionMetadata;
       if (!app.sessions.has(body.id)) {
         app.sessions.set(body.id, new SessionCard(body));
-        app.syncView(Views.DASHBOARD);
+        app.setActiveView(Views.DASHBOARD);
       }
       break;
-    } case WSEvents.SESSION_LEFT: {
-      const body = payload.body as SessionMetadata;
+    } case WSEvents.DROPPED: {
+      const body = payload.body as WSEventTarget;
       app.sessions.delete(body.id);
-      app.syncView(Views.DASHBOARD);
+      app.syncCurrentView();
       break;
     } case WSEvents.SESSION_UPDATE: {
       const body = payload.body as SessionMetadata;
       app.sessions.get(body.id)?.syncMeta(body);
       break;
     } case WSEvents.STARTED: {
-      const body = payload.body as WSActionTarget;
+      const body = payload.body as WSEventTarget;
       const session = app.sessions.get(body.id);
       session?.start();
       app.triggerAllBtn.update(+1);
       break;
-    }  case WSEvents.STOPPED: {
-      const body = payload.body as WSActionTarget;
+    } case WSEvents.STOPPED: {
+      const body = payload.body as WSEventTarget;
       const session = app.sessions.get(body.id);
       session?.stop();
       app.triggerAllBtn.update(-1);
-      break;
-    } case WSEvents.PAUSED :{
       break;
     } case WSEvents.RESUMED :{
       break;

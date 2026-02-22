@@ -136,11 +136,19 @@ class SessionsHandler: # thread safe
 
 
     async def drop(self, id: str):
+        ws = None
         async with self._lock:
-            if id in self._active:
-                del self._active[id]
-            elif id in self._staging:
-                del self._staging[id]
+            session = self._active.pop(id, None)
+            if session:
+                ws = session.ws
+            else:
+                self._staging.pop(id, None)
+        if ws:
+            try:
+                await ws.close()
+            except Exception:
+                pass
+
 
 
     async def send_to_one(self, id, payload):
@@ -478,6 +486,14 @@ class AppState:
             else:
                 await send_error(ws, P.WSErrors.SESSION_NOT_FOUND)
 
+        elif action_type == P.WSActions.DROP:
+            if self.sessions.exists(target.id):
+                self.sessions.drop(target.id)
+                self.dashboard.notify(P.WSPayload(
+                    kind = P.WSKind.EVENT,
+                    msgType = P.WSEvents.DROPPED,
+                    body = P.WSEventTarget( id = target.id )
+                ))
         else:
             await send_error(ws, P.WSErrors.INVALID_ACTION)
                 
@@ -491,16 +507,12 @@ class AppState:
 
         id = await self.sessions.get_id(ws)
         if id:
-            meta = await self.sessions.getMetaFromActive(id)
-        
-            if meta and await self.dashboard.available():
-                await self.dashboard.notify(
-                    P.WSPayload(
+            if await self.sessions.is_active(id) and await self.dashboard.available():
+                await self.dashboard.notify(P.WSPayload(
                         kind=P.WSKind.EVENT,
-                        msgType=P.WSEvents.SESSION_LEFT,
-                        body=meta
-                    )
-                )
+                        msgType=P.WSEvents.DROPPED,
+                        body=P.WSEventTarget(id=id)
+                    ))
 
             await self.sessions.drop(id)
             await self.clock.remove(id)

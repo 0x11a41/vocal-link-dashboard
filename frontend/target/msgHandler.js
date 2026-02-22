@@ -6,14 +6,14 @@ function handleEvents(app, payload) {
             const body = payload.body;
             if (!app.sessions.has(body.id)) {
                 app.sessions.set(body.id, new SessionCard(body));
-                app.syncView(Views.DASHBOARD);
+                app.setActiveView(Views.DASHBOARD);
             }
             break;
         }
-        case WSEvents.SESSION_LEFT: {
+        case WSEvents.DROPPED: {
             const body = payload.body;
             app.sessions.delete(body.id);
-            app.syncView(Views.DASHBOARD);
+            app.syncCurrentView();
             break;
         }
         case WSEvents.SESSION_UPDATE: {
@@ -33,9 +33,6 @@ function handleEvents(app, payload) {
             const session = app.sessions.get(body.id);
             session?.stop();
             app.triggerAllBtn.update(-1);
-            break;
-        }
-        case WSEvents.PAUSED: {
             break;
         }
         case WSEvents.RESUMED: {

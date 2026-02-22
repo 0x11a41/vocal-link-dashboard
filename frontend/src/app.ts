@@ -40,12 +40,10 @@ export class VLApp {
     });
   }
 
-  public syncView(newView: Views) {
-    this.currentView = newView;
+  public syncCurrentView() {
     this.setActiveMenuItem();
-
     this.mainPanel.innerHTML = "";
-    switch (newView) {
+    switch (this.currentView) {
       case Views.DASHBOARD:
       	this.mainPanel.appendChild(DashboardView({
       		sessions: this.sessions,
@@ -59,6 +57,11 @@ export class VLApp {
       	this.mainPanel.appendChild(SettingsView());
         break;
     }
+  }
+
+  public setActiveView(newView: Views) {
+    this.currentView = newView;
+    this.syncCurrentView();
   }
 
   private renderSidebar() {
@@ -81,7 +84,7 @@ export class VLApp {
       if (target) {
         const state = target.dataset.key as Views;
         if (state !== this.currentView) {
-          this.syncView(state);
+          this.setActiveView(state);
         }
       }
     };
@@ -97,7 +100,7 @@ export class VLApp {
 	    });
 
       this.renderSidebar(); 
-      this.syncView(this.currentView);
+      this.setActiveView(this.currentView);
 
       ws.onmessage = (ev: MessageEvent) => msgHandler(this, JSON.parse(ev.data));
       ws.onclose = () => {}

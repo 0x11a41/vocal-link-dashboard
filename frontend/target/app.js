@@ -33,11 +33,10 @@ export class VLApp {
             option.classList.toggle('active', option.dataset.key === state);
         });
     }
-    syncView(newView) {
-        this.currentView = newView;
+    syncCurrentView() {
         this.setActiveMenuItem();
         this.mainPanel.innerHTML = "";
-        switch (newView) {
+        switch (this.currentView) {
             case Views.DASHBOARD:
                 this.mainPanel.appendChild(DashboardView({
                     sessions: this.sessions,
@@ -51,6 +50,10 @@ export class VLApp {
                 this.mainPanel.appendChild(SettingsView());
                 break;
         }
+    }
+    setActiveView(newView) {
+        this.currentView = newView;
+        this.syncCurrentView();
     }
     renderSidebar() {
         this.sidePanel.innerHTML = `
@@ -70,7 +73,7 @@ export class VLApp {
             if (target) {
                 const state = target.dataset.key;
                 if (state !== this.currentView) {
-                    this.syncView(state);
+                    this.setActiveView(state);
                 }
             }
         };
@@ -84,7 +87,7 @@ export class VLApp {
                 this.sessions.set(meta.id, new SessionCard(meta));
             });
             this.renderSidebar();
-            this.syncView(this.currentView);
+            this.setActiveView(this.currentView);
             ws.onmessage = (ev) => msgHandler(this, JSON.parse(ev.data));
             ws.onclose = () => { };
         }

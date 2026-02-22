@@ -21,7 +21,6 @@ export enum WSEvents {
   SESSION_UPDATE = "session_update",
   SESSION_ACTIVATE = "session_activate",
   SESSION_ACTIVATED = "session_activated",
-  SESSION_LEFT = "session_left",
   SESSION_STATE_REPORT = "session_state_report",
   STARTED = "started",
   STOPPED = "stopped",
@@ -29,6 +28,7 @@ export enum WSEvents {
   RESUMED = "resumed",
   SUCCESS = "success",
   FAIL = "failed",
+  DROPPED = "dropped",
 }
 
 export enum WSActions {
@@ -37,6 +37,7 @@ export enum WSActions {
   PAUSE = "pause",
   RESUME = "resume",
   CANCEL = "cancel",
+  DROP = "drop",
   GET_STATE = "get_state",
 }
 

@@ -57,6 +57,10 @@ class SessionCard {
         this.card.classList.remove('border-recording');
         this.stopWatch.reset();
     }
+    pause() {
+    }
+    resume() {
+    }
     syncMeta(newMeta) {
         this.meta.battery = newMeta.battery;
         this.meta.lastRTT = newMeta.lastRTT;
