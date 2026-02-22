@@ -71,6 +71,14 @@ class SessionCard {
     this.stopWatch.reset();
   }
 
+  public pause(): void {
+    
+  }
+
+  public resume(): void {
+    
+  }
+
   public syncMeta(newMeta: SessionMetadata): void {
     this.meta.battery = newMeta.battery;
     this.meta.lastRTT = newMeta.lastRTT;
