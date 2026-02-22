@@ -98,7 +98,7 @@ class SessionStates(str, Enum):
 
 class StateReport(BaseModel): # session -> server -> dashboard
     id: str
-    status: SessionStates
+    state: SessionStates
     duration: int = 0 # in seconds
 
 

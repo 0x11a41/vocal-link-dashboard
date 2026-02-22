@@ -3,7 +3,8 @@ import { sendPayload } from '../websockets.js';
 import { button } from './button.js';
 export class TriggerAllBtn {
     sessions;
-    activeRecordings = 0;
+    running = 0;
+    paused = 0;
     element;
     constructor({ sessions }) {
         this.sessions = sessions;
@@ -14,7 +15,7 @@ export class TriggerAllBtn {
         });
     }
     handleClick() {
-        if (this.activeRecordings == 0) {
+        if (this.running == 0) {
             this.sessions.forEach((session) => {
                 if (session.state == SessionStates.STOPPED) {
                     sendPayload(Payloads.action(WSActions.START, session.meta.id));
@@ -29,15 +30,22 @@ export class TriggerAllBtn {
             });
         }
     }
-    update(step) {
-        this.activeRecordings += step;
-        if (this.activeRecordings > 0) {
+    updateRunning(step) {
+        this.running += step;
+        if (this.running > 0) {
             this.element.classList.replace("accent", "immutable");
             this.element.innerText = "Stop All";
         }
         else {
             this.element.classList.replace("immutable", "accent");
             this.element.innerText = "Start All";
+        }
+    }
+    updatePaused(step) {
+        this.paused += step;
+        if (this.paused > 0) {
+        }
+        else {
         }
     }
 }

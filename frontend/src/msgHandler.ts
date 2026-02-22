@@ -1,4 +1,4 @@
-import {WSKind, WSEvents, Views, WSPayload, SessionMetadata, WSEventTarget} from './primitives.js';
+import {WSKind, WSEvents, Views, WSPayload, SessionMetadata, WSEventTarget, StateReport, SessionStates} from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import type { VLApp } from './app.js'; 
 
@@ -24,20 +24,41 @@ function handleEvents(app: VLApp, payload: WSPayload) {
     } case WSEvents.STARTED: {
       const body = payload.body as WSEventTarget;
       const session = app.sessions.get(body.id);
-      session?.start();
-      app.triggerAllBtn.update(+1);
+      if (session) app.triggerAllBtn.updateRunning(session.start());
       break;
     } case WSEvents.STOPPED: {
       const body = payload.body as WSEventTarget;
       const session = app.sessions.get(body.id);
-      session?.stop();
-      app.triggerAllBtn.update(-1);
+      if (session) app.triggerAllBtn.updateRunning(session.stop());
       break;
-    } case WSEvents.RESUMED :{
+    } case WSEvents.RESUMED: {
+      const body = payload.body as WSEventTarget;
+      const session = app.sessions.get(body.id);
+      if (session) app.triggerAllBtn.updatePaused(session.resume());
       break;
-    } case WSEvents.PAUSED :{
+    } case WSEvents.PAUSED: {
+      const body = payload.body as WSEventTarget;
+      const session = app.sessions.get(body.id);
+      if (session) app.triggerAllBtn.updatePaused(session.pause());
       break;
-    } case WSEvents.SESSION_STATE_REPORT :{
+    } case WSEvents.SESSION_STATE_REPORT: {
+      const body = payload.body as StateReport;
+      console.log(body);
+      const session = app.sessions.get(body.id);
+      if (!session) return;
+
+      switch (body.state) {
+        case SessionStates.PAUSED: {
+          app.triggerAllBtn.updatePaused(session.pause(body.duration));
+          break;
+        } case SessionStates.RUNNING: {
+          app.triggerAllBtn.updateRunning(session.start(body.duration));
+          break;
+        } case SessionStates.STOPPED: {
+          app.triggerAllBtn.updateRunning(session.stop());
+          break;
+        }
+      }
       break;
     } case WSEvents.SUCCESS: case WSEvents.FAIL:
       console.log("Session result:", payload.msgType, payload.body);

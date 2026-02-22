@@ -84,7 +84,7 @@ export interface WSEventTarget {
 
 export interface StateReport {
   id: string;
-  status: SessionStates;
+  state: SessionStates;
   duration: number
 }
 
@@ -107,11 +107,11 @@ export interface WSPayload {
 
 // WSPayload factory
 export const Payloads = {
-  action: (type: WSActions, session_id: string = "all"): WSPayload => ({
+  action: (type: WSActions, id: string): WSPayload => ({
     kind: WSKind.ACTION,
     msgType: type,
     body: {
-      id: session_id,
+      id: id,
       triggerTime: null
     }
   }),

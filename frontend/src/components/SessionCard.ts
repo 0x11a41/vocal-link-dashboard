@@ -55,28 +55,45 @@ class SessionCard {
     sendPayload(Payloads.action(action, this.meta.id));
   }
 
-  public start(): void {
-    this.state = SessionStates.RUNNING;
+  public start(duration: number = this.stopWatch.getDuration()): number {
+    this.stopWatch.setDuration(duration);
+    if (this.isRunning()) return 0;
     this.micBtn.classList.remove('record-icon');
     this.micBtn.classList.add('stop-icon');
     this.card.classList.add('border-recording');
     this.stopWatch.start();
+    this.state = SessionStates.RUNNING;
+    return 1;
   }
 
-  public stop(): void {
-    this.state = SessionStates.STOPPED;
+  public stop(): number {
+    if (this.isStopped()) return 0;
     this.micBtn.classList.remove('stop-icon');
     this.micBtn.classList.add('record-icon');
     this.card.classList.remove('border-recording');
     this.stopWatch.reset();
+    this.state = SessionStates.STOPPED;
+    return -1;
   }
 
-  public pause(): void {
-    
+  // TODO
+  public pause(duration: number = this.stopWatch.getDuration()): number {
+    this.stopWatch.setDuration(duration);
+    if (this.isPaused() || this.isStopped()) return 0; 
+    this.state = SessionStates.PAUSED;
+    return 1;
   }
 
-  public resume(): void {
-    
+  public resume(duration: number = this.stopWatch.getDuration()): number {
+    this.stopWatch.setDuration(duration);
+    if (this.isRunning() || this.isStopped()) return 0; 
+    this.state = SessionStates.RUNNING;
+    return -1;
+  }
+
+  public cancel():void {
+    if (this.isStopped()) return;
+    this.state = SessionStates.STOPPED;
   }
 
   public syncMeta(newMeta: SessionMetadata): void {
@@ -86,6 +103,18 @@ class SessionCard {
     this.meta.lastSync = newMeta.lastSync;
 
     this.statusRow.innerText = `🔋${this.meta.battery}%  📶${this.meta.lastRTT}ms`;
+  }
+
+  private isPaused(): boolean {
+    return this.state == SessionStates.PAUSED;
+  }
+
+  private isRunning(): boolean {
+    return this.state == SessionStates.RUNNING;
+  }
+
+  private isStopped(): boolean {
+    return this.state == SessionStates.STOPPED;
   }
 }
 

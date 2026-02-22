@@ -1,12 +1,12 @@
 import { URL } from './constants.js';
-import { Views } from './primitives.js';
+import { Views, Payloads, WSActions } from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import { SettingsView } from './views/settings.js';
 import { RecordingsView } from './views/recordings.js';
 import { server } from './serverInfo.js';
 import { TriggerAllBtn } from './components/TriggerAllBtn.js';
 import { DashboardView } from './views/dashboard.js';
-import { ws } from './websockets.js';
+import { sendPayload, ws } from './websockets.js';
 import { msgHandler } from './msgHandler.js';
 export class VLApp {
     canvas = document.getElementById("app");
@@ -81,10 +81,11 @@ export class VLApp {
     }
     async init() {
         try {
-            const sessionsResponse = await fetch(URL + "/sessions");
-            const metas = await sessionsResponse.json();
+            const res = await fetch(URL + "/sessions");
+            const metas = await res.json();
             metas.forEach(meta => {
                 this.sessions.set(meta.id, new SessionCard(meta));
+                sendPayload(Payloads.action(WSActions.GET_STATE, meta.id));
             });
             this.renderSidebar();
             this.setActiveView(this.currentView);

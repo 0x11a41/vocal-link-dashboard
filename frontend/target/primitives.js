@@ -48,11 +48,11 @@ export var RESTEvents;
 (function (RESTEvents) {
 })(RESTEvents || (RESTEvents = {}));
 export const Payloads = {
-    action: (type, session_id = "all") => ({
+    action: (type, id) => ({
         kind: WSKind.ACTION,
         msgType: type,
         body: {
-            id: session_id,
+            id: id,
             triggerTime: null
         }
     }),

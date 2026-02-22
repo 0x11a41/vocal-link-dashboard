@@ -1,4 +1,4 @@
-import { WSKind, WSEvents, Views } from './primitives.js';
+import { WSKind, WSEvents, Views, SessionStates } from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 function handleEvents(app, payload) {
     switch (payload.msgType) {
@@ -24,24 +24,51 @@ function handleEvents(app, payload) {
         case WSEvents.STARTED: {
             const body = payload.body;
             const session = app.sessions.get(body.id);
-            session?.start();
-            app.triggerAllBtn.update(+1);
+            if (session)
+                app.triggerAllBtn.updateRunning(session.start());
             break;
         }
         case WSEvents.STOPPED: {
             const body = payload.body;
             const session = app.sessions.get(body.id);
-            session?.stop();
-            app.triggerAllBtn.update(-1);
+            if (session)
+                app.triggerAllBtn.updateRunning(session.stop());
             break;
         }
         case WSEvents.RESUMED: {
+            const body = payload.body;
+            const session = app.sessions.get(body.id);
+            if (session)
+                app.triggerAllBtn.updatePaused(session.resume());
             break;
         }
         case WSEvents.PAUSED: {
+            const body = payload.body;
+            const session = app.sessions.get(body.id);
+            if (session)
+                app.triggerAllBtn.updatePaused(session.pause());
             break;
         }
         case WSEvents.SESSION_STATE_REPORT: {
+            const body = payload.body;
+            console.log(body);
+            const session = app.sessions.get(body.id);
+            if (!session)
+                return;
+            switch (body.state) {
+                case SessionStates.PAUSED: {
+                    app.triggerAllBtn.updatePaused(session.pause(body.duration));
+                    break;
+                }
+                case SessionStates.RUNNING: {
+                    app.triggerAllBtn.updateRunning(session.start(body.duration));
+                    break;
+                }
+                case SessionStates.STOPPED: {
+                    app.triggerAllBtn.updateRunning(session.stop());
+                    break;
+                }
+            }
             break;
         }
         case WSEvents.SUCCESS:
