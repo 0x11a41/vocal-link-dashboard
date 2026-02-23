@@ -4,44 +4,58 @@ import { SessionCard } from './components/SessionCard.js';
 import { SettingsView } from './views/settings.js';
 import { RecordingsView } from './views/recordings.js';
 import { server } from './serverInfo.js';
-import { TriggerAllBtn } from './components/TriggerAllBtn.js';
 import { DashboardView } from './views/dashboard.js';
-import { sendPayload, ws } from './websockets.js';
-import { msgHandler } from './msgHandler.js';
+import { sendPayload, ws } from './ws.js';
+import { wsHandler } from './wsHandler.js';
 export class VLApp {
-    canvas = document.getElementById("app");
+    root;
     sidePanel = document.createElement('aside');
     mainPanel = document.createElement('main');
-    sessions = new Map();
-    triggerAllBtn = new TriggerAllBtn({ sessions: this.sessions });
+    dashboard = new DashboardView();
     currentView = Views.DASHBOARD;
     viewSelector = document.createElement('menu');
     constructor() {
+        const root = document.getElementById("app");
+        if (!root)
+            throw new Error("#app root element not found");
+        this.root = root;
         this.viewSelector.innerHTML = `
       <li data-key="${Views.DASHBOARD}">Dashboard</li>
       <li data-key="${Views.RECORDINGS}">Recordings</li>
       <li data-key="${Views.SETTINGS}">Settings</li>
     `;
-        if (this.canvas) {
-            this.canvas.insertAdjacentElement('afterbegin', this.sidePanel);
-            this.canvas.insertAdjacentElement('beforeend', this.mainPanel);
-        }
+        this.root.append(this.sidePanel, this.mainPanel);
+        this.renderSidebar();
+        this.bindNavigation();
+        this.bindServerUpdates();
     }
-    setActiveMenuItem(state = this.currentView) {
-        const options = this.viewSelector.querySelectorAll('li');
-        options.forEach(option => {
-            option.classList.toggle('active', option.dataset.key === state);
-        });
+    bindNavigation() {
+        this.viewSelector.onclick = (ev) => {
+            const li = ev.target.closest('li');
+            if (!li)
+                return;
+            const next = li.dataset.key;
+            if (next !== this.currentView)
+                this.setCurrentView(next);
+        };
     }
-    syncCurrentView() {
+    setActiveMenuItem() {
+        this.viewSelector.querySelectorAll('li').forEach(li => li.classList.toggle('active', li.dataset.key === this.currentView));
+    }
+    setCurrentView(view) {
+        this.currentView = view;
+        this.renderCurrentView();
+    }
+    refresh() {
+        this.renderCurrentView();
+    }
+    renderCurrentView() {
         this.setActiveMenuItem();
-        this.mainPanel.innerHTML = "";
+        this.mainPanel.replaceChildren();
         switch (this.currentView) {
             case Views.DASHBOARD:
-                this.mainPanel.appendChild(DashboardView({
-                    sessions: this.sessions,
-                    triggerAllBtn: this.triggerAllBtn.element,
-                }));
+                this.dashboard.render();
+                this.mainPanel.appendChild(this.dashboard.view);
                 break;
             case Views.RECORDINGS:
                 this.mainPanel.appendChild(RecordingsView());
@@ -51,50 +65,50 @@ export class VLApp {
                 break;
         }
     }
-    setActiveView(newView) {
-        this.currentView = newView;
-        this.syncCurrentView();
-    }
     renderSidebar() {
         this.sidePanel.innerHTML = `
       <h2>VocalLink</h2>
       <div class="qrcode-wrapper">
-          <img src="${URL}/dashboard/qr" alt="Server QR Code">
-          <div class="label">scan to join session</div>
-          <div class="ip-address">${server.data.ip}</div> 
+        <img src="${URL}/dashboard/qr" alt="Server QR Code">
+        <div class="label">scan to join session</div>
+        <div class="ip-address">${server.data.ip}</div> 
       </div>
     `;
         this.sidePanel.appendChild(this.viewSelector);
-        this.sidePanel.insertAdjacentHTML('beforeend', `
-    	<i class="version">vocal-link-dashboard ${server.data.version}</i>
-  	`);
-        this.viewSelector.onmouseup = (ev) => {
-            const target = ev.target.closest('li');
-            if (target) {
-                const state = target.dataset.key;
-                if (state !== this.currentView) {
-                    this.setActiveView(state);
-                }
-            }
-        };
-        this.setActiveMenuItem();
+        this.sidePanel.insertAdjacentHTML('beforeend', `<i class="version">vocal-link-dashboard ${server.data.version}</i>`);
     }
     async init() {
         try {
             const res = await fetch(URL + "/sessions");
             const metas = await res.json();
-            metas.forEach(meta => {
-                this.sessions.set(meta.id, new SessionCard(meta));
+            for (const meta of metas) {
+                this.dashboard.sessions.set(meta.id, new SessionCard(meta));
                 sendPayload(Payloads.action(WSActions.GET_STATE, meta.id));
+            }
+            this.renderCurrentView();
+            ws.onmessage = (ev) => wsHandler({
+                dashboard: this.dashboard,
+                payload: JSON.parse(ev.data),
+                refresh: () => this.refresh(),
             });
-            this.renderSidebar();
-            this.setActiveView(this.currentView);
-            ws.onmessage = (ev) => msgHandler(this, JSON.parse(ev.data));
-            ws.onclose = () => { };
+            ws.onclose = () => {
+                console.warn("WebSocket closed");
+            };
         }
         catch (err) {
             console.error("Init failed:", err);
         }
+    }
+    bindServerUpdates() {
+        window.addEventListener("server-update", (e) => {
+            const data = e.detail;
+            const ip = this.sidePanel.querySelector(".ip-address");
+            if (ip)
+                ip.textContent = data.ip;
+            const version = this.sidePanel.querySelector(".version");
+            if (version)
+                version.textContent = `vocal-link-dashboard ${data.version}`;
+        });
     }
 }
 const app = new VLApp();

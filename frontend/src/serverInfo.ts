@@ -11,7 +11,7 @@ class ServerStateManager {
 
   constructor() {
       this.updateServerInfo();
-      setInterval(() => this.updateServerInfo(), 30000);
+      setInterval(() => this.updateServerInfo(), 100000);
   }
 
   public async updateServerInfo() {

@@ -44,7 +44,7 @@ body {
   background-repeat: no-repeat;
   background-position: center;
   background-color: var(--border);
-  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 1.00714L8.99286 0L5 3.99286L1.00714 0L0 1.00714L3.99286 5L0 8.99286L1.00714 10L5 6.00714L8.99286 10L10 8.99286L6.00714 5L10 1.00714Z' fill='%23777'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 1.00714L8.99286 0L5 3.99286L1.00714 0L0 1.00714L3.99286 5L0 8.99286L1.00714 10L5 6.00714L8.99286 10L10 8.99286L6.00714 5L10 1.00714Z' fill='%23999'/%3E%3C/svg%3E");
   background-size: 12px;
 }
 
@@ -77,7 +77,7 @@ body {
   background-repeat: no-repeat;
   background-position: center;
   background-color: var(--border);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14'%3E%3Cpath d='M0 0V14L12 7L0 0Z' fill='%23777'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 14'%3E%3Cpath d='M0 0V14L12 7L0 0Z' fill='%23999'/%3E%3C/svg%3E");
   background-position: calc(50% + 2px) center;
   background-size: 12px;
 }
@@ -94,7 +94,7 @@ body {
   background-color: var(--border);
   background-repeat: no-repeat;
   background-position: center;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M0 0H4V14H0V0ZM6 0H10V14H6V0Z' fill='%23777'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 14'%3E%3Cpath d='M0 0H4V14H0V0ZM6 0H10V14H6V0Z' fill='%23999'/%3E%3C/svg%3E");
   background-size: 10px;
 }
 
@@ -176,7 +176,7 @@ body {
 
 .flex-right-center {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   justify-content: flex-end;
   align-items: center;
 }
@@ -399,7 +399,7 @@ aside .active:hover {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 10px;
+  padding: 8px;
   overflow-y: auto;
 }
 
@@ -407,8 +407,8 @@ aside .active:hover {
   display: flex;
   justify-content: space-between;
   background-color: var(--bg-sidebar);
-  min-width: 300px;
-  padding: 16px;
+  min-width: 34ch;
+  padding: 1rem;
   border-radius: 14px;
   border: 2px solid var(--border);
   position: relative;
@@ -419,6 +419,10 @@ aside .active:hover {
   flex-direction: column;
   justify-content: space-between;
   gap: 4px;
+}
+
+.session-card .name {
+  font-size: 1.1rem;
 }
 
 .session-card .device-name {
@@ -482,7 +486,7 @@ aside .active:hover {
   background-repeat: no-repeat;
   background-position: center;
   background-color: var(--bg-sidebar);
-  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 1.00714L8.99286 0L5 3.99286L1.00714 0L0 1.00714L3.99286 5L0 8.99286L1.00714 10L5 6.00714L8.99286 10L10 8.99286L6.00714 5L10 1.00714Z' fill='%23808080'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M10 1.00714L8.99286 0L5 3.99286L1.00714 0L0 1.00714L3.99286 5L0 8.99286L1.00714 10L5 6.00714L8.99286 10L10 8.99286L6.00714 5L10 1.00714Z' fill='%23999'/%3E%3C/svg%3E");
   background-size: 10px;
   border: 2px solid var(--border);
   cursor: pointer;

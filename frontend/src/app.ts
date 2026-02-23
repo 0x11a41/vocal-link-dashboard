@@ -4,111 +4,138 @@ import { SessionCard } from './components/SessionCard.js';
 import { SettingsView } from './views/settings.js';
 import { RecordingsView } from './views/recordings.js';
 import { server } from './serverInfo.js';
-import { TriggerAllBtn } from './components/TriggerAllBtn.js';
 import { DashboardView } from './views/dashboard.js';
-import { sendPayload, ws } from './websockets.js';
-import { msgHandler } from './msgHandler.js';
+import { sendPayload, ws } from './ws.js';
+import { wsHandler } from './wsHandler.js';
 
 
 export class VLApp {
-  public canvas = document.getElementById("app");
+  public root: HTMLElement;
   public sidePanel = document.createElement('aside');
-  public mainPanel: HTMLElement = document.createElement('main');
+  public mainPanel = document.createElement('main');
 
-	public sessions = new Map<string, SessionCard>();
-	public triggerAllBtn = new TriggerAllBtn({sessions: this.sessions});
+  public dashboard = new DashboardView();
 
   private currentView: Views = Views.DASHBOARD;
-  public viewSelector: HTMLElement = document.createElement('menu');
+  public viewSelector = document.createElement('menu');
 
   constructor() {
+    const root = document.getElementById("app");
+    if (!root) throw new Error("#app root element not found");
+    this.root = root;
+
     this.viewSelector.innerHTML = `
       <li data-key="${Views.DASHBOARD}">Dashboard</li>
       <li data-key="${Views.RECORDINGS}">Recordings</li>
       <li data-key="${Views.SETTINGS}">Settings</li>
     `;
-    if (this.canvas) {
-        this.canvas.insertAdjacentElement('afterbegin', this.sidePanel);
-        this.canvas.insertAdjacentElement('beforeend', this.mainPanel);
-    }
+
+    this.root.append(this.sidePanel, this.mainPanel);
+    this.renderSidebar();
+    this.bindNavigation();
+    this.bindServerUpdates();
   }
 
-  private setActiveMenuItem(state: Views = this.currentView): void {
-    const options = this.viewSelector.querySelectorAll('li');
-    options.forEach(option => {
-      option.classList.toggle('active', option.dataset.key === state);
-    });
+  private bindNavigation(): void {
+    this.viewSelector.onclick = (ev: MouseEvent) => {
+      const li = (ev.target as HTMLElement).closest('li');
+      if (!li) return;
+
+      const next = li.dataset.key as Views;
+      if (next !== this.currentView) this.setCurrentView(next);
+    };
   }
 
-  public syncCurrentView() {
+  private setActiveMenuItem(): void {
+    this.viewSelector.querySelectorAll('li').forEach(li =>
+      li.classList.toggle('active', li.dataset.key === this.currentView)
+    );
+  }
+
+  public setCurrentView(view: Views): void {
+    this.currentView = view;
+    this.renderCurrentView();
+  }
+
+  public refresh(): void {
+    this.renderCurrentView();
+  }
+
+  private renderCurrentView(): void {
     this.setActiveMenuItem();
-    this.mainPanel.innerHTML = "";
+    this.mainPanel.replaceChildren();
+
     switch (this.currentView) {
       case Views.DASHBOARD:
-      	this.mainPanel.appendChild(DashboardView({
-      		sessions: this.sessions,
-      		triggerAllBtn: this.triggerAllBtn.element,
-      	}));
+        this.dashboard.render();
+        this.mainPanel.appendChild(this.dashboard.view);
         break;
+
       case Views.RECORDINGS:
         this.mainPanel.appendChild(RecordingsView());
         break;
+
       case Views.SETTINGS:
-      	this.mainPanel.appendChild(SettingsView());
+        this.mainPanel.appendChild(SettingsView());
         break;
     }
   }
 
-  public setActiveView(newView: Views) {
-    this.currentView = newView;
-    this.syncCurrentView();
-  }
-
-  private renderSidebar() {
+  private renderSidebar(): void {
     this.sidePanel.innerHTML = `
       <h2>VocalLink</h2>
       <div class="qrcode-wrapper">
-          <img src="${URL}/dashboard/qr" alt="Server QR Code">
-          <div class="label">scan to join session</div>
-          <div class="ip-address">${server.data.ip}</div> 
+        <img src="${URL}/dashboard/qr" alt="Server QR Code">
+        <div class="label">scan to join session</div>
+        <div class="ip-address">${server.data.ip}</div> 
       </div>
     `;
 
     this.sidePanel.appendChild(this.viewSelector);
-    this.sidePanel.insertAdjacentHTML('beforeend', `
-    	<i class="version">vocal-link-dashboard ${server.data.version}</i>
-  	`);
-    
-    this.viewSelector.onmouseup = (ev: Event) => {
-      const target = (ev.target as HTMLElement).closest('li');
-      if (target) {
-        const state = target.dataset.key as Views;
-        if (state !== this.currentView) {
-          this.setActiveView(state);
-        }
-      }
-    };
-    this.setActiveMenuItem();
+
+    this.sidePanel.insertAdjacentHTML('beforeend',
+      `<i class="version">vocal-link-dashboard ${server.data.version}</i>`
+    );
   }
 
   async init(): Promise<void> {
     try {
       const res = await fetch(URL + "/sessions");
-	    const metas: SessionMetadata[] = await res.json();
-	    metas.forEach(meta => {
-        this.sessions.set(meta.id, new SessionCard(meta));
+      const metas: SessionMetadata[] = await res.json();
+
+      for (const meta of metas) {
+        this.dashboard.sessions.set(meta.id, new SessionCard(meta));
         sendPayload(Payloads.action(WSActions.GET_STATE, meta.id));
-	    });
+      }
 
-      this.renderSidebar(); 
-      this.setActiveView(this.currentView);
+      this.renderCurrentView();
 
-      ws.onmessage = (ev: MessageEvent) => msgHandler(this, JSON.parse(ev.data));
-      ws.onclose = () => {}
+      ws.onmessage = (ev: MessageEvent) =>
+        wsHandler({
+          dashboard: this.dashboard,
+          payload: JSON.parse(ev.data),
+          refresh: () => this.refresh(),
+        });
+
+      ws.onclose = () => {
+        console.warn("WebSocket closed");
+      };
 
     } catch (err) {
       console.error("Init failed:", err);
     }
+  }
+
+  private bindServerUpdates(): void {
+    window.addEventListener("server-update", (e: Event) => {
+      const data = (e as CustomEvent).detail;
+
+      const ip = this.sidePanel.querySelector(".ip-address");
+      if (ip) ip.textContent = data.ip;
+
+      const version = this.sidePanel.querySelector(".version");
+      if (version) version.textContent = `vocal-link-dashboard ${data.version}`;
+    });
   }
 }
 

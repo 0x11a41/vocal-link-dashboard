@@ -1,6 +1,6 @@
 import { SessionMetadata, WSActions, Payloads, SessionStates } from "../primitives.js";
 import { circleButton } from "./circleButton.js";
-import { sendPayload } from "../websockets.js";
+import { sendPayload } from "../ws.js";
 import { StopWatch } from "./StopWatch.js";
 
 
@@ -53,6 +53,7 @@ export class SessionCard {
     this.meta = meta;
     this.statusRow.classList.add('status-row');
     this.card.classList.add("session-card");
+    this.name.classList.add("name");
 
     const closeBtn = circleButton({
       classes: ["close-btn"],

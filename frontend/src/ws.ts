@@ -3,7 +3,7 @@ import { Payloads, WSEvents, WSPayload } from "./primitives.js";
 
 
 export const ws = new WebSocket(`${URL.replace(/^http/, 'ws')}/ws/control`);
-ws.onopen = ():void => ws.send(JSON.stringify(Payloads.event(WSEvents.DASHBOARD_INIT)));
+ws.onopen = () => ws.send(JSON.stringify(Payloads.event(WSEvents.DASHBOARD_INIT)));
 
 
 export function sendPayload(payload: WSPayload):void {

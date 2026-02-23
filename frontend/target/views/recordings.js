@@ -4,7 +4,7 @@ export function RecordingsView() {
     recordingsView.innerHTML = `
 			<div class="head">
 				<h1 class="view-header">Recordings</h1>
-				<div class="file-batch-buttons">
+				<div class="flex-right-center">
 					<button class="immutable highlight-on-cursor">Remove all</button>
 					<button class="highlight-on-cursor">Enhance all</button>
 					<button class="highlight-on-cursor">Merge</button>
