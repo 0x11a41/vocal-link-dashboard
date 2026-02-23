@@ -35,6 +35,20 @@ class StopWatch {
     return this.duration;
   }
 
+  public pause(): void {
+    if (!this.intervalId) return; // already paused or never started
+    clearInterval(this.intervalId);
+    this.intervalId = null;
+  }
+
+  public resume(): void {
+    if (this.intervalId) return; // already running
+    this.intervalId = window.setInterval(() => {
+      this.duration++;
+      this.updateDisplay();
+    }, 1000);
+  }
+
   private updateDisplay(): void {
     const mins = Math.floor(this.duration / 60).toString().padStart(2, '0');
     const secs = (this.duration % 60).toString().padStart(2, '0');

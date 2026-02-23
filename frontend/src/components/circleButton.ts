@@ -1,12 +1,17 @@
-interface CircleButtonProps {
-  iconName: string;
+interface Props {
+  classes: string[];
   onClick: () => void;
+  radius?: number;
+  visibility?: 'visible' | 'hidden';
 }
 
-function circleButton({ iconName, onClick }: CircleButtonProps): HTMLElement {
+function circleButton({ classes: classes, onClick, radius = 45, visibility: visibility = 'visible' }: Props): HTMLElement {
   const micBtn = document.createElement('div');
-  micBtn.classList.add('btn-circle', iconName, 'highlight-on-cursor');
+  micBtn.style.width = `${radius}px`;
+  micBtn.style.height = `${radius}px`;
+  micBtn.classList.add('btn-circle', 'highlight-on-cursor', ...classes);
   micBtn.onclick = onClick;
+  micBtn.style.visibility = visibility;
   return micBtn;
 }
 

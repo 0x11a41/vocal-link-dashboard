@@ -487,12 +487,12 @@ class AppState:
                 await send_error(ws, P.WSErrors.SESSION_NOT_FOUND)
 
         elif action_type == P.WSActions.DROP:
-            if self.sessions.exists(target.id):
-                self.sessions.drop(target.id)
-                self.dashboard.notify(P.WSPayload(
+            if await self.sessions.exists(target.id):
+                await self.sessions.drop(target.id)
+                await self.dashboard.notify(P.WSPayload(
                     kind = P.WSKind.EVENT,
                     msgType = P.WSEvents.DROPPED,
-                    body = P.WSEventTarget( id = target.id )
+                    body = P.WSEventTarget(id=target.id)
                 ))
         else:
             await send_error(ws, P.WSErrors.INVALID_ACTION)

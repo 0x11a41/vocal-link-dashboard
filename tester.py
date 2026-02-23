@@ -41,6 +41,8 @@ class SimState:
         return self.accumulated
 
     def start(self):
+        if self.state == P.SessionStates.RUNNING:
+            return
         self.state = P.SessionStates.RUNNING
         self.started_at = datetime.now()
         self.accumulated = 0
@@ -52,14 +54,18 @@ class SimState:
         self.started_at = None
 
     def pause(self):
-        if self.state == P.SessionStates.RUNNING and self.started_at:
-            self.accumulated += int((datetime.now() - self.started_at).total_seconds())
+        if self.state != P.SessionStates.RUNNING:
+            return
+        self.accumulated += int((datetime.now() - self.started_at).total_seconds())
         self.state = P.SessionStates.PAUSED
         self.started_at = None
 
     def resume(self):
+        if self.state != P.SessionStates.PAUSED:
+            return
         self.state = P.SessionStates.RUNNING
         self.started_at = datetime.now()
+
 
 # =========================================================
 # STAGE SESSION
@@ -127,7 +133,10 @@ async def control_client(meta: P.SessionMetadata, ready_evt: asyncio.Event):
                 if payload.kind != P.WSKind.ACTION:
                     continue
 
-                target: P.WSActionTarget = payload.body
+                if not isinstance(payload.body, P.WSActionTarget):
+                    continue
+
+                target = payload.body
 
                 # =====================================================
                 # ACTION HANDLERS
@@ -152,6 +161,17 @@ async def control_client(meta: P.SessionMetadata, ready_evt: asyncio.Event):
                         body=P.WSEventTarget(id=sid)
                     )
                     await ws.send(reply.model_dump_json())
+
+                elif payload.msgType == P.WSActions.CANCEL:
+                    sim.stop()
+
+                    reply = P.WSPayload(
+                        kind=P.WSKind.EVENT,
+                        msgType=P.WSEvents.STOPPED,
+                        body=P.WSEventTarget(id=sid)
+                    )
+                    await ws.send(reply.model_dump_json())
+                    log(f"[{name}] CANCEL → STOPPED")
 
                 elif payload.msgType == P.WSActions.PAUSE:
                     sim.pause()

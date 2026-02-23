@@ -3,97 +3,137 @@ import { circleButton } from "./circleButton.js";
 import { sendPayload } from "../websockets.js";
 import { StopWatch } from "./StopWatch.js";
 
-// when user clicks start/stop button on a session, it notifies the session
-// about it. The session to send an acknowledgement back to UI, and only then
-// the visible changes are made using start() or stop() methods.
-class SessionCard {
+
+const DROP_BUTTON_RADIUS = 26;
+const PAUSE_BUTTON_RADIUS = 32;
+const MIC_BUTTON_RADIUS = 48;
+const CANCEL_BUTTON_RADIUS = PAUSE_BUTTON_RADIUS;
+
+
+export class SessionCard {
   public state: SessionStates = SessionStates.STOPPED;
   public meta: SessionMetadata;
 
-  public card: HTMLElement;
-  public micBtn: HTMLElement;
-  private statusRow: HTMLElement;
+  public card: HTMLElement = document.createElement('div');
+  private statusRow: HTMLElement = document.createElement('div');
+  private name: HTMLElement = document.createElement('b');
   private stopWatch = new StopWatch();
+
+  private micBtn = circleButton({
+    classes: ["record-icon"],
+    radius: MIC_BUTTON_RADIUS,
+    onClick: () => {
+      if (this.state === SessionStates.STOPPED)
+        this.notify(WSActions.START);
+      else
+        this.notify(WSActions.STOP);
+    }
+  });
+
+  private pauseBtn = circleButton({
+    classes: ['pause-icon-small'],
+    radius: PAUSE_BUTTON_RADIUS,
+    visibility: 'hidden',
+    onClick: () => {
+      if (this.state === SessionStates.RUNNING)
+        this.notify(WSActions.PAUSE);
+      else if (this.state === SessionStates.PAUSED)
+        this.notify(WSActions.RESUME);
+    }
+  });
+
+  private cancelBtn = circleButton({
+    classes: ['close-icon'],
+    radius: CANCEL_BUTTON_RADIUS,
+    visibility: 'hidden',
+    onClick: () => this.notify(WSActions.CANCEL)
+  });
 
   constructor(meta: SessionMetadata) {
     this.meta = meta;
-    this.micBtn = circleButton({iconName:"record-icon",onClick:() => {
-      if (this.state === SessionStates.STOPPED) {
-        this.notify(WSActions.START);
-      } else if (this.state === SessionStates.RUNNING) {
-        this.notify(WSActions.STOP);
-      }
-    }});
-    
-    this.card = document.createElement('div');
+    this.statusRow.classList.add('status-row');
     this.card.classList.add("session-card");
-    
+
+    const closeBtn = circleButton({
+      classes: ["close-btn"],
+      radius: DROP_BUTTON_RADIUS,
+      onClick: () => this.notify(WSActions.DROP)
+    });
+
     const left = document.createElement('div');
     left.classList.add('left');
-    left.innerHTML = `
-        <div>
-            <b>${meta.name}</b>
-            <div class="device-name">${meta.device}</div>
-        </div>
-        `;
-
-    this.statusRow = document.createElement('div');
-    this.statusRow.classList.add('status-row');
-    this.statusRow.innerText = `🔋${meta.battery}%  📶${meta.lastRTT}ms`;
+    const titleSection = document.createElement('div');
+    titleSection.appendChild(this.name);
+    titleSection.insertAdjacentHTML('beforeend', `<div class="device-name">${meta.device}</div>`);
+    left.appendChild(titleSection);
+    this.updateStatus();
     left.appendChild(this.statusRow);
-    
+
     const right = document.createElement('div');
     right.classList.add('right');
+    const buttonsWrapper = document.createElement('div');
+    buttonsWrapper.classList.add('flex-right-center');
+    buttonsWrapper.appendChild(this.cancelBtn);
+    buttonsWrapper.appendChild(this.pauseBtn);
+    buttonsWrapper.appendChild(this.micBtn);
     right.appendChild(this.stopWatch.element);
-    right.appendChild(this.micBtn);
+    right.appendChild(buttonsWrapper);
+
 
     this.card.appendChild(left);
     this.card.appendChild(right);
+    this.card.appendChild(closeBtn);
+    this.renderState();
   }
 
   public notify(action: WSActions): void {
     sendPayload(Payloads.action(action, this.meta.id));
   }
 
-  public start(duration: number = this.stopWatch.getDuration()): number {
-    this.stopWatch.setDuration(duration);
+  public start(): number {
     if (this.isRunning()) return 0;
-    this.micBtn.classList.remove('record-icon');
-    this.micBtn.classList.add('stop-icon');
-    this.card.classList.add('border-recording');
-    this.stopWatch.start();
     this.state = SessionStates.RUNNING;
+    this.stopWatch.resume();
+    this.renderState();
     return 1;
   }
 
   public stop(): number {
     if (this.isStopped()) return 0;
-    this.micBtn.classList.remove('stop-icon');
-    this.micBtn.classList.add('record-icon');
-    this.card.classList.remove('border-recording');
-    this.stopWatch.reset();
     this.state = SessionStates.STOPPED;
+    this.stopWatch.reset();
+    this.renderState();
     return -1;
   }
 
-  // TODO
-  public pause(duration: number = this.stopWatch.getDuration()): number {
-    this.stopWatch.setDuration(duration);
-    if (this.isPaused() || this.isStopped()) return 0; 
+  public pause(): number {
+    if (!this.isRunning()) return 0;
     this.state = SessionStates.PAUSED;
+    this.stopWatch.pause();
+    this.renderState();
     return 1;
   }
 
-  public resume(duration: number = this.stopWatch.getDuration()): number {
-    this.stopWatch.setDuration(duration);
-    if (this.isRunning() || this.isStopped()) return 0; 
+  public resume(): number {
+    if (!this.isPaused()) return 0;
     this.state = SessionStates.RUNNING;
+    this.stopWatch.resume();
+    this.renderState();
     return -1;
   }
 
-  public cancel():void {
-    if (this.isStopped()) return;
-    this.state = SessionStates.STOPPED;
+  public setState(state: SessionStates, duration?: number): void {
+    this.state = state;
+    if (duration !== undefined)
+      this.stopWatch.setDuration(duration);
+
+    if (state === SessionStates.RUNNING)
+      this.stopWatch.resume();
+    else
+      this.stopWatch.pause();
+    if (state === SessionStates.STOPPED)
+      this.stopWatch.reset();
+    this.renderState();
   }
 
   public syncMeta(newMeta: SessionMetadata): void {
@@ -101,21 +141,50 @@ class SessionCard {
     this.meta.lastRTT = newMeta.lastRTT;
     this.meta.theta = newMeta.theta;
     this.meta.lastSync = newMeta.lastSync;
+    this.meta.name = newMeta.name;
+    this.updateStatus();
+  }
 
+  public isPaused(): boolean { return this.state === SessionStates.PAUSED; }
+  public isRunning(): boolean { return this.state === SessionStates.RUNNING; }
+  public isStopped(): boolean { return this.state === SessionStates.STOPPED; }
+
+  private renderState(): void {
+    switch (this.state) {
+      case SessionStates.RUNNING:
+        this.micBtn.classList.replace('record-icon', 'stop-icon');
+        this.pauseBtn.classList.replace('play-icon-small', 'pause-icon-small');
+        this.card.classList.add('border-recording');
+        this.stopWatch.element.classList.remove("blink");
+        this.showPauseBtn();
+        this.showCancelBtn();
+        break;
+
+      case SessionStates.PAUSED:
+        this.micBtn.classList.replace('record-icon', 'stop-icon');
+        this.pauseBtn.classList.replace('pause-icon-small', 'play-icon-small');
+        this.card.classList.remove('border-recording');
+        this.stopWatch.element.classList.add("blink");
+        this.showPauseBtn();
+        this.showCancelBtn();
+        break;
+
+      case SessionStates.STOPPED:
+        this.micBtn.classList.replace('stop-icon', 'record-icon');
+        this.stopWatch.element.classList.remove("blink");
+        this.card.classList.remove('border-recording');
+        this.hidePauseBtn();
+        this.hideCancelBtn();
+        break;
+    }
+  }
+
+  private updateStatus(): void {
     this.statusRow.innerText = `🔋${this.meta.battery}%  📶${this.meta.lastRTT}ms`;
+    this.name.innerText = this.meta.name;
   }
-
-  private isPaused(): boolean {
-    return this.state == SessionStates.PAUSED;
-  }
-
-  private isRunning(): boolean {
-    return this.state == SessionStates.RUNNING;
-  }
-
-  private isStopped(): boolean {
-    return this.state == SessionStates.STOPPED;
-  }
+  private showPauseBtn(): void { this.pauseBtn.style.visibility = 'visible'; }
+  private hidePauseBtn(): void { this.pauseBtn.style.visibility = 'hidden'; }
+  private showCancelBtn(): void { this.cancelBtn.style.visibility = 'visible'; }
+  private hideCancelBtn(): void { this.cancelBtn.style.visibility = 'hidden'; }
 }
-
-export { SessionCard };

@@ -12,6 +12,15 @@ function handleEvents(app, payload) {
         }
         case WSEvents.DROPPED: {
             const body = payload.body;
+            const session = app.sessions.get(body.id);
+            if (session?.isRunning()) {
+                app.triggerAllBtn.updateRunning(-1);
+            }
+            else if (session?.isPaused()) {
+                app.triggerAllBtn.updateRunning(-1);
+                app.triggerAllBtn.updatePaused(-1);
+            }
+            session?.card.remove();
             app.sessions.delete(body.id);
             app.syncCurrentView();
             break;
@@ -51,23 +60,20 @@ function handleEvents(app, payload) {
         }
         case WSEvents.SESSION_STATE_REPORT: {
             const body = payload.body;
-            console.log(body);
             const session = app.sessions.get(body.id);
             if (!session)
                 return;
-            switch (body.state) {
-                case SessionStates.PAUSED: {
-                    app.triggerAllBtn.updatePaused(session.pause(body.duration));
-                    break;
-                }
-                case SessionStates.RUNNING: {
-                    app.triggerAllBtn.updateRunning(session.start(body.duration));
-                    break;
-                }
-                case SessionStates.STOPPED: {
-                    app.triggerAllBtn.updateRunning(session.stop());
-                    break;
-                }
+            const prev = session.state;
+            session.setState(body.state, body.duration);
+            if (prev !== body.state) {
+                if (prev === SessionStates.RUNNING)
+                    app.triggerAllBtn.updateRunning(-1);
+                if (prev === SessionStates.PAUSED)
+                    app.triggerAllBtn.updatePaused(-1);
+                if (body.state === SessionStates.RUNNING)
+                    app.triggerAllBtn.updateRunning(1);
+                if (body.state === SessionStates.PAUSED)
+                    app.triggerAllBtn.updatePaused(1);
             }
             break;
         }

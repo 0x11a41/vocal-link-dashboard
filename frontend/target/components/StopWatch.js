@@ -30,6 +30,20 @@ class StopWatch {
     getDuration() {
         return this.duration;
     }
+    pause() {
+        if (!this.intervalId)
+            return;
+        clearInterval(this.intervalId);
+        this.intervalId = null;
+    }
+    resume() {
+        if (this.intervalId)
+            return;
+        this.intervalId = window.setInterval(() => {
+            this.duration++;
+            this.updateDisplay();
+        }, 1000);
+    }
     updateDisplay() {
         const mins = Math.floor(this.duration / 60).toString().padStart(2, '0');
         const secs = (this.duration % 60).toString().padStart(2, '0');
