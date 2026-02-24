@@ -8,7 +8,6 @@ interface Props {
 }
 
 function handleEvents({payload, renderView}: Props) {
-  console.log("event");
   switch (payload.msgType) {
 
     case WSEvents.SESSION_ACTIVATED: {

@@ -2,7 +2,6 @@ import { WSKind, WSEvents } from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import { dashboard } from './views/dashboard.js';
 function handleEvents({ payload, renderView }) {
-    console.log("event");
     switch (payload.msgType) {
         case WSEvents.SESSION_ACTIVATED: {
             const body = payload.body;

@@ -26,7 +26,7 @@ body.dark-theme {
   --text-main: #FFFFFF;
   --text-muted: #AAAAAA;
   --border: #3E3434;
-  --shadow-recording: 0 12px 30px rgba(0, 0, 0, 0.5);
+  --shadow-recording: 0 3px 10px rgba(127, 127, 127, 0.3);
   --card-border-highlight: rgba(255, 255, 255, 0.1);
   --card-border-dim: rgba(0, 0, 0, 0.3);
 }
