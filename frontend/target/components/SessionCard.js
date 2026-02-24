@@ -70,42 +70,38 @@ export class SessionCard {
         this.card.appendChild(left);
         this.card.appendChild(right);
         this.card.appendChild(closeBtn);
-        this.renderState();
+        this.render();
     }
     notify(action) {
         sendPayload(Payloads.action(action, this.meta.id));
     }
     start() {
         if (this.isRunning())
-            return 0;
+            return;
         this.state = SessionStates.RUNNING;
         this.stopWatch.resume();
-        this.renderState();
-        return 1;
+        this.render();
     }
     stop() {
         if (this.isStopped())
-            return 0;
+            return;
         this.state = SessionStates.STOPPED;
         this.stopWatch.reset();
-        this.renderState();
-        return -1;
+        this.render();
     }
     pause() {
         if (!this.isRunning())
-            return 0;
+            return;
         this.state = SessionStates.PAUSED;
         this.stopWatch.pause();
-        this.renderState();
-        return 1;
+        this.render();
     }
     resume() {
         if (!this.isPaused())
-            return 0;
+            return;
         this.state = SessionStates.RUNNING;
         this.stopWatch.resume();
-        this.renderState();
-        return -1;
+        this.render();
     }
     setState(state, duration) {
         this.state = state;
@@ -117,7 +113,7 @@ export class SessionCard {
             this.stopWatch.pause();
         if (state === SessionStates.STOPPED)
             this.stopWatch.reset();
-        this.renderState();
+        this.render();
     }
     syncMeta(newMeta) {
         this.meta.battery = newMeta.battery;
@@ -130,7 +126,7 @@ export class SessionCard {
     isPaused() { return this.state === SessionStates.PAUSED; }
     isRunning() { return this.state === SessionStates.RUNNING; }
     isStopped() { return this.state === SessionStates.STOPPED; }
-    renderState() {
+    render() {
         switch (this.state) {
             case SessionStates.RUNNING:
                 this.micBtn.classList.replace('record-icon', 'stop-icon');

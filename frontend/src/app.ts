@@ -1,84 +1,37 @@
 import { URL } from './constants.js';
-import { Views, SessionMetadata, Payloads, WSActions } from './primitives.js';
+import { SessionMetadata, Payloads, WSActions } from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
-import { SettingsView } from './views/settings.js';
-import { RecordingsView } from './views/recordings.js';
 import { server } from './serverInfo.js';
-import { DashboardView } from './views/dashboard.js';
 import { sendPayload, ws } from './ws.js';
 import { wsHandler } from './wsHandler.js';
+import { ViewSelector } from './components/ViewSelector.js';
+import { dashboard } from './views/dashboard.js';
 
 
 export class VLApp {
-  public root: HTMLElement;
-  public sidePanel = document.createElement('aside');
-  public mainPanel = document.createElement('main');
+  private root: HTMLElement;
+  private sidePanel = document.createElement('aside');
+  private mainPanel = document.createElement('main');
 
-  public dashboard = new DashboardView();
-
-  private currentView: Views = Views.DASHBOARD;
-  public viewSelector = document.createElement('menu');
+  private viewSelector = new ViewSelector(this.mainPanel);
 
   constructor() {
     const root = document.getElementById("app");
     if (!root) throw new Error("#app root element not found");
     this.root = root;
 
-    this.viewSelector.innerHTML = `
-      <li data-key="${Views.DASHBOARD}">Dashboard</li>
-      <li data-key="${Views.RECORDINGS}">Recordings</li>
-      <li data-key="${Views.SETTINGS}">Settings</li>
-    `;
+    ws.onmessage = (ev: MessageEvent) =>
+      wsHandler({
+        payload: JSON.parse(ev.data),
+        renderView: () => this.viewSelector.render(),
+      });
+
+    ws.onclose = () => {
+      console.warn("WebSocket closed");
+    };
 
     this.root.append(this.sidePanel, this.mainPanel);
-    this.renderSidebar();
-    this.bindNavigation();
     this.bindServerUpdates();
-  }
-
-  private bindNavigation(): void {
-    this.viewSelector.onclick = (ev: MouseEvent) => {
-      const li = (ev.target as HTMLElement).closest('li');
-      if (!li) return;
-
-      const next = li.dataset.key as Views;
-      if (next !== this.currentView) this.setCurrentView(next);
-    };
-  }
-
-  private setActiveMenuItem(): void {
-    this.viewSelector.querySelectorAll('li').forEach(li =>
-      li.classList.toggle('active', li.dataset.key === this.currentView)
-    );
-  }
-
-  public setCurrentView(view: Views): void {
-    this.currentView = view;
-    this.renderCurrentView();
-  }
-
-  public refresh(): void {
-    this.renderCurrentView();
-  }
-
-  private renderCurrentView(): void {
-    this.setActiveMenuItem();
-    this.mainPanel.replaceChildren();
-
-    switch (this.currentView) {
-      case Views.DASHBOARD:
-        this.dashboard.render();
-        this.mainPanel.appendChild(this.dashboard.view);
-        break;
-
-      case Views.RECORDINGS:
-        this.mainPanel.appendChild(RecordingsView());
-        break;
-
-      case Views.SETTINGS:
-        this.mainPanel.appendChild(SettingsView());
-        break;
-    }
   }
 
   private renderSidebar(): void {
@@ -91,39 +44,10 @@ export class VLApp {
       </div>
     `;
 
-    this.sidePanel.appendChild(this.viewSelector);
-
+    this.sidePanel.appendChild(this.viewSelector.menu);
     this.sidePanel.insertAdjacentHTML('beforeend',
       `<i class="version">vocal-link-dashboard ${server.data.version}</i>`
     );
-  }
-
-  async init(): Promise<void> {
-    try {
-      const res = await fetch(URL + "/sessions");
-      const metas: SessionMetadata[] = await res.json();
-
-      for (const meta of metas) {
-        this.dashboard.sessions.set(meta.id, new SessionCard(meta));
-        sendPayload(Payloads.action(WSActions.GET_STATE, meta.id));
-      }
-
-      this.renderCurrentView();
-
-      ws.onmessage = (ev: MessageEvent) =>
-        wsHandler({
-          dashboard: this.dashboard,
-          payload: JSON.parse(ev.data),
-          refresh: () => this.refresh(),
-        });
-
-      ws.onclose = () => {
-        console.warn("WebSocket closed");
-      };
-
-    } catch (err) {
-      console.error("Init failed:", err);
-    }
   }
 
   private bindServerUpdates(): void {
@@ -137,7 +61,27 @@ export class VLApp {
       if (version) version.textContent = `vocal-link-dashboard ${data.version}`;
     });
   }
+
+  public render(): void {
+    this.renderSidebar();
+    this.viewSelector.render();
+  }
+
+  public async setup(): Promise<void> {
+    try {
+      const res = await fetch(URL + "/sessions");
+      const metas: SessionMetadata[] = await res.json();
+
+      for (const meta of metas) {
+        dashboard.sessions.set(meta.id, new SessionCard(meta));
+        sendPayload(Payloads.action(WSActions.GET_STATE, meta.id));
+      }
+    } catch (err) {
+      console.error("Init failed:", err);
+    }
+  }
 }
 
 const app = new VLApp();
-await app.init();
+await app.setup();
+app.render();

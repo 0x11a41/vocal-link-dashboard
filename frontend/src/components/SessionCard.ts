@@ -84,43 +84,39 @@ export class SessionCard {
     this.card.appendChild(left);
     this.card.appendChild(right);
     this.card.appendChild(closeBtn);
-    this.renderState();
+    this.render();
   }
 
   public notify(action: WSActions): void {
     sendPayload(Payloads.action(action, this.meta.id));
   }
 
-  public start(): number {
-    if (this.isRunning()) return 0;
+  public start(): void {
+    if (this.isRunning()) return;
     this.state = SessionStates.RUNNING;
     this.stopWatch.resume();
-    this.renderState();
-    return 1;
+    this.render();
   }
 
-  public stop(): number {
-    if (this.isStopped()) return 0;
+  public stop(): void {
+    if (this.isStopped()) return;
     this.state = SessionStates.STOPPED;
     this.stopWatch.reset();
-    this.renderState();
-    return -1;
+    this.render();
   }
 
-  public pause(): number {
-    if (!this.isRunning()) return 0;
+  public pause(): void {
+    if (!this.isRunning()) return;
     this.state = SessionStates.PAUSED;
     this.stopWatch.pause();
-    this.renderState();
-    return 1;
+    this.render();
   }
 
-  public resume(): number {
-    if (!this.isPaused()) return 0;
+  public resume(): void {
+    if (!this.isPaused()) return;
     this.state = SessionStates.RUNNING;
     this.stopWatch.resume();
-    this.renderState();
-    return -1;
+    this.render();
   }
 
   public setState(state: SessionStates, duration?: number): void {
@@ -134,7 +130,7 @@ export class SessionCard {
       this.stopWatch.pause();
     if (state === SessionStates.STOPPED)
       this.stopWatch.reset();
-    this.renderState();
+    this.render();
   }
 
   public syncMeta(newMeta: SessionMetadata): void {
@@ -150,7 +146,7 @@ export class SessionCard {
   public isRunning(): boolean { return this.state === SessionStates.RUNNING; }
   public isStopped(): boolean { return this.state === SessionStates.STOPPED; }
 
-  private renderState(): void {
+  private render(): void {
     switch (this.state) {
       case SessionStates.RUNNING:
         this.micBtn.classList.replace('record-icon', 'stop-icon');

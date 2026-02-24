@@ -13,6 +13,9 @@
   --success: #4CAF50;
   --danger: #FF5252;
   --border-radius: 12px;
+  --shadow-recording: 0 8px 20px rgba(0, 0, 0, 0.08);
+  --card-border-highlight: rgba(255, 255, 255, 0.8);
+  --card-border-dim: rgba(0, 0, 0, 0.05);
 }
 
 body.dark-theme {
@@ -23,7 +26,9 @@ body.dark-theme {
   --text-main: #FFFFFF;
   --text-muted: #AAAAAA;
   --border: #3E3434;
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --shadow-recording: 0 12px 30px rgba(0, 0, 0, 0.5);
+  --card-border-highlight: rgba(255, 255, 255, 0.1);
+  --card-border-dim: rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -398,7 +403,7 @@ aside .active:hover {
 .sessions-wrapper {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
   padding: 8px;
   overflow-y: auto;
 }
@@ -453,23 +458,53 @@ aside .active:hover {
   margin: 0;
 }
 
-@keyframes pulse-border {
-  0% {
-    border-color: var(--danger);
-  }
+@property --flow-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
 
-  50% {
-    border-color: var(--border);
-  }
-
-  100% {
-    border-color: var(--danger);
+@keyframes border-rotation {
+  to {
+    --flow-angle: 360deg;
   }
 }
 
 .session-card.border-recording {
-  border-color: var(--danger);
-  animation: pulse-border 3s infinite ease-in-out;
+  border: 2px solid transparent;
+  position: relative;
+
+  /* Static Adaptive Shadow */
+  box-shadow: var(--shadow-recording);
+
+  background:
+    /* Layer 1: Card Body */
+    linear-gradient(var(--bg-sidebar), var(--bg-sidebar)) padding-box,
+
+    /* Layer 2: Edge Sheen */
+    linear-gradient(140deg,
+      var(--card-border-highlight),
+      transparent 50%,
+      var(--card-border-dim)) border-box,
+
+    /* Layer 3: Rotating Signal */
+    conic-gradient(from var(--flow-angle),
+      transparent 0deg,
+      transparent 200deg,
+      var(--danger) 280deg,
+      var(--accent) 320deg,
+      transparent 360deg) border-box;
+
+  /* Only the border rotates now */
+  animation: border-rotation 4s linear infinite;
+
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+/* Optional: Slight lift on hover to make the shadow more dynamic */
+.session-card.border-recording:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-recording), 0 15px 35px rgba(0, 0, 0, 0.1);
 }
 
 .session-card .record-button svg {

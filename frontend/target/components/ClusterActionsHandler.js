@@ -33,10 +33,10 @@ export class ClusterActionsHandler {
             return;
         this.running = 0;
         this.paused = 0;
-        this.sessions.forEach(s => {
-            if (s.isRunning())
+        this.sessions.forEach(session => {
+            if (session.isRunning())
                 this.running++;
-            else if (s.isPaused())
+            else if (session.isPaused())
                 this.paused++;
         });
         if (this.paused > 0) {
@@ -53,7 +53,7 @@ export class ClusterActionsHandler {
                 this.buttons.appendChild(this.pauseAllBtn);
             }
         }
-        if (this.hasActiveSessions()) {
+        if (this.hasWorkingSessions()) {
             this.buttons.appendChild(this.cancelAllBtn);
             this.startAllBtn.innerText = "Stop all";
             this.startAllBtn.classList.add("immutable");
@@ -65,7 +65,7 @@ export class ClusterActionsHandler {
         this.buttons.appendChild(this.startAllBtn);
     }
     handleStartAll() {
-        if (this.hasActiveSessions()) {
+        if (this.hasWorkingSessions()) {
             this.sessions.forEach((session) => {
                 sendPayload(Payloads.action(WSActions.STOP, session.meta.id));
             });
@@ -97,7 +97,7 @@ export class ClusterActionsHandler {
             }
         });
     }
-    hasActiveSessions() {
+    hasWorkingSessions() {
         return this.running > 0 || this.paused > 0;
     }
 }

@@ -1,23 +1,24 @@
 import { WSKind, WSEvents } from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
-function handleEvents({ dashboard, payload, refresh: refresh }) {
+import { dashboard } from './views/dashboard.js';
+function handleEvents({ payload, renderView }) {
     console.log("event");
     switch (payload.msgType) {
         case WSEvents.SESSION_ACTIVATED: {
             const body = payload.body;
             if (!dashboard.sessions.has(body.id)) {
                 dashboard.sessions.set(body.id, new SessionCard(body));
-                refresh();
+                renderView();
             }
             break;
         }
         case WSEvents.DROPPED: {
             const body = payload.body;
             const session = dashboard.sessions.get(body.id);
-            dashboard.actions.render();
+            dashboard.clusterBtns.render();
             session?.card.remove();
             dashboard.sessions.delete(body.id);
-            refresh();
+            renderView();
             break;
         }
         case WSEvents.SESSION_UPDATE: {
@@ -30,7 +31,7 @@ function handleEvents({ dashboard, payload, refresh: refresh }) {
             const session = dashboard.sessions.get(body.id);
             if (session) {
                 session.start();
-                dashboard.actions.render();
+                dashboard.clusterBtns.render();
             }
             break;
         }
@@ -39,7 +40,7 @@ function handleEvents({ dashboard, payload, refresh: refresh }) {
             const session = dashboard.sessions.get(body.id);
             if (session) {
                 session.stop();
-                dashboard.actions.render();
+                dashboard.clusterBtns.render();
             }
             break;
         }
@@ -48,7 +49,7 @@ function handleEvents({ dashboard, payload, refresh: refresh }) {
             const session = dashboard.sessions.get(body.id);
             if (session) {
                 session.resume();
-                dashboard.actions.render();
+                dashboard.clusterBtns.render();
             }
             break;
         }
@@ -57,7 +58,7 @@ function handleEvents({ dashboard, payload, refresh: refresh }) {
             const session = dashboard.sessions.get(body.id);
             if (session) {
                 session.pause();
-                dashboard.actions.render();
+                dashboard.clusterBtns.render();
             }
             break;
         }
@@ -69,7 +70,7 @@ function handleEvents({ dashboard, payload, refresh: refresh }) {
             const prev = session.state;
             session.setState(body.state, body.duration);
             if (prev !== body.state) {
-                dashboard.actions.render();
+                dashboard.clusterBtns.render();
             }
             break;
         }
@@ -79,16 +80,15 @@ function handleEvents({ dashboard, payload, refresh: refresh }) {
             break;
     }
 }
-export function wsHandler({ dashboard, payload, refresh }) {
+export function wsHandler({ payload, renderView: refresh }) {
     switch (payload.kind) {
         case WSKind.ERROR:
             console.error("Server error:", payload.msgType);
             break;
         case WSKind.EVENT:
             handleEvents({
-                dashboard: dashboard,
                 payload: payload,
-                refresh: refresh
+                renderView: refresh
             });
             break;
         default:

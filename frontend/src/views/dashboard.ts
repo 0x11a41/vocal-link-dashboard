@@ -2,29 +2,10 @@ import { SessionCard } from '../components/SessionCard.js'
 import { server } from '../serverInfo.js'
 import { ClusterActionsHandler } from '../components/ClusterActionsHandler.js';
 
-function dashboardHeader(buttons: HTMLElement): HTMLElement {
-  const header = document.createElement('div');
-  header.classList.add("view-header");
-  header.innerHTML = `
-    <div class="head">
-      <h1>${server.data.name}</h1>
-      <p class="status">
-        status:
-        ${
-          server.data.activeSessions < 0
-            ? '<span class="danger">Offline</span>'
-            : '<span class="success">Active</span>'
-        }
-      </p>
-    </div>
-  `;
-  header.appendChild(buttons);
-  return header;
-}
 
-export class DashboardView {
+class DashboardView {
   public sessions = new Map<string, SessionCard>();
-  public actions = new ClusterActionsHandler({ sessions: this.sessions });
+  public clusterBtns = new ClusterActionsHandler({ sessions: this.sessions });
   
   public view = document.createElement('section');
 
@@ -40,9 +21,7 @@ export class DashboardView {
   public render(): void {
     this.view.replaceChildren();
 
-    const header = dashboardHeader(this.actions.buttons);
-    this.actions.render();
-    this.view.appendChild(header);
+    this.renderHeader();
     this.sessionCounter.textContent = `Connected devices (${this.sessions.size})`;
     this.view.appendChild(this.sessionCounter);
     this.view.appendChild(document.createElement('hr'));
@@ -70,4 +49,25 @@ export class DashboardView {
       this.sessionsWrapper.appendChild(session.card);
     });
   }
+
+  private renderHeader() {
+    const header = document.createElement('div');
+    header.classList.add("view-header");
+    header.innerHTML = `
+      <div class="head">
+        <h1>${server.data.name}</h1>
+        <p class="status">
+          status:
+          ${ server.data.activeSessions < 0
+              ? '<span class="danger">Offline</span>'
+              : '<span class="success">Active</span>' }
+        </p>
+      </div>
+    `;
+    this.clusterBtns.render();
+    header.appendChild(this.clusterBtns.buttons);
+    this.view.appendChild(header);
+  }
 }
+
+export const dashboard = new DashboardView();

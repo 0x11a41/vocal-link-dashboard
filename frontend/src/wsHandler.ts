@@ -1,14 +1,13 @@
-import {WSKind, WSEvents, Views, WSPayload, SessionMetadata, WSEventTarget, StateReport} from './primitives.js';
+import {WSKind, WSEvents, WSPayload, SessionMetadata, WSEventTarget, StateReport} from './primitives.js';
 import { SessionCard } from './components/SessionCard.js';
-import { DashboardView } from './views/dashboard.js';
+import { dashboard } from './views/dashboard.js';
 
 interface Props {
-  dashboard: DashboardView;
   payload: WSPayload;
-  refresh: () => void;
+  renderView: () => void;
 }
 
-function handleEvents({dashboard, payload, refresh: refresh}: Props) {
+function handleEvents({payload, renderView}: Props) {
   console.log("event");
   switch (payload.msgType) {
 
@@ -16,7 +15,7 @@ function handleEvents({dashboard, payload, refresh: refresh}: Props) {
       const body = payload.body as SessionMetadata;
       if (!dashboard.sessions.has(body.id)) {
         dashboard.sessions.set(body.id, new SessionCard(body));
-        refresh();
+        renderView();
       }
       break;
     }
@@ -24,10 +23,10 @@ function handleEvents({dashboard, payload, refresh: refresh}: Props) {
     case WSEvents.DROPPED: {
       const body = payload.body as WSEventTarget;
       const session = dashboard.sessions.get(body.id);
-      dashboard.actions.render();
+      dashboard.clusterBtns.render();
       session?.card.remove();
       dashboard.sessions.delete(body.id);
-      refresh();
+      renderView();
       break;
     }
 
@@ -42,7 +41,7 @@ function handleEvents({dashboard, payload, refresh: refresh}: Props) {
       const session = dashboard.sessions.get(body.id);
       if (session) {
         session.start();
-        dashboard.actions.render();
+        dashboard.clusterBtns.render();
       }
       break;
     }
@@ -52,7 +51,7 @@ function handleEvents({dashboard, payload, refresh: refresh}: Props) {
       const session = dashboard.sessions.get(body.id);
       if (session) {
         session.stop();
-        dashboard.actions.render();
+        dashboard.clusterBtns.render();
       }
       break;
     }
@@ -62,7 +61,7 @@ function handleEvents({dashboard, payload, refresh: refresh}: Props) {
       const session = dashboard.sessions.get(body.id);
       if (session) {
         session.resume();
-        dashboard.actions.render(); 
+        dashboard.clusterBtns.render(); 
       }
       break;
     }
@@ -72,7 +71,7 @@ function handleEvents({dashboard, payload, refresh: refresh}: Props) {
       const session = dashboard.sessions.get(body.id);
       if (session) {
         session.pause();
-        dashboard.actions.render();
+        dashboard.clusterBtns.render();
       }
       break;
     }
@@ -86,7 +85,7 @@ function handleEvents({dashboard, payload, refresh: refresh}: Props) {
       session.setState(body.state, body.duration);
 
       if (prev !== body.state) {
-        dashboard.actions.render();
+        dashboard.clusterBtns.render();
       }
       break;
     }
@@ -98,14 +97,13 @@ function handleEvents({dashboard, payload, refresh: refresh}: Props) {
 }
 
 
-export function wsHandler({dashboard, payload, refresh}: Props): void {
+export function wsHandler({payload, renderView: refresh}: Props): void {
   switch (payload.kind) {
     case WSKind.ERROR: console.error("Server error:", payload.msgType); break;
 
     case WSKind.EVENT: handleEvents({
-        dashboard: dashboard,
         payload: payload,
-        refresh: refresh
+        renderView: refresh
       });
       break;
 
