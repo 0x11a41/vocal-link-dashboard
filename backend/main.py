@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -45,66 +45,22 @@ async def orchistrate_messages(ws: WebSocket):
                 continue
 
             if raw.kind == P.WSKind.ACTION:
-                await app.handle_ws_actions(raw, ws)
+                await app.handle_actions(raw, ws)
             elif raw.kind == P.WSKind.EVENT:
-                await app.handle_ws_events(raw, ws)
+                await app.handle_events(raw, ws)
+            elif raw.kind == P.WSKind.SYNC:
+                await app.handle_sync(raw, ws)
             elif raw.kind == P.WSKind.ERROR:
                 pass # todo
             else:
                 await send_error(ws, P.WSErrors.INVALID_KIND)
                 
-    except WebSocketDisconnect:
-        await app.handle_disconnect(ws)
-    except Exception as e:
-        print("/ws/control: unexpected problem: ", e)
+    except Exception:
         try:
             await ws.close()
         except Exception:
             pass
-
-
-
-@api.websocket("/ws/sync/{session_id}")
-async def sync_endpoint(ws: WebSocket, session_id: str):
-    if not await app.sessions.is_active(session_id):
-        await ws.close(code=4003)
-        return
-
-    await ws.accept()
-    await app.clock.add(session_id, ws)
-    
-    try:
-        while True:
-            if not await app.clock.get(session_id):
-                break
-
-            data = await ws.receive_json()
-            
-            if "t1" in data:
-                try:
-                    req = P.SyncRequest.model_validate(data)
-                    await app.clock.handle_ping(session_id, req)
-                except ValidationError:
-                    continue
-            elif "theta" in data:
-                try:
-                    report = P.SyncReport.model_validate(data)
-                    meta = await app.sessions.update_sync(session_id, report)
-                    if meta:
-                        update = P.WSPayload(
-                            kind=P.WSKind.EVENT, 
-                            msgType=P.WSEvents.SESSION_UPDATE, 
-                            body=meta
-                        )
-                        await app.dashboard.notify(update)
-                except ValidationError:
-                    continue
-    except WebSocketDisconnect:
-        meta = await app.sessions.getMetaFromActive(session_id)
-        print(f"Sync disconnected: {meta and meta.name}")
-    finally:
-        await app.clock.remove(session_id)
-
+    await app.handle_disconnect(ws)
 
 
 

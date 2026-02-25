@@ -177,7 +177,11 @@ export class SessionCard {
   }
 
   private updateStatus(): void {
-    this.statusRow.innerText = `🔋${this.meta.battery}%  📶${this.meta.lastRTT}ms`;
+    this.statusRow.innerText = `🔋${
+      this.meta.battery ? this.meta.battery : -1
+    }%  📶${
+      this.meta.lastRTT ? this.meta.lastRTT : -1
+    }ms`;
     this.name.innerText = this.meta.name;
   }
   private showPauseBtn(): void { this.pauseBtn.style.visibility = 'visible'; }

@@ -25,6 +25,7 @@ function handleEvents({payload, renderView}: Props) {
       dashboard.clusterBtns.render();
       session?.card.remove();
       dashboard.sessions.delete(body.id);
+      renderView();
       break;
     }
 

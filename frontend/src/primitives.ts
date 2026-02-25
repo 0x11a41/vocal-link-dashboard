@@ -10,6 +10,7 @@ export enum WSKind {
 export enum WSErrors {
   INVALID_KIND = "invalid_kind",
   INVALID_EVENT = "invalid_event",
+  INVALID_ACTION = "invalid_action",
   INVALID_BODY = "invalid_body",
   ACTION_NOT_ALLOWED = "action_not_allowed",
   SESSION_NOT_FOUND = "session_not_found",
@@ -21,13 +22,13 @@ export enum WSEvents {
   SESSION_UPDATE = "session_update",
   SESSION_ACTIVATE = "session_activate",
   SESSION_ACTIVATED = "session_activated",
+  SUCCESS = "success",
+  FAIL = "failed",
   SESSION_STATE_REPORT = "session_state_report",
   STARTED = "started",
   STOPPED = "stopped",
   PAUSED = "paused",
   RESUMED = "resumed",
-  SUCCESS = "success",
-  FAIL = "failed",
   DROPPED = "dropped",
 }
 
@@ -47,87 +48,119 @@ export enum SessionStates {
   PAUSED = "paused",
 }
 
+
+// ============================================
+// ================ REST TYPES ================
+// ============================================
+
+export enum RESTEvents {
+}
+
+
+// ============================================
+// ================ DATA MODELS ===============
+// ============================================
+
 export interface SessionMetadata {
-  id: string;
-  name: string;
-  ip: string;
-  battery: number;
-  device: string;
-  theta: number; 
-  lastRTT: number; 
-  lastSync?: number | null;
+  id: string
+  name: string
+  ip: string
+  battery?: number | null
+  device: string
+  lastRTT?: number | null
+  theta?: number | null
+  lastSync?: number | null
 }
 
 export interface ServerInfo {
-    name: string;
-    ip: string;
-    version: string;
-    activeSessions: number;
+  name: string
+  ip: string
+  version: string
+  activeSessions: number
 }
 
-export enum RESTEvents {
-  // TODO
-}
+
+// ============================================
+// ================ PAYLOAD BODIES ============
+// ============================================
 
 export interface Rename {
-  name: string;
+  name: string
 }
 
 export interface WSActionTarget {
-  id: string;
-  triggerTime?: number | null;
+  id: string
+  triggerTime?: number | null
 }
 
 export interface WSEventTarget {
-  id: string;
+  id: string
 }
 
 export interface StateReport {
-  id: string;
-  state: SessionStates;
+  id: string
+  state: SessionStates
   duration: number
 }
 
-type WSBodyTypes = SessionMetadata |
-  WSActionTarget |
-  WSEventTarget |
-  StateReport |
-  Rename |
-  null;
 
-type WSMsgTypes = WSActions |
-  WSEvents |
-  WSErrors;
+// ============================================
+// ================ PAYLOAD UNION =============
+// ============================================
+
+export type WSBodyTypes =
+  | SessionMetadata
+  | WSActionTarget
+  | WSEventTarget
+  | StateReport
+  | Rename
+  | null
+
+export type WSMsgTypes =
+  | WSActions
+  | WSEvents
+  | WSErrors
+
 
 export interface WSPayload {
-  kind: WSKind;
-  msgType: WSMsgTypes;
-  body: WSBodyTypes;
+  kind: WSKind
+  msgType: WSMsgTypes
+  body?: WSBodyTypes
 }
 
-// WSPayload factory
+
+// ============================================
+// ============== PAYLOAD BUILDERS ============
+// ============================================
+
 export const Payloads = {
-  action: (type: WSActions, id: string): WSPayload => ({
+
+  action: (
+    type: WSActions,
+    id: string,
+    triggerTime?: number
+  ): WSPayload => ({
     kind: WSKind.ACTION,
     msgType: type,
     body: {
-      id: id,
-      triggerTime: null
+      id,
+      triggerTime: triggerTime ?? null
     }
   }),
 
-  event: (type: WSEvents, body: WSBodyTypes | null = null): WSPayload => ({
+  event: (
+    type: WSEvents,
+    body: WSBodyTypes = null
+  ): WSPayload => ({
     kind: WSKind.EVENT,
     msgType: type,
-    body: body
+    body
   }),
 
   rename: (newName: string): WSPayload => ({
-    kind: WSKind.ACTION,
+    kind: WSKind.EVENT,
     msgType: WSEvents.DASHBOARD_RENAME,
-    body: {
-      name: newName
-    }
+    body: { name: newName }
   }),
 
   error: (type: WSErrors): WSPayload => ({
@@ -135,15 +168,15 @@ export const Payloads = {
     msgType: type,
     body: null,
   }),
-};
+}
 
 
 // =============================================
-// ==================== UI======================
+// ==================== UI =====================
 // =============================================
+
 export enum Views {
   DASHBOARD = "dashboard",
   RECORDINGS = "recordings",
   SETTINGS = "settings"
 }
-

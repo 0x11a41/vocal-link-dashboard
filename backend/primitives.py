@@ -3,17 +3,17 @@ from pydantic import BaseModel, Field
 from typing import Optional, Literal, Union
 
 
-VERSION = "v0.6-alpha"
+VERSION = "v0.7-alpha"
 
 
 class SessionMetadata(BaseModel):
     id: str
     name: str = Field(min_length=1, max_length=50)
     ip: str
-    battery: int = -1
+    battery: Optional[int] = None
     device: str
-    theta: float = -1
-    lastRTT: float = -1
+    lastRTT: Optional[float] = None
+    theta: Optional[float] = None
     lastSync: Optional[int] = None
 
 class ServerInfo(BaseModel):
@@ -44,6 +44,7 @@ class WSKind(str, Enum):
     ACTION = "action"
     EVENT = "event"
     ERROR= "error"
+    SYNC = "sync"
 
 class WSErrors(str, Enum):
     INVALID_KIND = "invalid_kind" # kind field is invalid inside payload
@@ -71,6 +72,7 @@ class WSEvents(str, Enum): # these are facts that should be notified
     RESUMED = "resumed" # session[WSEventTarget]::server::dashboard
     DROPPED = "dropped" # server[WSEventTarget]::dashboard
 
+
 class WSActions(str, Enum): # these are intents of session or dashboard
     START = "start" # dashboard[WSActionTarget]::server::target_session
     STOP = "stop" # dashboard[WSActionTarget]::server::target_session
@@ -80,6 +82,25 @@ class WSActions(str, Enum): # these are intents of session or dashboard
     DROP = "drop" # dashboard[WSActionTarget]::server
     GET_STATE = "get_state" # dashboard[WSActionTarget]::server::target_session
 
+
+class WSClockSync(str, Enum): # sync channel
+    TIK = "tik" # session[ClockSync]::server
+    TOK = "tok" # server[ClockSync]::session-> ["TOKED" >> server]
+    SYNC_REPORT = "sync_report" # session[ClockSyncReport]::server
+
+
+# TIK -> TOK -> TOKED -> SESSION_UPDATE
+class ClockSyncTik(BaseModel):
+    t1: int
+
+class ClockSyncTok(BaseModel):
+    t1: int
+    t2: int
+    t3: int
+
+class ClockSyncReport(BaseModel):
+    theta: float
+    rtt: float
 
 class WSActionTarget(BaseModel):
     id: str
@@ -104,24 +125,17 @@ class StateReport(BaseModel): # session -> server -> dashboard
 
 class WSPayload(BaseModel):
     kind: WSKind
-    msgType: Union[WSActions, WSEvents, WSErrors]
-    body: Optional[Union[WSEventTarget, StateReport, SessionMetadata, WSActionTarget, Rename]] = None
-
-
-
-# Clock Sync Models : endpoint => /ws/sync, no timestamps or versioning
-class SyncRequest(BaseModel): # client -> server (The ping)
-    t1: int
-
-class SyncResponse(BaseModel): # server -> client (The pong)
-    type: str = "SYNC_RESPONSE" # to distingush on client side
-    t1: int
-    t2: int
-    t3: int
-
-class SyncReport(BaseModel): # client -> server (The report)
-    theta: float
-    rtt: float
+    msgType: Union[WSActions, WSEvents, WSClockSync, WSErrors]
+    body: Optional[Union[
+        WSEventTarget,
+        StateReport,
+        SessionMetadata,
+        WSActionTarget,
+        Rename,
+        ClockSyncTik,
+        ClockSyncTok,
+        ClockSyncReport,
+    ]] = None
 
 
 # QR code data interface

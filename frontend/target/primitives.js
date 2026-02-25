@@ -8,6 +8,7 @@ export var WSErrors;
 (function (WSErrors) {
     WSErrors["INVALID_KIND"] = "invalid_kind";
     WSErrors["INVALID_EVENT"] = "invalid_event";
+    WSErrors["INVALID_ACTION"] = "invalid_action";
     WSErrors["INVALID_BODY"] = "invalid_body";
     WSErrors["ACTION_NOT_ALLOWED"] = "action_not_allowed";
     WSErrors["SESSION_NOT_FOUND"] = "session_not_found";
@@ -19,13 +20,13 @@ export var WSEvents;
     WSEvents["SESSION_UPDATE"] = "session_update";
     WSEvents["SESSION_ACTIVATE"] = "session_activate";
     WSEvents["SESSION_ACTIVATED"] = "session_activated";
+    WSEvents["SUCCESS"] = "success";
+    WSEvents["FAIL"] = "failed";
     WSEvents["SESSION_STATE_REPORT"] = "session_state_report";
     WSEvents["STARTED"] = "started";
     WSEvents["STOPPED"] = "stopped";
     WSEvents["PAUSED"] = "paused";
     WSEvents["RESUMED"] = "resumed";
-    WSEvents["SUCCESS"] = "success";
-    WSEvents["FAIL"] = "failed";
     WSEvents["DROPPED"] = "dropped";
 })(WSEvents || (WSEvents = {}));
 export var WSActions;
@@ -48,25 +49,23 @@ export var RESTEvents;
 (function (RESTEvents) {
 })(RESTEvents || (RESTEvents = {}));
 export const Payloads = {
-    action: (type, id) => ({
+    action: (type, id, triggerTime) => ({
         kind: WSKind.ACTION,
         msgType: type,
         body: {
-            id: id,
-            triggerTime: null
+            id,
+            triggerTime: triggerTime ?? null
         }
     }),
     event: (type, body = null) => ({
         kind: WSKind.EVENT,
         msgType: type,
-        body: body
+        body
     }),
     rename: (newName) => ({
-        kind: WSKind.ACTION,
+        kind: WSKind.EVENT,
         msgType: WSEvents.DASHBOARD_RENAME,
-        body: {
-            name: newName
-        }
+        body: { name: newName }
     }),
     error: (type) => ({
         kind: WSKind.ERROR,

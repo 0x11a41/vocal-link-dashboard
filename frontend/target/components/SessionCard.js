@@ -154,7 +154,7 @@ export class SessionCard {
         }
     }
     updateStatus() {
-        this.statusRow.innerText = `🔋${this.meta.battery}%  📶${this.meta.lastRTT}ms`;
+        this.statusRow.innerText = `🔋${this.meta.battery ? this.meta.battery : -1}%  📶${this.meta.lastRTT ? this.meta.lastRTT : -1}ms`;
         this.name.innerText = this.meta.name;
     }
     showPauseBtn() { this.pauseBtn.style.visibility = 'visible'; }
