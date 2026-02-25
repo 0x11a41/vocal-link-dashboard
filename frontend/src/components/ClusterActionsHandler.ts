@@ -14,22 +14,22 @@ export class ClusterActionsHandler {
 	private running: number = 0;
 	private paused: number = 0;
 
-	private startAllBtn = button({
-		label: "Start all",
+	private startBtn = button({
+		label: "Start",
 		classes: [ 'accent' ],
-		onClick: () => this.handleStartAll()
+		onClick: () => this.handleStart()
 	});
-	private pauseAllBtn = button({
-		label: "Pause all",
-		onClick: () => this.handlePauseAll(),
+	private pauseBtn = button({
+		label: "Pause",
+		onClick: () => this.handlePause(),
 	})
-	private resumeAllBtn = button({
-		label: "Resume all",
-		onClick: () => this.handleResumeAll(),
+	private resumeBtn = button({
+		label: "Resume",
+		onClick: () => this.handleResume(),
 	})
-	private cancelAllBtn = button({
-		label:"Cancel all",
-		onClick: () => this.handleCancelAll(),
+	private cancelBtn = button({
+		label:"Cancel",
+		onClick: () => this.handleCancel(),
 	})
 
 	constructor({ sessions }: Props) {
@@ -53,30 +53,30 @@ export class ClusterActionsHandler {
     // ---- pause/resume logic ----
     if (this.paused > 0) {
       if (this.paused === this.sessions.size) {
-        this.buttons.appendChild(this.resumeAllBtn);
+        this.buttons.appendChild(this.resumeBtn);
       } else {
-        this.buttons.appendChild(this.pauseAllBtn);
-        this.buttons.appendChild(this.resumeAllBtn);
+        this.buttons.appendChild(this.pauseBtn);
+        this.buttons.appendChild(this.resumeBtn);
       }
     } else {
       if (this.running > 0) {
-        this.buttons.appendChild(this.pauseAllBtn);
+        this.buttons.appendChild(this.pauseBtn);
       }
     }
 
     // ---- start/stop toggle ----
     if (this.hasWorkingSessions()) {
-	    this.buttons.appendChild(this.cancelAllBtn);
-      this.startAllBtn.innerText = "Stop all";
-      this.startAllBtn.classList.add("immutable");
+	    this.buttons.appendChild(this.cancelBtn);
+      this.startBtn.innerText = "Stop ";
+      this.startBtn.classList.add("immutable");
     } else {
-      this.startAllBtn.innerText = "Start all";
-      this.startAllBtn.classList.remove("immutable");
+      this.startBtn.innerText = "Start ";
+      this.startBtn.classList.remove("immutable");
     }
-    this.buttons.appendChild(this.startAllBtn);
+    this.buttons.appendChild(this.startBtn);
 	}
 
-  private handleStartAll(): void {
+  private handleStart(): void {
   	if (this.hasWorkingSessions()) {
 	  	this.sessions.forEach((session) => {
 	  		sendPayload(Payloads.action(WSActions.STOP, session.meta.id));
@@ -88,7 +88,7 @@ export class ClusterActionsHandler {
   	}
   }
 
-  private handleResumeAll(): void {
+  private handleResume(): void {
   	this.sessions.forEach((session) => {
   		if (session.isPaused()) {
   			sendPayload(Payloads.action(WSActions.RESUME, session.meta.id));
@@ -96,7 +96,7 @@ export class ClusterActionsHandler {
   	});
   }
 
-  private handlePauseAll(): void {
+  private handlePause(): void {
   	this.sessions.forEach((session) => {
   		if (session.isRunning()) {
   			sendPayload(Payloads.action(WSActions.PAUSE, session.meta.id));
@@ -104,7 +104,7 @@ export class ClusterActionsHandler {
   	});
   }
 
-  private handleCancelAll(): void {
+  private handleCancel(): void {
   	this.sessions.forEach((session) => {
   		if (!session.isStopped()) {
   			sendPayload(Payloads.action(WSActions.CANCEL, session.meta.id));

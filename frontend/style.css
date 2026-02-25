@@ -289,7 +289,7 @@ hr {
 /* =============== side-panel ================= */
 /* ============================================ */
 aside {
-  flex: 0 0 320px;
+  flex: 0 0 300px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -408,15 +408,40 @@ aside .active:hover {
   overflow-y: auto;
 }
 
+@keyframes subtleWiggle {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  25% {
+    transform: rotate(0.5deg);
+  }
+
+  50% {
+    transform: rotate(0deg);
+  }
+
+  75% {
+    transform: rotate(0.5deg);
+  }
+
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
 .session-card {
   display: flex;
   justify-content: space-between;
   background-color: var(--bg-sidebar);
-  min-width: 34ch;
+  min-width: 30ch;
   padding: 1rem;
   border-radius: 14px;
   border: 2px solid var(--border);
   position: relative;
+  animation: subtleWiggle 0.3s ease-in-out;
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .session-card .left {

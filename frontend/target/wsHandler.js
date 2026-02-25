@@ -17,7 +17,6 @@ function handleEvents({ payload, renderView }) {
             dashboard.clusterBtns.render();
             session?.card.remove();
             dashboard.sessions.delete(body.id);
-            renderView();
             break;
         }
         case WSEvents.SESSION_UPDATE: {
