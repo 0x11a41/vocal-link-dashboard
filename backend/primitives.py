@@ -64,7 +64,6 @@ class WSEvents(str, Enum): # these are facts that should be notified
     SESSION_ACTIVATED = "session_activated" # server[SessionMetadata]::dashboard
     SUCCESS="success" # session[SessionMetadata]::server::dashboard
     FAIL="failed" # session[SessionMetadata]::server::dashboard
-
     SESSION_STATE_REPORT = "session_state_report" # session[StateReport]::server::dashboard
     STARTED = "started" # session[WSEventTarget]::server::dashboard
     STOPPED = "stopped" # session[WSEventTarget]::server::dashboard
