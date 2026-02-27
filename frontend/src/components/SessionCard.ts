@@ -6,7 +6,7 @@ import { StopWatch } from "./StopWatch.js";
 
 const DROP_BUTTON_RADIUS = 26;
 const PAUSE_BUTTON_RADIUS = 32;
-const MIC_BUTTON_RADIUS = 48;
+const MIC_BUTTON_RADIUS = 44;
 const CANCEL_BUTTON_RADIUS = PAUSE_BUTTON_RADIUS;
 
 
@@ -87,7 +87,7 @@ export class SessionCard {
     this.render();
   }
 
-  public notify(action: WSActions): void {
+  private notify(action: WSActions): void {
     sendPayload(Payloads.action(action, this.meta.id));
   }
 

@@ -289,7 +289,7 @@ hr {
 /* =============== side-panel ================= */
 /* ============================================ */
 aside {
-  flex: 0 0 300px;
+  flex: 0 0 28ch;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -300,6 +300,7 @@ aside {
 }
 
 aside h2 {
+  display: none;
   color: var(--accent);
   width: 100%;
   user-select: none;
@@ -316,15 +317,14 @@ aside .qrcode-wrapper {
 
 aside .label {
   margin-top: 0.2rem;
-  font-size: 1rem;
-  color: var(--text-muted);
+  font-size: 0.9rem;
 }
 
 aside .ip-address {
   margin-top: 0.2rem;
   font-family: monospace;
-  font-size: 1.4rem;
-  color: var(--accent);
+  font-size: 1.3rem;
+  color: var(--text-muted);
 }
 
 aside img {
@@ -375,11 +375,10 @@ aside .active:hover {
 #app>main {
   display: flex;
   gap: 10px;
-  overflow-y: auto;
+  /* overflow-y: auto; */
   padding: 2rem;
   flex: 1;
   height: 100%;
-  overflow: hidden;
 }
 
 /* ====================================== */
@@ -401,10 +400,10 @@ aside .active:hover {
 }
 
 .sessions-wrapper {
+  padding: 10px 0px 0px 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  padding: 8px;
+  gap: 10px;
   overflow-y: auto;
 }
 
@@ -452,7 +451,10 @@ aside .active:hover {
 }
 
 .session-card .name {
-  font-size: 1.1rem;
+  max-width: 18ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .session-card .device-name {
@@ -478,7 +480,7 @@ aside .active:hover {
 
 .session-card .timer {
   font-family: monospace;
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   color: var(--text-muted);
   margin: 0;
 }
@@ -499,37 +501,25 @@ aside .active:hover {
   border: 2px solid transparent;
   position: relative;
 
-  /* Static Adaptive Shadow */
-  box-shadow: var(--shadow-recording);
 
   background:
-    /* Layer 1: Card Body */
     linear-gradient(var(--bg-sidebar), var(--bg-sidebar)) padding-box,
-
-    /* Layer 2: Edge Sheen */
     linear-gradient(140deg,
       var(--card-border-highlight),
       transparent 50%,
       var(--card-border-dim)) border-box,
-
-    /* Layer 3: Rotating Signal */
     conic-gradient(from var(--flow-angle),
       transparent 0deg,
       transparent 200deg,
       var(--danger) 280deg,
-      var(--accent) 320deg,
+      /* var(--accent) 320deg, */
       transparent 360deg) border-box;
-
-  /* Only the border rotates now */
   animation: border-rotation 4s linear infinite;
-
   transition: transform .25s ease, box-shadow .25s ease;
 }
 
-/* Optional: Slight lift on hover to make the shadow more dynamic */
 .session-card.border-recording:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-recording), 0 15px 35px rgba(0, 0, 0, 0.1);
 }
 
 .session-card .record-button svg {
