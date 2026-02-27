@@ -7,3 +7,5 @@ zeroconf
 openai-whisper
 qrcode
 pillow
+pydub
+pywebview

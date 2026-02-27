@@ -1,12 +1,15 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from pydantic import ValidationError
 from typing import List
 import uuid
 import qrcode
 import io
+import os
 
 from backend.handlers import AppState, send_error
 import backend.primitives as P
@@ -102,3 +105,11 @@ async def get_server_qr():
     buf.seek(0)
 
     return StreamingResponse(buf, media_type="image/png")
+
+
+api.mount("/static", StaticFiles(directory="frontend"), name="static")
+@api.get("/")
+async def serve_frontend():
+    index_path = os.path.join("frontend", "index.html")
+    return FileResponse(index_path)
+    

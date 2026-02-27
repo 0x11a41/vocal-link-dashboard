@@ -14,13 +14,12 @@ pkgs.mkShell {
     python3Packages.faster-whisper
     python3Packages.pillow
     python3Packages.pydub
+    python3Packages.pywebview
     ty
-    ruff
     vscode-css-languageserver
     superhtml
     vscode-json-languageserver
     typescript-language-server
-    websocat # to test websocket endpoints 
     typescript
   ];
 

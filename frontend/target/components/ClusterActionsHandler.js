@@ -39,12 +39,13 @@ export class ClusterActionsHandler {
             else if (session.isPaused())
                 this.paused++;
         });
+        console.log(this.running, ' ', this.paused, this.sessions.size);
         if (this.paused > 0) {
             if (this.paused === this.sessions.size) {
                 this.buttons.appendChild(this.resumeBtn);
             }
             else {
-                this.buttons.appendChild(this.pauseBtn);
+                this.running && this.buttons.appendChild(this.pauseBtn);
                 this.buttons.appendChild(this.resumeBtn);
             }
         }

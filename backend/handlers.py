@@ -220,7 +220,7 @@ class AppState:
         self.dashboard: DashboardHandler = DashboardHandler()
         self.sessions: SessionsHandler = SessionsHandler()
 
-        self.mdns: AsyncZeroconf = AsyncZeroconf()
+        self.mdns: Optional[AsyncZeroconf] = None
         self.mdns_conf: Optional[AsyncServiceInfo] = None
 
 
@@ -275,11 +275,14 @@ class AppState:
 
 
     async def start_mdns(self):
+        self.mdns = AsyncZeroconf()
         self.mdns_conf = self._make_mdns_conf()
         await self.mdns.async_register_service(self.mdns_conf)
 
 
     async def rename(self, data: P.Rename):
+        if not self.mdns:
+            return
         old_name = self.name
         self.name = data.name
 
@@ -304,6 +307,8 @@ class AppState:
 
     
     async def shutdown(self):
+        if not self.mdns:
+            return
         if self.mdns_conf:
             await self.mdns.async_unregister_service(self.mdns_conf)
         await self.mdns.async_close()
