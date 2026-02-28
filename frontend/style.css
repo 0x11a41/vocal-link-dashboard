@@ -461,28 +461,6 @@ aside .active:hover {
   overflow-y: auto;
 }
 
-@keyframes subtleWiggle {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  25% {
-    transform: rotate(0.7deg);
-  }
-
-  50% {
-    transform: rotate(0deg);
-  }
-
-  75% {
-    transform: rotate(0.8deg);
-  }
-
-  100% {
-    transform: rotate(0deg);
-  }
-}
-
 .session-card {
   display: flex;
   justify-content: space-between;
@@ -492,9 +470,6 @@ aside .active:hover {
   border-radius: 14px;
   border: 2px solid var(--border);
   position: relative;
-  animation: subtleWiggle 0.35s ease-in-out;
-  backface-visibility: hidden;
-  will-change: transform;
 }
 
 .session-card .left {
