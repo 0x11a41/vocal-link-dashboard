@@ -265,7 +265,7 @@ button {
   border-radius: 8px;
   font-size: 1rem;
   background-color: var(--border);
-  margin: 0 4px;
+  margin: 0 2px;
   font-weight: 700;
   color: var(--text-main);
   cursor: pointer;

@@ -174,21 +174,18 @@ async def stage_session(name: str) -> P.SessionMetadata:
     log(name, "HTTP > STAGING...", Col.CYAN)
 
     async with httpx.AsyncClient() as client:
-        req = P.SessionStageRequestMsg(
-            body=P.SessionMetadata(
+        req = P.SessionMetadata(
                 id="placeholder",
                 name=name,
                 ip="127.0.0.1",
                 battery=random.randint(40, 100),
                 device="pytest"
             )
-        )
 
         r = await client.post(f"{BASE}/sessions", json=req.model_dump())
         r.raise_for_status()
 
-        resp = P.SessionStageResponseMsg.model_validate(r.json())
-        meta = resp.body
+        meta = P.SessionMetadata.model_validate(r.json())
 
         log(name, f"HTTP > STAGED ID:{meta.id[:6]}", Col.GREEN)
         return meta

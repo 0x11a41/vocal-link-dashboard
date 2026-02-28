@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Literal, Union
 
 
-VERSION = "v0.7-alpha"
+VERSION = "v0.72-alpha"
 
 
 class SessionMetadata(BaseModel):
@@ -21,22 +21,6 @@ class ServerInfo(BaseModel):
     ip: str
     version: str = VERSION
     activeSessions: int = 0
-
-
-
-############## REST API message models ##############
-class RESTEvents(str, Enum):
-    SESSION_STAGE = "session_stage" # stage request
-    SESSION_STAGED = "session_staged" # staging acknoledgement
-
-class SessionStageRequestMsg(BaseModel):
-    event: Literal[RESTEvents.SESSION_STAGE] = RESTEvents.SESSION_STAGE
-    body: SessionMetadata
-
-class SessionStageResponseMsg(BaseModel): # server -> session
-    event: Literal[RESTEvents.SESSION_STAGED] = RESTEvents.SESSION_STAGED
-    body: SessionMetadata
-
 
 
 ############# WebSocket messages #####################

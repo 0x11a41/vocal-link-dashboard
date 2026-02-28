@@ -31,19 +31,16 @@ export class VLApp {
       dashboard.sessions.clear();
       dashboard.render();
 
-      const terminate = "Exit";
+      const exit = "Exit";
       const reload = "Reload";
+
       const choice = await modalDialog({
         msg: "error! Connection closed unexpectedly.",
-        choices: [ reload, terminate ]
+        choices: [ reload, exit ]
       })
-
       switch (choice) {
-        case terminate:
-          window.close();
-          break;
-        case reload:
-          window.location.reload();
+        case exit: window.close(); break;
+        case reload: window.location.reload(); break;
       }
     };
 

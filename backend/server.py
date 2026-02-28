@@ -67,11 +67,11 @@ async def orchistrate_messages(ws: WebSocket):
 
 
 
-@api.post("/sessions", response_model=P.SessionStageResponseMsg)
-async def stage_session(req: P.SessionStageRequestMsg):
-    req.body.id = str(uuid.uuid4())
-    await app.sessions.stage(req.body)
-    return P.SessionStageResponseMsg(body=req.body).model_dump()
+@api.post("/sessions", response_model=P.SessionMetadata)
+async def stage_session(req: P.SessionMetadata):
+    req.id = str(uuid.uuid4())
+    await app.sessions.stage(req)
+    return req.model_dump()
 
 
 @api.get("/sessions", response_model=List[P.SessionMetadata])

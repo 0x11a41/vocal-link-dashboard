@@ -24,18 +24,19 @@ export class VLApp {
         ws.onclose = async () => {
             dashboard.sessions.clear();
             dashboard.render();
-            const terminate = "Exit";
+            const exit = "Exit";
             const reload = "Reload";
             const choice = await modalDialog({
                 msg: "error! Connection closed unexpectedly.",
-                choices: [reload, terminate]
+                choices: [reload, exit]
             });
             switch (choice) {
-                case terminate:
+                case exit:
                     window.close();
                     break;
                 case reload:
                     window.location.reload();
+                    break;
             }
         };
         this.root.append(this.sidePanel, this.mainPanel);
