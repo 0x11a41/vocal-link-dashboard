@@ -1,7 +1,5 @@
 import sys
-import multiprocessing
 import subprocess
-import uvicorn
 import webview
 import webbrowser
 import socket
@@ -13,16 +11,11 @@ PORT = 6210
 URL = f"http://127.0.0.1:{PORT}"
 
 
-def run_server():
-    from backend.server import api
-    uvicorn.run(api, host=HOST, port=PORT)
-
-
-def wait_until_server_ready(host, port, timeout=10):
+def wait_until_server_ready(timeout=15):
     start = time.time()
     while True:
         try:
-            with socket.create_connection((host, port), timeout=0.5):
+            with socket.create_connection(("127.0.0.1", PORT), timeout=0.5):
                 return
         except OSError:
             if time.time() - start > timeout:
@@ -31,34 +24,67 @@ def wait_until_server_ready(host, port, timeout=10):
 
 
 if __name__ == "__main__":
-    dev = "--dev" in sys.argv
+    debug = "--debug" in sys.argv
 
-    if dev:
-        server = multiprocessing.Process(target=run_server)
-        server.start()
+    server = subprocess.Popen([
+        sys.executable,
+        "-m",
+        "uvicorn",
+        "backend.server:api",
+        "--host", HOST,
+        "--port", str(PORT)
+    ])
+
+    tsc = None
+    if debug:
         tsc = subprocess.Popen(["tsc", "-w"])
 
-        def shutdown(*_):
-            print("\nShutting down...")
-            if tsc.poll() is None:
-                tsc.terminate()
-                tsc.wait()
+    def shutdown(*_):
+        print("\nShutting down...")
 
-            if server.is_alive():
-                server.terminate()
-                server.join()
+        if tsc and tsc.poll() is None:
+            tsc.terminate()
+            try:
+                tsc.wait(2)
+            except subprocess.TimeoutExpired:
+                tsc.kill()
 
-            sys.exit(0)
+        if server.poll() is None:
+            server.terminate()
+            try:
+                server.wait(3)
+            except subprocess.TimeoutExpired:
+                server.kill()
 
-        signal.signal(signal.SIGINT, shutdown)
-        signal.signal(signal.SIGTERM, shutdown)
-        wait_until_server_ready(HOST, PORT)
-        webbrowser.open(URL)
-        server.join()
+        sys.exit(0)
 
-    else:
-        server = multiprocessing.Process(target=run_server, daemon=True)
-        server.start()
-        wait_until_server_ready(HOST, PORT)
-        webview.create_window("VocalLink Dashboard", URL)
-        webview.start()
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+
+    try:
+        print("Waiting for backend...")
+        wait_until_server_ready()
+        print("Backend ready")
+
+        if debug:
+            webbrowser.open(URL)
+        else:
+            window = webview.create_window(
+                "VocalLink Dashboard",
+                URL,
+                width=1200,
+                height=800,
+                resizable=True
+            )
+            if window:
+                window.events.closed += shutdown
+            webview.start()
+
+        while True:
+            if server.poll() is not None:
+                raise RuntimeError("Backend server stopped unexpectedly")
+            time.sleep(0.5)
+
+    except Exception as e:
+        print("Error:", e)
+        shutdown()
