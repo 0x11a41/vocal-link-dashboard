@@ -1,11 +1,12 @@
-uvicorn
 fastapi
+uvicorn
 websockets
-livereload
 httpx
 zeroconf
-openai-whisper
+pydantic
 qrcode
 pillow
 pydub
 pywebview
+pyqt6; sys_platform == "linux"
+pyqt6-webengine; sys_platform == "linux"

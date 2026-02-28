@@ -1,4 +1,4 @@
-import { server } from '../serverInfo.js';
+import { server } from '../network/serverInfo.js';
 import { ClusterActionsHandler } from '../components/ClusterActionsHandler.js';
 class DashboardView {
     sessions = new Map();

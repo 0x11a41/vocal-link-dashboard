@@ -1,4 +1,4 @@
-import { URL } from "./constants.js";
+import { URL } from "../models/constants.js";
 class ServerStateManager {
     data = {
         name: "Loading...",

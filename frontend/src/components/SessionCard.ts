@@ -1,6 +1,6 @@
-import { SessionMetadata, WSActions, Payloads, SessionStates } from "../primitives.js";
+import { SessionMetadata, WSActions, Payloads, SessionStates } from "../models/primitives.js";
 import { circleButton } from "./circleButton.js";
-import { sendPayload } from "../ws.js";
+import { sendPayload } from "../network/ws.js";
 import { StopWatch } from "./StopWatch.js";
 
 

@@ -94,6 +94,8 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
   font-family: Inter;
   overflow: hidden;
+  width: 100%;
+  width: 100%;
 }
 
 /* ======================= icons ========================= */
@@ -321,8 +323,8 @@ hr {
 
 #app {
   display: flex;
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
 }
 
 .view-header {

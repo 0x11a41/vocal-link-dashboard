@@ -1,6 +1,6 @@
-import { WSActions, Payloads, SessionStates } from "../primitives.js";
+import { WSActions, Payloads, SessionStates } from "../models/primitives.js";
 import { circleButton } from "./circleButton.js";
-import { sendPayload } from "../ws.js";
+import { sendPayload } from "../network/ws.js";
 import { StopWatch } from "./StopWatch.js";
 const DROP_BUTTON_RADIUS = 26;
 const PAUSE_BUTTON_RADIUS = 32;

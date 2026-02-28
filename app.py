@@ -10,7 +10,7 @@ import signal
 
 HOST = "0.0.0.0"
 PORT = 6210
-URL = f"http://{HOST}:{PORT}"
+URL = f"http://127.0.0.1:{PORT}"
 
 
 def run_server():

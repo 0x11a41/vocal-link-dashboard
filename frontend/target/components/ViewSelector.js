@@ -1,4 +1,4 @@
-import { Views } from '../primitives.js';
+import { Views } from '../models/primitives.js';
 import { dashboard } from '../views/dashboard.js';
 import { RecordingsView } from "../views/recordings.js";
 import { SettingsView } from "../views/settings.js";

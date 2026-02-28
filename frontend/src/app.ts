@@ -1,9 +1,9 @@
-import { URL } from './constants.js';
-import { SessionMetadata, Payloads, WSActions } from './primitives.js';
+import { URL } from './models/constants.js';
+import { SessionMetadata, Payloads, WSActions } from './models/primitives.js';
 import { SessionCard } from './components/SessionCard.js';
-import { server } from './serverInfo.js';
-import { sendPayload, ws } from './ws.js';
-import { wsHandler } from './wsHandler.js';
+import { server } from './network/serverInfo.js';
+import { sendPayload, ws } from './network/ws.js';
+import { wsHandler } from './network/wsHandler.js';
 import { ViewSelector } from './components/ViewSelector.js';
 import { dashboard } from './views/dashboard.js';
 

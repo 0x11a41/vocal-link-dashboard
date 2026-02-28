@@ -1,6 +1,6 @@
+import { Payloads, WSActions } from '../models/primitives.js'
 import { SessionCard } from './SessionCard.js';
-import { Payloads, WSActions } from '../primitives.js'
-import { sendPayload } from '../ws.js';
+import { sendPayload } from '../network/ws.js';
 import { button } from './button.js';
 
 interface Props {
@@ -50,7 +50,6 @@ export class ClusterActionsHandler {
 	    else if (session.isPaused()) this.paused++;
 	  });
 
-	  console.log(this.running, ' ', this.paused, this.sessions.size)
     // ---- pause/resume logic ----
     if (this.paused > 0) {
       if (this.paused === this.sessions.size) {

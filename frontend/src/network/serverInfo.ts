@@ -1,5 +1,5 @@
-import { URL } from "./constants.js";
-import { ServerInfo } from "./primitives.js";
+import { URL } from "../models/constants.js";
+import { ServerInfo } from "../models/primitives.js";
 
 class ServerStateManager {
   public data: ServerInfo = {

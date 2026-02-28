@@ -1,5 +1,5 @@
 import { SessionCard } from '../components/SessionCard.js'
-import { server } from '../serverInfo.js'
+import { server } from '../network/serverInfo.js'
 import { ClusterActionsHandler } from '../components/ClusterActionsHandler.js';
 
 

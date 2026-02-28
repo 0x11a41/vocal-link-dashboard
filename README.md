@@ -17,5 +17,5 @@ pip install -r requirements.txt
 ### running
 
 ```bash
-python runner.py
+python app.py
 ```

@@ -1,6 +1,6 @@
-import {WSKind, WSEvents, WSPayload, SessionMetadata, WSEventTarget, StateReport} from './primitives.js';
-import { SessionCard } from './components/SessionCard.js';
-import { dashboard } from './views/dashboard.js';
+import { WSKind, WSEvents, WSPayload, SessionMetadata, WSEventTarget, StateReport} from '../models/primitives.js';
+import { SessionCard } from '../components/SessionCard.js';
+import { dashboard } from '../views/dashboard.js';
 
 interface Props {
   payload: WSPayload;
