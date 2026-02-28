@@ -12,7 +12,6 @@ Before running the project, install:
 - **tsc** (required only for developer mode)
 - **Qt WebEngine** (on **Linux distributions** only)
 
----
 
 ## Setup
 
@@ -41,7 +40,6 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
 
 ## Running the server
 
@@ -59,7 +57,6 @@ python app.py
 python app.py --debug
 ```
 
----
 
 ## Creating test clients
 
