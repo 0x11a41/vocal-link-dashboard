@@ -6,6 +6,7 @@ import { sendPayload, ws } from './network/ws.js';
 import { wsHandler } from './network/wsHandler.js';
 import { ViewSelector } from './components/ViewSelector.js';
 import { dashboard } from './views/dashboard.js';
+import { modalDialog } from './components/modalDialog.js';
 export class VLApp {
     root;
     sidePanel = document.createElement('aside');
@@ -20,8 +21,22 @@ export class VLApp {
             payload: JSON.parse(ev.data),
             renderView: () => this.viewSelector.render(),
         });
-        ws.onclose = () => {
-            console.warn("WebSocket closed");
+        ws.onclose = async () => {
+            dashboard.sessions.clear();
+            dashboard.render();
+            const terminate = "Exit";
+            const reload = "Reload";
+            const choice = await modalDialog({
+                msg: "error! Connection closed unexpectedly.",
+                choices: [reload, terminate]
+            });
+            switch (choice) {
+                case terminate:
+                    window.close();
+                    break;
+                case reload:
+                    window.location.reload();
+            }
         };
         this.root.append(this.sidePanel, this.mainPanel);
         this.bindServerUpdates();

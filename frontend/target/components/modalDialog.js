@@ -1,0 +1,28 @@
+import { button } from "./button.js";
+export function modalDialog({ msg, choices }) {
+    return new Promise((resolve) => {
+        const overlay = document.createElement("div");
+        overlay.className = "dialog-overlay";
+        const dialogWindow = document.createElement("div");
+        dialogWindow.className = "dialog";
+        const para = document.createElement("p");
+        para.innerText = msg;
+        const dialogButtons = document.createElement("div");
+        dialogButtons.className = "flex-right-center";
+        const close = (value) => {
+            overlay.remove();
+            resolve(value);
+        };
+        choices.forEach((choice) => {
+            const btn = button({
+                label: choice,
+                onClick: () => close(choice)
+            });
+            dialogButtons.appendChild(btn);
+        });
+        dialogWindow.appendChild(para);
+        dialogWindow.appendChild(dialogButtons);
+        overlay.appendChild(dialogWindow);
+        document.body.appendChild(overlay);
+    });
+}

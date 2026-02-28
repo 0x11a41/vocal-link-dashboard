@@ -235,7 +235,7 @@ body {
 
 .flex-right-center {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   justify-content: flex-end;
   align-items: center;
 }
@@ -855,4 +855,70 @@ input:checked+.slider:before {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+
+/* ==================================== */
+/* ############ dialog box ########## */
+/* ==================================== */
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  animation: dialogFade 160ms ease-out;
+}
+
+.dialog {
+  background: var(--bg-card);
+  color: var(--text-primary, inherit);
+  padding: 1.6rem 1.8rem;
+  border-radius: calc(var(--border-radius) * 1.2);
+  text-align: center;
+  min-width: 280px;
+  max-width: 90vw;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  animation: dialogPop 180ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.dialog p {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.dialog .flex-right-center {
+  margin-top: 0.6rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+@keyframes dialogFade {
+  from {
+    opacity: 0
+  }
+
+  to {
+    opacity: 1
+  }
+}
+
+@keyframes dialogPop {
+  from {
+    transform: translateY(10px) scale(.97);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
