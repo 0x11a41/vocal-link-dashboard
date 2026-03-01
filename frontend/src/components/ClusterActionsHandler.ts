@@ -50,6 +50,10 @@ export class ClusterActionsHandler {
 	    else if (session.isPaused()) this.paused++;
 	  });
 
+    if (this.hasWorkingSessions()) {
+	    this.buttons.appendChild(this.cancelBtn);
+    }
+
     // ---- pause/resume logic ----
     if (this.paused > 0) {
       if (this.paused === this.sessions.size) {
@@ -66,7 +70,6 @@ export class ClusterActionsHandler {
 
     // ---- start/stop toggle ----
     if (this.hasWorkingSessions()) {
-	    this.buttons.appendChild(this.cancelBtn);
       this.startBtn.innerText = "Stop ";
       this.startBtn.classList.add("immutable");
     } else {

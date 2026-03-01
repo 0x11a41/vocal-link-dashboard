@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -39,10 +39,12 @@ api.add_middleware(
 @api.websocket("/ws/control")
 async def orchistrate_messages(ws: WebSocket):
     await ws.accept()
+    print(ws.client_state)
     try:
         while True:
             try:
                 raw = P.WSPayload.model_validate(await ws.receive_json())
+                print(P.WSPayload.model_dump(raw))
             except ValidationError as e:
                 print(e)
                 continue
@@ -71,6 +73,7 @@ async def orchistrate_messages(ws: WebSocket):
 async def stage_session(req: P.SessionMetadata):
     req.id = str(uuid.uuid4())
     await app.sessions.stage(req)
+    print(req.model_dump())
     return req.model_dump()
 
 

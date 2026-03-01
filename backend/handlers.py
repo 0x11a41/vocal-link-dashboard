@@ -168,6 +168,7 @@ class SessionsHandler: # thread safe
             return
 
         try:
+            print(payload.model_dump())
             await ws.send_json(payload.model_dump())
         except Exception:
             await self.drop(id)
