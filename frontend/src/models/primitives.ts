@@ -1,6 +1,9 @@
 // ============================================
 // ================ NETWORKING ================
 // ============================================
+
+export const BROADCAST = "all";
+
 export enum WSKind {
   ACTION = "action",
   EVENT = "event",
@@ -40,6 +43,11 @@ export enum WSActions {
   CANCEL = "cancel",
   DROP = "drop",
   GET_STATE = "get_state",
+  START_ALL = "start_all",
+  STOP_ALL = "stop_all",
+  PAUSE_ALL = "pause_all",
+  RESUME_ALL = "resume_all",
+  CANCEL_ALL = "cancel_all",
 }
 
 export enum SessionStates {

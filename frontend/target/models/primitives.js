@@ -1,3 +1,4 @@
+export const BROADCAST = "all";
 export var WSKind;
 (function (WSKind) {
     WSKind["ACTION"] = "action";
@@ -38,6 +39,11 @@ export var WSActions;
     WSActions["CANCEL"] = "cancel";
     WSActions["DROP"] = "drop";
     WSActions["GET_STATE"] = "get_state";
+    WSActions["START_ALL"] = "start_all";
+    WSActions["STOP_ALL"] = "stop_all";
+    WSActions["PAUSE_ALL"] = "pause_all";
+    WSActions["RESUME_ALL"] = "resume_all";
+    WSActions["CANCEL_ALL"] = "cancel_all";
 })(WSActions || (WSActions = {}));
 export var SessionStates;
 (function (SessionStates) {

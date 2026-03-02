@@ -5,10 +5,14 @@ import webbrowser
 import socket
 import time
 import signal
+import os
 
 HOST = "0.0.0.0"
 PORT = 6210
 URL = f"http://127.0.0.1:{PORT}"
+
+server = None
+tsc = None
 
 
 def wait_until_server_ready(timeout=15):
@@ -23,40 +27,48 @@ def wait_until_server_ready(timeout=15):
             time.sleep(0.05)
 
 
+def kill_process(proc, name):
+    if not proc or proc.poll() is not None:
+        return
+
+    try:
+        proc.terminate()
+        proc.wait(3)
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        proc.wait()
+
+
+def shutdown(*_):
+    print("\nShutting down...")
+
+    kill_process(tsc, "tsc")
+    kill_process(server, "server")
+
+    os._exit(0)  # force exit to prevent hanging threads
+
+
 if __name__ == "__main__":
     debug = "--debug" in sys.argv
 
-    server = subprocess.Popen([
-        sys.executable,
-        "-m",
-        "uvicorn",
-        "backend.server:api",
-        "--host", HOST,
-        "--port", str(PORT)
-    ])
+    # start server in its own process group
+    server = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "backend.server:api",
+            "--host", HOST,
+            "--port", str(PORT)
+        ],
+        start_new_session=True
+    )
 
-    tsc = None
     if debug:
-        tsc = subprocess.Popen(["tsc", "-w"])
-
-    def shutdown(*_):
-        print("\nShutting down...")
-
-        if tsc and tsc.poll() is None:
-            tsc.terminate()
-            try:
-                tsc.wait(2)
-            except subprocess.TimeoutExpired:
-                tsc.kill()
-
-        if server.poll() is None:
-            server.terminate()
-            try:
-                server.wait(3)
-            except subprocess.TimeoutExpired:
-                server.kill()
-
-        sys.exit(0)
+        tsc = subprocess.Popen(
+            ["tsc", "-w"],
+            start_new_session=True
+        )
 
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
@@ -76,13 +88,19 @@ if __name__ == "__main__":
                 height=900,
                 resizable=True
             )
+
+            def on_closed():
+                shutdown()
+
             if window:
-                window.events.closed += shutdown
-            webview.start()
+                window.events.closed += on_closed
+                webview.start()
+            else:
+                print("failed to create webview window")
 
         while True:
             if server.poll() is not None:
-                raise RuntimeError("Backend server stopped unexpectedly")
+                raise RuntimeError("Backend stopped unexpectedly")
             time.sleep(0.5)
 
     except Exception as e:

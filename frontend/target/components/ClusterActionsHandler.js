@@ -1,4 +1,4 @@
-import { Payloads, WSActions } from '../models/primitives.js';
+import { Payloads, WSActions, BROADCAST } from '../models/primitives.js';
 import { sendPayload } from '../network/ws.js';
 import { button } from './button.js';
 export class ClusterActionsHandler {
@@ -13,15 +13,15 @@ export class ClusterActionsHandler {
     });
     pauseBtn = button({
         label: "Pause",
-        onClick: () => this.handlePause(),
+        onClick: () => sendPayload(Payloads.action(WSActions.PAUSE_ALL, BROADCAST)),
     });
     resumeBtn = button({
         label: "Resume",
-        onClick: () => this.handleResume(),
+        onClick: () => sendPayload(Payloads.action(WSActions.RESUME_ALL, BROADCAST)),
     });
     cancelBtn = button({
         label: "Cancel",
-        onClick: () => this.handleCancel(),
+        onClick: () => sendPayload(Payloads.action(WSActions.CANCEL_ALL, BROADCAST)),
     });
     constructor({ sessions }) {
         this.sessions = sessions;
@@ -68,36 +68,11 @@ export class ClusterActionsHandler {
     }
     handleStart() {
         if (this.hasWorkingSessions()) {
-            this.sessions.forEach((session) => {
-                sendPayload(Payloads.action(WSActions.STOP, session.meta.id));
-            });
+            sendPayload(Payloads.action(WSActions.STOP_ALL, BROADCAST));
         }
         else {
-            this.sessions.forEach((session) => {
-                sendPayload(Payloads.action(WSActions.START, session.meta.id));
-            });
+            sendPayload(Payloads.action(WSActions.START_ALL, BROADCAST));
         }
-    }
-    handleResume() {
-        this.sessions.forEach((session) => {
-            if (session.isPaused()) {
-                sendPayload(Payloads.action(WSActions.RESUME, session.meta.id));
-            }
-        });
-    }
-    handlePause() {
-        this.sessions.forEach((session) => {
-            if (session.isRunning()) {
-                sendPayload(Payloads.action(WSActions.PAUSE, session.meta.id));
-            }
-        });
-    }
-    handleCancel() {
-        this.sessions.forEach((session) => {
-            if (!session.isStopped()) {
-                sendPayload(Payloads.action(WSActions.CANCEL, session.meta.id));
-            }
-        });
     }
     hasWorkingSessions() {
         return this.running > 0 || this.paused > 0;

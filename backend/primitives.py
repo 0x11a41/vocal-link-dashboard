@@ -5,6 +5,9 @@ from typing import Optional, Literal, Union
 
 VERSION = "v0.72-alpha"
 
+PORT = 6210
+BROADCAST = "all"
+
 
 class SessionMetadata(BaseModel):
     id: str
@@ -64,6 +67,12 @@ class WSActions(str, Enum): # these are intents of session or dashboard
     CANCEL = "cancel"# dashboard[WSActionTarget]::server::target_session
     DROP = "drop" # dashboard[WSActionTarget]::server
     GET_STATE = "get_state" # dashboard[WSActionTarget]::server::target_session
+
+    START_ALL = "start_all"
+    STOP_ALL = "stop_all"
+    PAUSE_ALL = "pause_all"
+    RESUME_ALL = "resume_all"
+    CANCEL_ALL = "cancel_all"
 
 
 class WSClockSync(str, Enum): # sync channel
@@ -126,3 +135,4 @@ class QRData(BaseModel):
     type: str = "vocal_link_server"
     name: str
     ip: str
+    port: int = PORT

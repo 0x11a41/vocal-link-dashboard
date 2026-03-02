@@ -7,15 +7,25 @@ from pydantic import ValidationError
 from zeroconf.asyncio import AsyncZeroconf, AsyncServiceInfo
 from backend.utils import get_local_ip, get_random_name
 import backend.primitives as P
+from backend.logging import log
 
+
+ACTION_MAP = {
+    P.WSActions.START_ALL: P.WSActions.START,
+    P.WSActions.STOP_ALL: P.WSActions.STOP,
+    P.WSActions.PAUSE_ALL: P.WSActions.PAUSE,
+    P.WSActions.RESUME_ALL: P.WSActions.RESUME,
+    P.WSActions.CANCEL_ALL: P.WSActions.CANCEL,
+}
 
 async def send_error(ws: WebSocket, type: P.WSErrors):
     msg = P.WSPayload(kind=P.WSKind.ERROR, msgType=type).model_dump()
-    print(msg)
+    log.info(msg)
     await ws.send_json(msg)
 
 def now_ms():
     return time.time_ns() // 1_000_000
+    
 
 class DashboardHandler:
     def __init__(self):
@@ -51,7 +61,7 @@ class DashboardHandler:
         try:
             await self._dashboard.send_json(payload.model_dump())
         except Exception:
-            print('dashboard got disconnected due to unexpected exception')
+            log.warning('dashboard got disconnected due to unexpected exception')
             await self.drop(self._dashboard)
 
 
@@ -159,7 +169,7 @@ class SessionsHandler: # thread safe
 
 
 
-    async def send_to_one(self, id, payload):
+    async def send_to_one(self, id: str, payload: P.WSPayload):
         async with self._lock:
             session = self._active.get(id)
             ws = session.ws if session else None
@@ -168,8 +178,9 @@ class SessionsHandler: # thread safe
             return
 
         try:
-            print(payload.model_dump())
             await ws.send_json(payload.model_dump())
+            if payload.kind != P.WSKind.SYNC:
+                log.info(payload.model_dump())
         except Exception:
             await self.drop(id)
 
@@ -188,6 +199,8 @@ class SessionsHandler: # thread safe
 
         for sid in dead:
             await self.drop(sid)
+
+        log.info(f'BROADCASTING {payload}')
 
     
     async def update_sync(self,id: str, report: P.ClockSyncReport) -> P.SessionMetadata | None:
@@ -209,13 +222,11 @@ class SessionsHandler: # thread safe
 class AppState:
     def __init__(
         self,
-        port: int,
-        ip: Optional[str] = None,
         server_name: Optional[str] = None
     ):
 
-        self.ip:str = ip or get_local_ip()
-        self.port:int = port
+        self.ip:str = get_local_ip()
+        self.port:int = P.PORT
         self.name:str = server_name or get_random_name()
 
         self.dashboard: DashboardHandler = DashboardHandler()
@@ -228,7 +239,7 @@ class AppState:
     async def _eval_triggerTime(self) -> int:
         SAFETY_MS = 200
         MIN_DELAY = 500
-        DEFAULT_DELAY = 800
+        DEFAULT_DELAY = 700
         MAX_SYNC_AGE = 10_000  # ms
 
         metas = await self.sessions.getMetaFromAllActive()
@@ -293,11 +304,11 @@ class AppState:
         
             self.mdns_conf = self._make_mdns_conf()
             await self.mdns.async_register_service(self.mdns_conf)
-            print(f"[SERVER] Renamed from '{old_name}' to '{self.name}'")
+            log.info(f"[SERVER] Renamed from '{old_name}' to '{self.name}'")
 
         except Exception as e:
             self.name = old_name
-            print(f"[SERVER] mDNS Rename Failed: {e}")
+            log.error(f"[SERVER] mDNS Rename Failed: {e}")
             return
     
         await self.sessions.broadcast(P.WSPayload(
@@ -317,6 +328,7 @@ class AppState:
 
 
     async def handle_events(self, payload: P.WSPayload, ws: WebSocket):
+        log.info(P.WSPayload.model_dump(payload))
         if payload.kind != P.WSKind.EVENT:
             return
 
@@ -324,7 +336,7 @@ class AppState:
 
         if event_type == P.WSEvents.DASHBOARD_INIT:
             await self.dashboard.assign(ws)            
-            print("dashboard online.")
+            log.info("dashboard online.")
 
 
         elif event_type == P.WSEvents.DASHBOARD_RENAME:
@@ -429,12 +441,13 @@ class AppState:
 
 
     async def handle_actions(self, payload: P.WSPayload, ws: WebSocket):
+        log.info(P.WSPayload.model_dump(payload))
         if payload.kind != P.WSKind.ACTION:
             return
 
         dashboard = await self.dashboard.ws()
         if ws != dashboard:
-            print("[error] Unauthenticated action sender")
+            log.warning("Unauthenticated action sender")
             await send_error(ws, P.WSErrors.ACTION_NOT_ALLOWED)
             return
 
@@ -442,7 +455,7 @@ class AppState:
         try:
             target = P.WSActionTarget.model_validate(payload.body)
         except ValidationError as e:
-            print(f"[error] Invalid action body: {e}")
+            log.warning(f"Invalid action body: {e}")
             await send_error(ws, P.WSErrors.INVALID_BODY)
             return
 
@@ -454,10 +467,6 @@ class AppState:
             P.WSActions.CANCEL,
             P.WSActions.GET_STATE,
         ):
-            if action_type == P.WSActions.START:
-                target.triggerTime = await self._eval_triggerTime()
-                payload.body = target
-
             if await self.sessions.is_active(target.id):
                 await self.sessions.send_to_one(target.id, payload)
             else:
@@ -475,17 +484,30 @@ class AppState:
                 body = P.WSEventTarget(id=target.id)
             ))
 
+
+        elif action_type in ACTION_MAP:
+            action = ACTION_MAP[action_type]
+            if action != P.WSActions.CANCEL:
+                target.triggerTime = await self._eval_triggerTime()
+            await self.sessions.broadcast(P.WSPayload(
+                                        kind = P.WSKind.ACTION,
+                                        msgType = action,
+                                        body = target
+                                    ))
+            
+
         else:
             await send_error(ws, P.WSErrors.INVALID_ACTION)
                 
 
     async def handle_sync(self, payload: P.WSPayload, ws: WebSocket):
+        # log.info(P.WSPayload.model_dump(payload))
         if payload.kind != P.WSKind.SYNC:
             return
 
         id = self.sessions.get_id(ws)
         if not id:
-            print("[error] caught inactive session attempting syncing")
+            log.warning("caught inactive session attempting syncing")
             return
 
         if payload.msgType == P.WSClockSync.TIK:
@@ -497,11 +519,10 @@ class AppState:
 
             t2 = now_ms()
             t1 = sync_req.t1
-            t3 = now_ms()
             await self.sessions.send_to_one(id, P.WSPayload(
                                       kind = P.WSKind.SYNC,
                                       msgType = P.WSClockSync.TOK,
-                                      body = P.ClockSyncTok(t1=t1, t2=t2, t3=t3)
+                                      body = P.ClockSyncTok(t1=t1, t2=t2, t3=now_ms())
                                   ))
 
 
@@ -526,12 +547,12 @@ class AppState:
     async def handle_disconnect(self, ws: WebSocket):
         if ws == await self.dashboard.ws():
             await self.dashboard.drop(ws)
-            print("Dashboard went offline (refresh or close).")
+            log.info("Dashboard went offline (refresh or close).")
             return
 
         id = self.sessions.get_id(ws)
         if not id:
-            print("unknown session disconnected.")
+            log.info("unknown session disconnected.")
             return
 
         active = await self.sessions.is_active(id)
@@ -544,4 +565,4 @@ class AppState:
                 ))
 
             await self.sessions.drop(id)
-            print(f"Session [{id}] disconnected.")
+            log.info(f"Session [{id}] disconnected.")

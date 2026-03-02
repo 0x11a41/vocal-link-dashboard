@@ -13,9 +13,10 @@ import os
 
 from backend.handlers import AppState, send_error
 import backend.primitives as P
+from backend.logging import log
 
 
-app = AppState(port = 6210) # source of truth
+app = AppState() # source of truth
 
 
 @asynccontextmanager
@@ -39,14 +40,12 @@ api.add_middleware(
 @api.websocket("/ws/control")
 async def orchistrate_messages(ws: WebSocket):
     await ws.accept()
-    print(ws.client_state)
     try:
         while True:
             try:
                 raw = P.WSPayload.model_validate(await ws.receive_json())
-                print(P.WSPayload.model_dump(raw))
             except ValidationError as e:
-                print(e)
+                log.error(e)
                 continue
 
             if raw.kind == P.WSKind.ACTION:
@@ -73,7 +72,7 @@ async def orchistrate_messages(ws: WebSocket):
 async def stage_session(req: P.SessionMetadata):
     req.id = str(uuid.uuid4())
     await app.sessions.stage(req)
-    print(req.model_dump())
+    log.info(req.model_dump())
     return req.model_dump()
 
 

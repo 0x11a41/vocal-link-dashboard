@@ -1,4 +1,4 @@
-import { Payloads, WSActions } from '../models/primitives.js'
+import { Payloads, WSActions, BROADCAST } from '../models/primitives.js'
 import { SessionCard } from './SessionCard.js';
 import { sendPayload } from '../network/ws.js';
 import { button } from './button.js';
@@ -21,15 +21,15 @@ export class ClusterActionsHandler {
 	});
 	private pauseBtn = button({
 		label: "Pause",
-		onClick: () => this.handlePause(),
+		onClick: () => sendPayload(Payloads.action(WSActions.PAUSE_ALL, BROADCAST)),
 	})
 	private resumeBtn = button({
 		label: "Resume",
-		onClick: () => this.handleResume(),
+		onClick: () => sendPayload(Payloads.action(WSActions.RESUME_ALL, BROADCAST)),
 	})
 	private cancelBtn = button({
 		label:"Cancel",
-		onClick: () => this.handleCancel(),
+		onClick: () => 	sendPayload(Payloads.action(WSActions.CANCEL_ALL, BROADCAST)),
 	})
 
 	constructor({ sessions }: Props) {
@@ -81,38 +81,10 @@ export class ClusterActionsHandler {
 
   private handleStart(): void {
   	if (this.hasWorkingSessions()) {
-	  	this.sessions.forEach((session) => {
-	  		sendPayload(Payloads.action(WSActions.STOP, session.meta.id));
-	  	});
+  		sendPayload(Payloads.action(WSActions.STOP_ALL, BROADCAST));
   	} else {
-	  	this.sessions.forEach((session) => {
-	  		sendPayload(Payloads.action(WSActions.START, session.meta.id));
-	  	});
+  		sendPayload(Payloads.action(WSActions.START_ALL, BROADCAST));
   	}
-  }
-
-  private handleResume(): void {
-  	this.sessions.forEach((session) => {
-  		if (session.isPaused()) {
-  			sendPayload(Payloads.action(WSActions.RESUME, session.meta.id));
-  		}
-  	});
-  }
-
-  private handlePause(): void {
-  	this.sessions.forEach((session) => {
-  		if (session.isRunning()) {
-  			sendPayload(Payloads.action(WSActions.PAUSE, session.meta.id));
-  		}
-  	});
-  }
-
-  private handleCancel(): void {
-  	this.sessions.forEach((session) => {
-  		if (!session.isStopped()) {
-  			sendPayload(Payloads.action(WSActions.CANCEL, session.meta.id));
-  		}
-  	});
   }
 
   private hasWorkingSessions(): boolean {
