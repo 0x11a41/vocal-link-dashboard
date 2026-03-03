@@ -12,6 +12,7 @@ pkgs.mkShell {
 
     # Dev tools
     ty
+    ruff
     vscode-css-languageserver
     superhtml
     vscode-json-languageserver
@@ -31,6 +32,7 @@ pkgs.mkShell {
     python3Packages.pillow
     python3Packages.pydub
     python3Packages.pywebview
+    python3Packages.psutil
   ];
 
   shellHook = ''

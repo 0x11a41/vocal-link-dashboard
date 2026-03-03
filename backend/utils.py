@@ -1,5 +1,6 @@
 import random
 import socket
+import time
 
 def get_local_ip() -> str:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -16,3 +17,6 @@ def get_random_name(file_path="backend/server_names.txt") -> str:
     if not names:
         return "VLServer"
     return random.choice(names)
+
+def now_ms():
+    return time.time_ns() // 1_000_000

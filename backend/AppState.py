@@ -1,13 +1,14 @@
-from typing import Optional, List, Dict
-import asyncio
+from typing import Optional
 import socket
-import time
 from fastapi import WebSocket
 from pydantic import ValidationError
 from zeroconf.asyncio import AsyncZeroconf, AsyncServiceInfo
-from backend.utils import get_local_ip, get_random_name
+
+from backend.utils import get_local_ip, get_random_name, now_ms
 import backend.primitives as P
 from backend.logging import log
+from backend.DashboardHandler import DashboardHandler
+from backend.SessionsHandler import SessionsHandler
 
 
 ACTION_MAP = {
@@ -18,213 +19,16 @@ ACTION_MAP = {
     P.WSActions.CANCEL_ALL: P.WSActions.CANCEL,
 }
 
+
 async def send_error(ws: WebSocket, type: P.WSErrors):
     msg = P.WSPayload(kind=P.WSKind.ERROR, msgType=type).model_dump()
     log.info(msg)
     await ws.send_json(msg)
-
-def now_ms():
-    return time.time_ns() // 1_000_000
-    
-
-class DashboardHandler:
-    def __init__(self):
-        self._dashboard: Optional[WebSocket] = None
-        self.lock = asyncio.Lock()
-
-
-    async def ws(self) -> Optional[WebSocket]:
-        async with self.lock:
-            return self._dashboard
-
-
-    async def assign(self, ws: WebSocket):
-        async with self.lock:
-            if self._dashboard and self._dashboard != ws:
-                try:
-                    await self._dashboard.close()
-                except Exception:
-                    pass 
-            self._dashboard = ws
-
-
-    async def drop(self, ws: WebSocket):
-        async with self.lock:
-            if self._dashboard == ws:
-                self._dashboard = None
-
-
-    async def notify(self, payload: P.WSPayload):
-        async with self.lock:
-            if not self._dashboard:
-                return
-        try:
-            await self._dashboard.send_json(payload.model_dump())
-        except Exception:
-            log.warning('dashboard got disconnected due to unexpected exception')
-            await self.drop(self._dashboard)
-
-
-    async def available(self) -> bool:
-        async with self.lock:
-            return self._dashboard is not None
-
-
-
-class Session:
-    __slots__ = ('meta', 'ws') 
-    def __init__(self, meta: P.SessionMetadata, ws: WebSocket):
-        self.meta: P.SessionMetadata = meta
-        self.ws: WebSocket = ws
-
-
-class SessionsHandler: # thread safe
-    def __init__(self):
-        self._active: Dict[str, Session] = {}
-        self._staging: Dict[str, P.SessionMetadata] = {} # sessionId, meta
-        self._ws_to_id: Dict[WebSocket, str] = {}
-        self._lock = asyncio.Lock()
-
-    async def updateMeta(self, new_meta: P.SessionMetadata) -> P.SessionMetadata | None:
-        async with self._lock:
-            session = self._active.get(new_meta.id)
-            if session:
-                update_data = new_meta.model_dump(exclude_unset=True)
-                session.meta = session.meta.model_copy(update=update_data)
-                return session.meta
-            return None
-                
-
-    async def rename(self, id: str, name: str):
-        async with self._lock:
-            session = self._active.get(id)
-            if session:
-                session.meta.name = name
-
-
-    async def getActiveCount(self) -> int:
-        async with self._lock:
-            return len(self._active)
-
-
-    async def is_active(self, id: str) -> bool:
-        async with self._lock:
-            return id in self._active
-
-
-    async def exists(self, id: str) -> bool:
-        async with self._lock:
-            return (id in self._active or id in self._staging)
-
-
-    async def getMetaFromAllActive(self) -> List[P.SessionMetadata]:
-        async with self._lock:
-            sessions = list(self._active.values())
-
-        return [s.meta.model_copy() for s in sessions]
-
-
-    async def getMetaFromActive(self, id: str) -> Optional[P.SessionMetadata]:
-        async with self._lock:
-            s = self._active.get(id)
-            return s.meta.model_copy() if s else None
-
-
-    # puts metadata into staging
-    async def stage(self, meta: P.SessionMetadata) -> None:
-        async with self._lock:
-            self._staging[meta.id] = meta
-
-
-    # release id entry from staging and put it into active 
-    async def commit(self, id: str, session_ws: WebSocket) -> Optional[P.SessionMetadata]:
-        async with self._lock:
-            meta = self._staging.pop(id, None)
-            if not meta:
-                if id in self._active:
-                    self._active[id].ws = session_ws
-                    return self._active[id].meta
-                return None
-
-            self._active[id] = Session(meta, session_ws)
-            self._ws_to_id[session_ws] = id
-            return meta
-
-
-    async def drop(self, id: str):
-        ws = None
-        async with self._lock:
-            session = self._active.pop(id, None)
-            if session:
-                ws = session.ws
-                self._ws_to_id.pop(ws, None)
-            else:
-                self._staging.pop(id, None)
-
-        if ws:
-            try:
-                await ws.close()
-            except Exception:
-                pass
-
-
-
-    async def send_to_one(self, id: str, payload: P.WSPayload):
-        async with self._lock:
-            session = self._active.get(id)
-            ws = session.ws if session else None
-
-        if not ws:
-            return
-
-        try:
-            await ws.send_json(payload.model_dump())
-            if payload.kind != P.WSKind.SYNC:
-                log.info(payload.model_dump())
-        except Exception:
-            await self.drop(id)
-
-
-    async def broadcast(self, data: P.WSPayload) -> None:
-        async with self._lock:
-            targets = [(sid, s.ws) for sid, s in self._active.items()]
-        
-        payload = data.model_dump()
-        dead = []
-        for sid, ws in targets:
-            try:
-                await ws.send_json(payload)
-            except Exception:
-                dead.append(sid)
-
-        for sid in dead:
-            await self.drop(sid)
-
-        log.info(f'BROADCASTING {payload}')
-
-    
-    async def update_sync(self,id: str, report: P.ClockSyncReport) -> P.SessionMetadata | None:
-        async with self._lock:
-            session = self._active.get(id)
-            if session:
-                session.meta.theta = report.theta
-                session.meta.lastRTT = report.rtt
-                session.meta.lastSync = now_ms()
-                return session.meta
-            return None
-
-
-    def get_id(self, ws: WebSocket) -> Optional[str]:
-        return self._ws_to_id.get(ws)
-        
+   
 
 
 class AppState:
-    def __init__(
-        self,
-        server_name: Optional[str] = None
-    ):
-
+    def __init__(self, server_name: Optional[str] = None):
         self.ip:str = get_local_ip()
         self.port:int = P.PORT
         self.name:str = server_name or get_random_name()
@@ -261,7 +65,7 @@ class AppState:
             delay = DEFAULT_DELAY
         else:
             max_rtt = max(valid_rtts)
-            delay = max(MIN_DELAY, int(max_rtt * 2) + SAFETY_MS)
+            delay = max(MIN_DELAY, int(max_rtt * 1.5) + SAFETY_MS)
 
         return now + delay
 

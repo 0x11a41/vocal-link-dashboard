@@ -1,6 +1,6 @@
-from enum import Enum
+from enum import Enum 
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, Union
+from typing import Optional, Literal, Union, List
 
 
 VERSION = "v0.72-alpha"
@@ -44,7 +44,6 @@ class WSErrors(str, Enum):
 class WSEvents(str, Enum): # these are facts that should be notified
     DASHBOARD_INIT = "dashboard_init" # dashboard[None]::server 
     DASHBOARD_RENAME = "dashboard_rename" # dashboard[Rename]::server::session
-
     # all events listed below will contain an "id" field inside body 
     SESSION_UPDATE = "session_update" # session[SessionMetadata]::server::dashboard
     SESSION_ACTIVATE = "session_activate" # session[WSEventTarget]::server
@@ -58,6 +57,11 @@ class WSEvents(str, Enum): # these are facts that should be notified
     RESUMED = "resumed" # session[WSEventTarget]::server::dashboard
     DROPPED = "dropped" # server[WSEventTarget]::dashboard
 
+    FILE_UPLOAD_INIT = "file_upload_init"
+    FILE_UPLOAD_COMPLETE = "file_upload_complete"
+    FILE_STATUS_UPDATE = "file_status_update"
+    FILE_READY = "file_ready"
+
 
 class WSActions(str, Enum): # these are intents of session or dashboard
     START = "start" # dashboard[WSActionTarget]::server::target_session
@@ -67,12 +71,15 @@ class WSActions(str, Enum): # these are intents of session or dashboard
     CANCEL = "cancel"# dashboard[WSActionTarget]::server::target_session
     DROP = "drop" # dashboard[WSActionTarget]::server
     GET_STATE = "get_state" # dashboard[WSActionTarget]::server::target_session
-
     START_ALL = "start_all"
     STOP_ALL = "stop_all"
     PAUSE_ALL = "pause_all"
     RESUME_ALL = "resume_all"
     CANCEL_ALL = "cancel_all"
+
+    ENHANCE_FILE = "enhance_file"
+    TRANSCRIBE_FILE = "transcribe_file"
+    MERGE_FILES = "merge_files"
 
 
 class WSClockSync(str, Enum): # sync channel
@@ -115,6 +122,41 @@ class StateReport(BaseModel): # session -> server -> dashboard
     duration: int = 0 # in seconds
 
 
+class FileStatus(str, Enum):
+    UPLOADING = "uploading"
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    READY = "ready"
+    FAILED = "failed"
+
+class FileUploadInit(BaseModel):
+    fileId: str
+    fileName: str
+    duration: int
+    sizeBytes: int
+
+
+class FileMetadata(BaseModel):
+    fileId: str
+    fileName: str
+    sessionId: str
+    senderName: str
+    device: str
+    duration: int
+    sizeBytes: int
+    createdAt: int
+    status: FileStatus
+    transcriptPath: Optional[str] = None
+    enhancedPath: Optional[str] = None
+
+class FileAction(BaseModel):
+    fileId: str
+
+class MergeAction(BaseModel):
+    fileIds: List[str]
+
+
+
 class WSPayload(BaseModel):
     kind: WSKind
     msgType: Union[WSActions, WSEvents, WSClockSync, WSErrors]
@@ -127,6 +169,10 @@ class WSPayload(BaseModel):
         ClockSyncTik,
         ClockSyncTok,
         ClockSyncReport,
+        FileMetadata,
+        FileUploadInit,
+        FileAction,
+        MergeAction
     ]] = None
 
 

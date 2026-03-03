@@ -11,7 +11,7 @@ import qrcode
 import io
 import os
 
-from backend.handlers import AppState, send_error
+from backend.AppState import AppState, send_error
 import backend.primitives as P
 from backend.logging import log
 
