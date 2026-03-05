@@ -132,7 +132,12 @@ class AudioToolkit:
             
         return P.TranscriptResult(fid=fid, language=info.language, duration=info.duration, segments=results)
 
-    def merge(self, input_paths: List[str], output_path: str, mode: str = "concat") -> Tuple[float, int]:
+    def merge(
+              self,
+              input_paths: List[str],
+              output_path: str,
+              mode: str = "overlap"
+          ) -> Tuple[float, int]:
         audios = [AudioSegment.from_file(p) for p in input_paths if os.path.exists(p)]
         if not audios:
             raise ValueError("No valid audio files found.")

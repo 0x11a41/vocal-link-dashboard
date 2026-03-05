@@ -3,11 +3,12 @@ import { dashboard } from '../views/dashboard.js';
 import { RecordingsView } from "../views/recordings.js";
 import { SettingsView } from "../views/settings.js";
 export class ViewSelector {
-    currentView = Views.DASHBOARD;
+    currentView;
     menu = document.createElement('menu');
     mainPanel;
-    constructor(mainPanel) {
+    constructor(mainPanel, view = Views.DASHBOARD) {
         this.mainPanel = mainPanel;
+        this.currentView = view;
         this.menu.innerHTML = `
       <li data-key="${Views.DASHBOARD}">Dashboard</li>
       <li data-key="${Views.RECORDINGS}">Recordings</li>

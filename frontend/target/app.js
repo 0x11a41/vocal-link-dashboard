@@ -1,5 +1,5 @@
 import { URL } from './models/constants.js';
-import { Payloads, WSActions } from './models/primitives.js';
+import { Views, Payloads, WSActions } from './models/primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import { server } from './network/serverInfo.js';
 import { sendPayload, ws } from './network/ws.js';
@@ -11,7 +11,7 @@ export class VLApp {
     root;
     sidePanel = document.createElement('aside');
     mainPanel = document.createElement('main');
-    viewSelector = new ViewSelector(this.mainPanel);
+    viewSelector = new ViewSelector(this.mainPanel, Views.RECORDINGS);
     constructor() {
         const root = document.getElementById("app");
         if (!root)

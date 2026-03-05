@@ -5,12 +5,13 @@ import { SettingsView } from "../views/settings.js"
 
 
 export class ViewSelector {
-  private currentView: Views = Views.DASHBOARD;
+  private currentView: Views;
   public menu = document.createElement('menu');
   private mainPanel: HTMLElement;
   
-  constructor(mainPanel: HTMLElement) {
+  constructor(mainPanel: HTMLElement, view: Views = Views.DASHBOARD) {
     this.mainPanel = mainPanel;
+    this.currentView = view;
     this.menu.innerHTML = `
       <li data-key="${Views.DASHBOARD}">Dashboard</li>
       <li data-key="${Views.RECORDINGS}">Recordings</li>

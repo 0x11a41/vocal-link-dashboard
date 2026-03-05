@@ -29,7 +29,7 @@ export function SettingsView() {
 					<b>Theme</b>
 					<p class="muted">Switch between light and dark theme</p>
 				</div>
-				<label class="toggle-switch">
+				<label class="switch">
 					<input type="checkbox">
 					<span class="slider round"></span>
 				</label>
@@ -40,7 +40,7 @@ export function SettingsView() {
 					<b>Auto Enhance</b>
 					<p class="muted">Automatically run speech enhancement whenever a recording arrive</p>
 				</div>
-				<label class="toggle-switch">
+				<label class="switch">
 					<input type="checkbox" checked>
 					<span class="slider round"></span>
 				</label>
@@ -51,7 +51,7 @@ export function SettingsView() {
 					<b>Auto generate transcript</b>
 					<p class="muted">Automatically generate transcript whenever a recording arrive</p>
 				</div>
-				<label class="toggle-switch">
+				<label class="switch">
 					<input type="checkbox">
 					<span class="slider round"></span>
 				</label>

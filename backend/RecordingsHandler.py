@@ -5,11 +5,10 @@ import uuid
 import json
 from fastapi import UploadFile
 
-from backend.merge import merge_sounds
-from backend.transcript import get_transcript
 import backend.primitives as P
 from backend.logging import log
 from backend.utils import now_ms
+from backend.audioToolkit import AudioToolkit
 
 NotifyCallback = Callable[[P.WSPayload], None]
 ALLOWED_EXTENSIONS = {".m4a", ".mp4", ".ogg", ".wav"}
@@ -18,6 +17,8 @@ class RecordingsHandler:
     def __init__(self, root: str = "storage"):    
         self._files: Dict[str, P.FileMetadata] = {}
         self._lock = asyncio.Lock()
+
+        self.audio = AudioToolkit()
 
         self.root: str = root
 
@@ -135,7 +136,7 @@ class RecordingsHandler:
 
         try:
             transcript_result: P.TranscriptResult = await asyncio.to_thread(
-                get_transcript,
+                self.audio.transcribe,
                 src_path,
                 fid
             )
@@ -210,7 +211,7 @@ class RecordingsHandler:
             output_path = self._original_path(merged_fid, merged_meta.fileName)
 
             duration, size = await asyncio.to_thread(
-                merge_sounds,
+                self.audio.merge,
                 input_paths,
                 output_path,
                 "overlay"
