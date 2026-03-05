@@ -1,4 +1,4 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, HTTPException
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -10,6 +10,7 @@ import uuid
 import qrcode
 import io
 import os
+import asyncio
 
 from backend.AppState import AppState, send_error
 import backend.primitives as P
@@ -109,9 +110,78 @@ async def get_server_qr():
     return StreamingResponse(buf, media_type="image/png")
 
 
+"""
+POST /files/upload/{fileId} - should be followed by a FILE_UPDATE before returning
+GET /files/original/{fileId}
+GET /files/enhanced/{fileId}
+GET /files - files metadata query
+
+GET /files/{fileId}/stream
+<audio controls src="/files/{fileId}/stream"></audio>
+
+DELETE /files/{fileId}
+"""
+
+
+@api.post("/files/merge")
+async def start_merge(req: P.MergeRequest):
+    asyncio.create_task(merge_and_notify(req.fids))
+    return {"status": "started"}
+
+
+@api.post("/files/{fid}/transcribe")
+async def start_transcription(fid: str):
+    if not await app.recordings.exist(fid) or await app.recordings.status(fid) != P.FileStatus.READY:
+        raise HTTPException(status_code=400)
+
+    await app.recordings.set_status(fid, P.FileStatus.PROCESSING)
+    await app.dashboard.notify(P.WSPayload(
+                                   kind = P.WSKind.EVENT,
+                                   msgType = P.WSEvents.FILE_UPDATE,
+                                   body = await app.recordings.get(fid)
+                               ))
+
+    asyncio.create_task(transcribe_and_notify(fid))
+    return {"status": "started"}
+
+
+@api.get("/files/transcript/{fid}", response_model=P.TranscriptResult)
+async def get_transcript(fid: str):
+    if not await app.recordings.exist(fid):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    transcript = app.recordings.resolve_transcript(fid)
+    if not transcript:
+        raise HTTPException(status_code=404, detail="Transcript not available")
+
+    return transcript
+
+
+
 api.mount("/static", StaticFiles(directory="frontend"), name="static")
 @api.get("/")
 async def serve_frontend():
     index_path = os.path.join("frontend", "index.html")
     return FileResponse(index_path)
     
+
+
+
+# =============== Services ==================
+async def transcribe_and_notify(fid: str):
+    meta = await app.recordings.transcribe(fid)
+    if meta:
+        await app.dashboard.notify(P.WSPayload(
+            kind=P.WSKind.EVENT,
+            msgType=P.WSEvents.FILE_UPDATE,
+            body=meta
+        ))
+
+async def merge_and_notify(fids: List[str]):
+    meta = await app.recordings.merge(fids)
+    if meta:
+        await app.dashboard.notify(P.WSPayload(
+            kind=P.WSKind.EVENT,
+            msgType=P.WSEvents.FILE_STAGED,
+            body=meta
+        ))

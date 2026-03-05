@@ -33,10 +33,12 @@ pkgs.mkShell {
     python3Packages.pydub
     python3Packages.pywebview
     python3Packages.psutil
+    python3Packages.noisereduce
+    python3Packages.numpy
+    python3Packages.scipy
   ];
 
   shellHook = ''
-    export QTWEBENGINE_DISABLE_SANDBOX=1
     echo "Entered dev-shell (Qt WebEngine ready)"
   '';
 }

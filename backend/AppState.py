@@ -9,6 +9,7 @@ import backend.primitives as P
 from backend.logging import log
 from backend.DashboardHandler import DashboardHandler
 from backend.SessionsHandler import SessionsHandler
+from backend.RecordingsHandler import RecordingsHandler
 
 
 ACTION_MAP = {
@@ -35,6 +36,7 @@ class AppState:
 
         self.dashboard: DashboardHandler = DashboardHandler()
         self.sessions: SessionsHandler = SessionsHandler()
+        self.recordings: RecordingsHandler = RecordingsHandler()
 
         self.mdns: Optional[AsyncZeroconf] = None
         self.mdns_conf: Optional[AsyncServiceInfo] = None

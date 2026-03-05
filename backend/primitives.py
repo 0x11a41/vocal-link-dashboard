@@ -1,9 +1,9 @@
 from enum import Enum 
 from pydantic import BaseModel, Field
-from typing import Optional, Literal, Union, List
+from typing import Optional, Union, List
 
 
-VERSION = "v0.72-alpha"
+VERSION = "v0.74-alpha"
 
 PORT = 6210
 BROADCAST = "all"
@@ -57,10 +57,9 @@ class WSEvents(str, Enum): # these are facts that should be notified
     RESUMED = "resumed" # session[WSEventTarget]::server::dashboard
     DROPPED = "dropped" # server[WSEventTarget]::dashboard
 
-    FILE_UPLOAD_INIT = "file_upload_init"
-    FILE_UPLOAD_COMPLETE = "file_upload_complete"
-    FILE_STATUS_UPDATE = "file_status_update"
-    FILE_READY = "file_ready"
+    FILE_STAGE = "file_stage" # session[FileStageInfo]::server[FileMetaData]::dashboard
+    FILE_STAGED = "file_staged" # server[FileId]::session
+    FILE_UPDATE = "file_update" # server[FileMetadata]::dashboard
 
 
 class WSActions(str, Enum): # these are intents of session or dashboard
@@ -77,9 +76,7 @@ class WSActions(str, Enum): # these are intents of session or dashboard
     RESUME_ALL = "resume_all"
     CANCEL_ALL = "cancel_all"
 
-    ENHANCE_FILE = "enhance_file"
-    TRANSCRIBE_FILE = "transcribe_file"
-    MERGE_FILES = "merge_files"
+    FILE_RENAME = "file_rename"
 
 
 class WSClockSync(str, Enum): # sync channel
@@ -124,37 +121,33 @@ class StateReport(BaseModel): # session -> server -> dashboard
 
 class FileStatus(str, Enum):
     UPLOADING = "uploading"
-    UPLOADED = "uploaded"
     PROCESSING = "processing"
     READY = "ready"
     FAILED = "failed"
 
-class FileUploadInit(BaseModel):
-    fileId: str
+class FileStageInfo(BaseModel):
+    sessionId: str
     fileName: str
     duration: int
     sizeBytes: int
 
 
 class FileMetadata(BaseModel):
-    fileId: str
-    fileName: str
+    fid: str 
+    fileName: str #
     sessionId: str
     senderName: str
     device: str
-    duration: int
+    duration: int | float
     sizeBytes: int
     createdAt: int
-    status: FileStatus
-    transcriptPath: Optional[str] = None
-    enhancedPath: Optional[str] = None
+    status: FileStatus #
+    transcriptPath: Optional[str] = None #
+    enhancedPath: Optional[str] = None #
 
-class FileAction(BaseModel):
-    fileId: str
 
-class MergeAction(BaseModel):
-    fileIds: List[str]
-
+class FileId(BaseModel):
+    id: str
 
 
 class WSPayload(BaseModel):
@@ -170,9 +163,8 @@ class WSPayload(BaseModel):
         ClockSyncTok,
         ClockSyncReport,
         FileMetadata,
-        FileUploadInit,
-        FileAction,
-        MergeAction
+        FileStageInfo,
+        FileId,
     ]] = None
 
 
@@ -182,3 +174,18 @@ class QRData(BaseModel):
     name: str
     ip: str
     port: int = PORT
+
+
+class TranscriptSegment(BaseModel):
+    start: float
+    end: float
+    text: str
+
+class TranscriptResult(BaseModel):
+    fid: str
+    language: str
+    duration: float
+    segments: List[TranscriptSegment]
+
+class MergeRequest(BaseModel):
+    fids: List[str]
