@@ -705,7 +705,6 @@ aside .active:hover {
 /* ================ recordings-view ============ */
 /* ============================================= */
 .recordings-view {
-  flex: 1;
   min-height: 0;
   overflow-y: auto;
   max-width: 92ch;
@@ -739,28 +738,33 @@ aside .active:hover {
   gap: 1.5rem;
 }
 
-.recording-card .card-top-row {
+.recording-card .card-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
 }
 
-.card-title-area {
+.recording-card .card-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 1rem;
   cursor: pointer;
 }
 
-.recording-title {
+.recording-card .card-left .card-metadata {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.recording-card .title {
   font-weight: 600;
   font-size: 1.1rem;
 }
 
-.card-metadata {
+.recording-card .details {
   color: var(--text-muted);
   font-size: 0.85rem;
-  margin-top: 4px;
 }
 
 .player-panel {
@@ -824,7 +828,7 @@ aside .active:hover {
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 1rem 0;
+  padding: 1rem;
 }
 
 .toggle-group {

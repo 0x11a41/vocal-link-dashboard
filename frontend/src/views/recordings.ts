@@ -14,19 +14,23 @@ export function RecordingsView(): HTMLElement {
         </header>
 
         <section class="recording-card">
-            <div class="card-top-row">
-                <div class="card-title-area">
+            <div class="card-header">
+                <span class="card-left">
                     <input type="checkbox">
-                    <div>
+                    <div class="card-metadata">
+                        <div class="title">quarterly_review_march.m4a</div>
+                        <div class="details">Hari • 03:45 • March 5, 2026</div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                            <span class="recording-title">quarterly_review_march.m4a</span>
                             <span class="badge badge-green">ENHANCED</span>
                             <span class="badge badge-violet">TRANSCRIBED</span>
                         </div>
-                        <div class="card-metadata">Hari • 03:45 • March 5, 2026</div>
                     </div>
-                </div>
-                <button class="immutable">Delete</button>
+                </span>
+
+                <span class="card-right">
+                    <button>Download</button>
+                    <button class="immutable">Delete</button>
+                </span>
             </div>
 
             <div class="expandable">
@@ -69,7 +73,7 @@ export function RecordingsView(): HTMLElement {
 												</label>
                         <span class="muted">studio effect</span>
                     </div>
-                    <button class="btn-enhance btn-small">ENHANCE AUDIO</button>
+                    <button class="btn-enhance btn-small">ENHANCE</button>
                 </div>
 
                 <div class="transcription-section">
