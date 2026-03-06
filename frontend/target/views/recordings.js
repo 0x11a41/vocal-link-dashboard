@@ -28,8 +28,9 @@ export function RecordingsView() {
                 </span>
 
                 <span class="card-right">
-                    <button>Download</button>
                     <button class="immutable">Delete</button>
+                    <button>Listen</button>
+                    <button>Save</button>
                 </span>
             </div>
 
@@ -47,7 +48,7 @@ export function RecordingsView() {
                             <div class="progress-fill"></div>
                         </div>
                         <span class="time-stamp">03:45</span>
-                        <button class="btn-small">DOWNLOAD</button>
+                        <button class="btn-small">SAVE</button>
                     </div>
                 </div>
 
@@ -80,7 +81,7 @@ export function RecordingsView() {
                     <div class="transcription-header">
                         <span>Transcription</span>
                         <span>
-	                        <button class="btn-small">DOWNLOAD SRT</button>
+	                        <button class="btn-small">SAVE SRT</button>
 	                        <button class="btn-small">COPY</button>
                         </span>
                     </div>
