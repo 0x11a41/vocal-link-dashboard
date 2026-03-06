@@ -18,8 +18,8 @@ export function RecordingsView() {
                 <span class="card-left">
                     <input type="checkbox">
                     <div class="card-metadata">
-                        <div class="title">quarterly_review_march.m4a</div>
-                        <div class="details">Hari • 03:45 • March 5, 2026</div>
+                        <div class="title">AUD0332-UUIDA53-CE0603026.m4a</div>
+                        <div class="details">Calcifer • Motorola moto g84 5g • Recorded at 03:12 • <span class="link">More info</span></div>
                         <div style="display: flex; align-items: center; gap: 8px;">
                             <span class="badge badge-green">ENHANCED</span>
                             <span class="badge badge-violet">TRANSCRIBED</span>
@@ -28,13 +28,24 @@ export function RecordingsView() {
                 </span>
 
                 <span class="card-right">
+                    <button>↓</button>
                     <button class="immutable">Delete</button>
-                    <button>Listen</button>
                     <button>Save</button>
                 </span>
             </div>
-
+            <div class="metadata open">
+                <div class="detail-row"><span>File Name:</span> AUD0332-UUIDA53-CE0603026.m4a</div>
+                <div class="detail-row"><span>Size:</span> 23 MB</div>
+                <div class="detail-row"><span>Device:</span> Motorola moto g84 5g</div>
+                <div class="detail-row"><span>Duration:</span> 03:23 sec</div>
+                <div class="detail-row"><span>Created at:</span> 19:03</div>
+                <div class="detail-row"><span>Speaker:</span> Calcifer</div>
+                <div class="detail-row"><span>Transcripted:</span> yes</div>
+                <div class="detail-row"><span>Enhanced:</span> yes</div>
+                <div class="detail-row"><span>Uploaded:</span> yes</div>
+            </div>
             <div class="expandable">
+
                 <div class="player-panel">
                     <div class="player-toggle-group">
                         <button class="active btn-small">ORIGINAL</button>

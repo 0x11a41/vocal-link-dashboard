@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Union, List
 
 
-VERSION = "v0.74-alpha"
+VERSION = "v0.80-alpha"
 
 PORT = 6210
 BROADCAST = "all"
@@ -57,9 +57,9 @@ class WSEvents(str, Enum): # these are facts that should be notified
     RESUMED = "resumed" # session[WSEventTarget]::server::dashboard
     DROPPED = "dropped" # server[WSEventTarget]::dashboard
 
-    FILE_STAGE = "file_stage" # session[FileStageInfo]::server[FileMetaData]::dashboard
-    FILE_STAGED = "file_staged" # server[FileId]::session
-    FILE_UPDATE = "file_update" # server[FileMetadata]::dashboard
+    REC_STAGE = "rec_stage" # session[RecStageInfo]::server[recMetaData]::dashboard
+    REC_STAGED = "rec_staged" # server[RecId]::session
+    REC_AMEND = "rec_amend" # server[RecMetadata]::dashboard
 
 
 class WSActions(str, Enum): # these are intents of session or dashboard
@@ -76,7 +76,7 @@ class WSActions(str, Enum): # these are intents of session or dashboard
     RESUME_ALL = "resume_all"
     CANCEL_ALL = "cancel_all"
 
-    FILE_RENAME = "file_rename"
+    REC_RENAME = "rec_rename" # TODO
 
 
 class WSClockSync(str, Enum): # sync channel
@@ -119,35 +119,32 @@ class StateReport(BaseModel): # session -> server -> dashboard
     duration: int = 0 # in seconds
 
 
-class FileStatus(str, Enum):
-    UPLOADING = "uploading"
-    PROCESSING = "processing"
-    READY = "ready"
-    FAILED = "failed"
+class RecId(BaseModel):
+    fid: str
 
-class FileStageInfo(BaseModel):
+class RecStageInfo(BaseModel):
     sessionId: str
-    fileName: str
+    recName: str
     duration: int
     sizeBytes: int
 
-
-class FileMetadata(BaseModel):
+class RecStates(str, Enum):
+    OK = "ok"
+    PROCESSING = "processing"
+    EMPTY = "empty"
+    
+class RecMetadata(BaseModel):
     fid: str 
-    fileName: str #
+    recName: str #
     sessionId: str
-    senderName: str
+    speaker: str
     device: str
     duration: int | float
     sizeBytes: int
     createdAt: int
-    status: FileStatus #
-    transcriptPath: Optional[str] = None #
-    enhancedPath: Optional[str] = None #
-
-
-class FileId(BaseModel):
-    id: str
+    transcript: RecStates = RecStates.EMPTY #
+    enhanced: RecStates = RecStates.EMPTY #
+    original: RecStates = RecStates.EMPTY #
 
 
 class WSPayload(BaseModel):
@@ -162,9 +159,8 @@ class WSPayload(BaseModel):
         ClockSyncTik,
         ClockSyncTok,
         ClockSyncReport,
-        FileMetadata,
-        FileStageInfo,
-        FileId,
+        RecMetadata,
+        RecStageInfo,
     ]] = None
 
 
