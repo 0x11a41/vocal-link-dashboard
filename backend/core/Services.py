@@ -1,7 +1,7 @@
 from typing import List
-import backend.primitives as P
-from backend.DashboardHandler import DashboardHandler
-from backend.RecordingsHandler import RecordingsHandler
+import backend.core.primitives as P
+from backend.handlers.DashboardHandler import DashboardHandler
+from backend.handlers.RecordingsHandler import RecordingsHandler
 
 class Services:
     def __init__(self, dashboard: DashboardHandler, recordings: RecordingsHandler):

@@ -12,10 +12,10 @@ import qrcode
 import io
 import os
 
-from backend.AppState import AppState, send_error
-import backend.primitives as P
-from backend.logging import log
-from backend.RecordingsHandler import RecordingTypes
+from backend.handlers.AppState import AppState, send_error
+import backend.core.primitives as P
+from backend.utils.logging import log
+from backend.handlers.RecordingsHandler import RecordingTypes
 
 
 app = AppState() # source of truth

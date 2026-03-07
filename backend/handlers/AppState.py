@@ -4,13 +4,13 @@ from fastapi import WebSocket
 from pydantic import ValidationError
 from zeroconf.asyncio import AsyncZeroconf, AsyncServiceInfo
 
-from backend.utils import get_local_ip, get_random_name, now_ms
-import backend.primitives as P
-from backend.logging import log
-from backend.DashboardHandler import DashboardHandler
-from backend.SessionsHandler import SessionsHandler
-from backend.RecordingsHandler import RecordingsHandler
-from backend.Services import Services
+from backend.utils.utils import get_local_ip, get_random_name, now_ms
+import backend.core.primitives as P
+from backend.utils.logging import log
+from backend.handlers.DashboardHandler import DashboardHandler
+from backend.handlers.SessionsHandler import SessionsHandler
+from backend.handlers.RecordingsHandler import RecordingsHandler
+from backend.core.Services import Services
 
 
 ACTION_MAP = {

@@ -35,7 +35,7 @@ pkgs.mkShell {
     python3Packages.psutil
     python3Packages.noisereduce
     python3Packages.numpy
-    python3Packages.scipy
+    python3Packages.python-multipart
   ];
 
   shellHook = ''

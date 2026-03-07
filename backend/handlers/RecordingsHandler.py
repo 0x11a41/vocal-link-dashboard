@@ -6,10 +6,10 @@ import uuid
 import json
 from fastapi import UploadFile
 
-import backend.primitives as P
-from backend.logging import log
-from backend.utils import now_ms
-from backend.audioToolkit import AudioToolkit
+import backend.core.primitives as P
+from backend.utils.logging import log
+from backend.utils.utils import now_ms
+from backend.utils.audioToolkit import AudioToolkit
 
 NotifyCallback = Callable[[P.WSPayload], None]
 ALLOWED_EXTENSIONS = {".m4a", ".mp4", ".ogg"}

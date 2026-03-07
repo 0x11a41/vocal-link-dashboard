@@ -1,8 +1,8 @@
 from typing import Optional 
 from fastapi import WebSocket
 import asyncio
-import backend.primitives as P
-from backend.logging import log
+import backend.core.primitives as P
+from backend.utils.logging import log
 
 
 class DashboardHandler:

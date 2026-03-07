@@ -58,7 +58,7 @@ class WSEvents(str, Enum): # these are facts that should be notified
     DROPPED = "dropped" # server[WSEventTarget]::dashboard
 
     REC_STAGE = "rec_stage" # session[RecStageInfo]::server[recMetaData]::dashboard
-    REC_STAGED = "rec_staged" # server[RecId]::session
+    REC_STAGED = "rec_staged" # server[RecMetadata]::session
     REC_AMEND = "rec_amend" # server[RecMetadata]::dashboard
 
 
@@ -118,9 +118,6 @@ class StateReport(BaseModel): # session -> server -> dashboard
     state: SessionStates
     duration: int = 0 # in seconds
 
-
-class RecId(BaseModel):
-    rid: str
 
 class RecStageInfo(BaseModel):
     sessionId: str

@@ -11,7 +11,7 @@ def get_local_ip() -> str:
         s.close()
     return ip
 
-def get_random_name(file_path="backend/server_names.txt") -> str:
+def get_random_name(file_path="backend/utils/server_names.txt") -> str:
     with open(file_path, "r", encoding="utf-8") as f:
         names = [line.strip() for line in f if line.strip()]
     if not names:

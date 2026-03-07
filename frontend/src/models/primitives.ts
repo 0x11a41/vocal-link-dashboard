@@ -2,12 +2,15 @@
 // ================ NETWORKING ================
 // ============================================
 
+export const VERSION = "v0.81-alpha";
+export const PORT = 6210;
 export const BROADCAST = "all";
 
 export enum WSKind {
   ACTION = "action",
   EVENT = "event",
   ERROR = "error",
+  SYNC = "sync",
 }
 
 export enum WSErrors {
@@ -33,6 +36,10 @@ export enum WSEvents {
   PAUSED = "paused",
   RESUMED = "resumed",
   DROPPED = "dropped",
+  // Recording events
+  REC_STAGE = "rec_stage",
+  REC_STAGED = "rec_staged",
+  REC_AMEND = "rec_amend",
 }
 
 export enum WSActions {
@@ -48,6 +55,13 @@ export enum WSActions {
   PAUSE_ALL = "pause_all",
   RESUME_ALL = "resume_all",
   CANCEL_ALL = "cancel_all",
+  REC_RENAME = "rec_rename",
+}
+
+export enum WSClockSync {
+  TIK = "tik",
+  TOK = "tok",
+  SYNC_REPORT = "sync_report",
 }
 
 export enum SessionStates {
@@ -56,119 +70,157 @@ export enum SessionStates {
   PAUSED = "paused",
 }
 
-
-// ============================================
-// ================ REST TYPES ================
-// ============================================
-
-export enum RESTEvents {
-}
-
-
 // ============================================
 // ================ DATA MODELS ===============
 // ============================================
 
 export interface SessionMetadata {
-  id: string
-  name: string
-  ip: string
-  battery?: number | null
-  device: string
-  lastRTT?: number | null
-  theta?: number | null
-  lastSync?: number | null
+  id: string;
+  name: string;
+  ip: string;
+  battery?: number | null;
+  device: string;
+  lastRTT?: number | null;
+  theta?: number | null;
+  lastSync?: number | null;
 }
 
 export interface ServerInfo {
-  name: string
-  ip: string
-  version: string
-  activeSessions: number
+  name: string;
+  ip: string;
+  version: string;
+  activeSessions: number;
 }
 
+export enum RecStates {
+  OK = "ok",
+  NA = "na",
+  WORKING = "working",
+}
+
+export interface RecMetadata {
+  rid: string;
+  recName: string;
+  sessionId: string;
+  speaker: string;
+  device: string;
+  duration: number;
+  sizeBytes: number;
+  createdAt: number;
+  original: RecStates;
+  enhanced: RecStates;
+  transcript: RecStates;
+  merged?: string[] | null;
+}
 
 // ============================================
 // ================ PAYLOAD BODIES ============
 // ============================================
 
 export interface Rename {
-  name: string
+  name: string;
 }
 
 export interface WSActionTarget {
-  id: string
-  triggerTime?: number | null
+  id: string;
+  triggerTime?: number | null;
 }
 
 export interface WSEventTarget {
-  id: string
+  id: string;
 }
 
 export interface StateReport {
-  id: string
-  state: SessionStates
-  duration: number
+  id: string;
+  state: SessionStates;
+  duration: number;
 }
 
+export interface ClockSyncTik {
+  t1: number;
+}
+
+export interface ClockSyncTok {
+  t1: number;
+  t2: number;
+  t3: number;
+}
+
+export interface ClockSyncReport {
+  theta: number;
+  rtt: number;
+}
+
+export interface RecStageInfo {
+  sessionId: string;
+  recName: string;
+  duration: number;
+  sizeBytes: number;
+}
 
 // ============================================
 // ================ PAYLOAD UNION =============
 // ============================================
 
 export type WSBodyTypes =
-  | SessionMetadata
-  | WSActionTarget
   | WSEventTarget
   | StateReport
+  | SessionMetadata
+  | WSActionTarget
   | Rename
-  | null
+  | ClockSyncTik
+  | ClockSyncTok
+  | ClockSyncReport
+  | RecMetadata
+  | RecStageInfo
+  | null;
 
-export type WSMsgTypes =
-  | WSActions
-  | WSEvents
-  | WSErrors
-
+export type WSMsgTypes = WSActions | WSEvents | WSClockSync | WSErrors;
 
 export interface WSPayload {
-  kind: WSKind
-  msgType: WSMsgTypes
-  body?: WSBodyTypes
+  kind: WSKind;
+  msgType: WSMsgTypes;
+  body?: WSBodyTypes;
 }
 
+// ============================================
+// ============ HELPERS & UTILS ===============
+// ============================================
+
+export const EnhanceProps = {
+  AMPLIFY: 1,
+  REDUCE_NOISE: 2,
+  STUDIO_FILTER: 4,
+} as const;
+
+export interface QRData {
+  type: "vocal_link_server";
+  name: string;
+  ip: string;
+  port: number;
+}
 
 // ============================================
 // ============== PAYLOAD BUILDERS ============
 // ============================================
 
 export const Payloads = {
-
-  action: (
-    type: WSActions,
-    id: string,
-    triggerTime?: number
-  ): WSPayload => ({
+  action: (type: WSActions, id: string, triggerTime?: number): WSPayload => ({
     kind: WSKind.ACTION,
     msgType: type,
-    body: {
-      id,
-      triggerTime: triggerTime ?? null
-    }
+    body: { id, triggerTime: triggerTime ?? null } as WSActionTarget,
   }),
 
-  event: (
-    type: WSEvents,
-    body: WSBodyTypes = null
-  ): WSPayload => ({
+  event: (type: WSEvents, body: WSBodyTypes = null): WSPayload => ({
     kind: WSKind.EVENT,
     msgType: type,
-    body
+    body,
   }),
 
-  rename: (newName: string): WSPayload => ({
-    kind: WSKind.EVENT,
-    msgType: WSEvents.DASHBOARD_RENAME,
-    body: { name: newName }
+  sync: (type: WSClockSync, body: WSBodyTypes): WSPayload => ({
+    kind: WSKind.SYNC,
+    msgType: type,
+    body,
   }),
 
   error: (type: WSErrors): WSPayload => ({
@@ -176,8 +228,7 @@ export const Payloads = {
     msgType: type,
     body: null,
   }),
-}
-
+};
 
 // =============================================
 // ==================== UI =====================
@@ -186,5 +237,5 @@ export const Payloads = {
 export enum Views {
   DASHBOARD = "dashboard",
   RECORDINGS = "recordings",
-  SETTINGS = "settings"
+  SETTINGS = "settings",
 }

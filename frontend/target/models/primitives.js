@@ -1,9 +1,12 @@
+export const VERSION = "v0.81-alpha";
+export const PORT = 6210;
 export const BROADCAST = "all";
 export var WSKind;
 (function (WSKind) {
     WSKind["ACTION"] = "action";
     WSKind["EVENT"] = "event";
     WSKind["ERROR"] = "error";
+    WSKind["SYNC"] = "sync";
 })(WSKind || (WSKind = {}));
 export var WSErrors;
 (function (WSErrors) {
@@ -29,6 +32,9 @@ export var WSEvents;
     WSEvents["PAUSED"] = "paused";
     WSEvents["RESUMED"] = "resumed";
     WSEvents["DROPPED"] = "dropped";
+    WSEvents["REC_STAGE"] = "rec_stage";
+    WSEvents["REC_STAGED"] = "rec_staged";
+    WSEvents["REC_AMEND"] = "rec_amend";
 })(WSEvents || (WSEvents = {}));
 export var WSActions;
 (function (WSActions) {
@@ -44,34 +50,46 @@ export var WSActions;
     WSActions["PAUSE_ALL"] = "pause_all";
     WSActions["RESUME_ALL"] = "resume_all";
     WSActions["CANCEL_ALL"] = "cancel_all";
+    WSActions["REC_RENAME"] = "rec_rename";
 })(WSActions || (WSActions = {}));
+export var WSClockSync;
+(function (WSClockSync) {
+    WSClockSync["TIK"] = "tik";
+    WSClockSync["TOK"] = "tok";
+    WSClockSync["SYNC_REPORT"] = "sync_report";
+})(WSClockSync || (WSClockSync = {}));
 export var SessionStates;
 (function (SessionStates) {
     SessionStates["STOPPED"] = "stopped";
     SessionStates["RUNNING"] = "running";
     SessionStates["PAUSED"] = "paused";
 })(SessionStates || (SessionStates = {}));
-export var RESTEvents;
-(function (RESTEvents) {
-})(RESTEvents || (RESTEvents = {}));
+export var RecStates;
+(function (RecStates) {
+    RecStates["OK"] = "ok";
+    RecStates["NA"] = "na";
+    RecStates["WORKING"] = "working";
+})(RecStates || (RecStates = {}));
+export const EnhanceProps = {
+    AMPLIFY: 1,
+    REDUCE_NOISE: 2,
+    STUDIO_FILTER: 4,
+};
 export const Payloads = {
     action: (type, id, triggerTime) => ({
         kind: WSKind.ACTION,
         msgType: type,
-        body: {
-            id,
-            triggerTime: triggerTime ?? null
-        }
+        body: { id, triggerTime: triggerTime ?? null },
     }),
     event: (type, body = null) => ({
         kind: WSKind.EVENT,
         msgType: type,
-        body
+        body,
     }),
-    rename: (newName) => ({
-        kind: WSKind.EVENT,
-        msgType: WSEvents.DASHBOARD_RENAME,
-        body: { name: newName }
+    sync: (type, body) => ({
+        kind: WSKind.SYNC,
+        msgType: type,
+        body,
     }),
     error: (type) => ({
         kind: WSKind.ERROR,

@@ -6,8 +6,8 @@ from pydub.effects import high_pass_filter
 import noisereduce as nr
 from faster_whisper import WhisperModel
 
-import backend.primitives as P
-from backend.logging import log
+import backend.core.primitives as P
+from backend.utils.logging import log
 
 class AudioToolkit:
     SUPPORTED_FORMATS = {
