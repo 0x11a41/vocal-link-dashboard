@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Union, List
 
 
-VERSION = "v0.80-alpha"
+VERSION = "v0.81-alpha"
 
 PORT = 6210
 BROADCAST = "all"
@@ -120,7 +120,7 @@ class StateReport(BaseModel): # session -> server -> dashboard
 
 
 class RecId(BaseModel):
-    fid: str
+    rid: str
 
 class RecStageInfo(BaseModel):
     sessionId: str
@@ -130,11 +130,11 @@ class RecStageInfo(BaseModel):
 
 class RecStates(str, Enum):
     OK = "ok"
-    PROCESSING = "processing"
-    EMPTY = "empty"
+    NA = "na"
+    WORKING = "working"
     
 class RecMetadata(BaseModel):
-    fid: str 
+    rid: str 
     recName: str #
     sessionId: str
     speaker: str
@@ -142,9 +142,10 @@ class RecMetadata(BaseModel):
     duration: int | float
     sizeBytes: int
     createdAt: int
-    transcript: RecStates = RecStates.EMPTY #
-    enhanced: RecStates = RecStates.EMPTY #
-    original: RecStates = RecStates.EMPTY #
+    original: RecStates = RecStates.NA #
+    enhanced: RecStates = RecStates.NA #
+    transcript: RecStates = RecStates.NA #
+    merged: Optional[List[str]] = None
 
 
 class WSPayload(BaseModel):
@@ -178,10 +179,17 @@ class TranscriptSegment(BaseModel):
     text: str
 
 class TranscriptResult(BaseModel):
-    fid: str
+    rid: str
     language: str
     duration: float
     segments: List[TranscriptSegment]
 
 class MergeRequest(BaseModel):
-    fids: List[str]
+    rids: List[str]
+
+
+class EnhanceProps:
+    AMPLIFY: int = 1
+    REDUCE_NOISE: int = 2
+    STUDIO_FILTER: int = 4
+    

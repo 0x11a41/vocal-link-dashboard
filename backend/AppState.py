@@ -10,6 +10,7 @@ from backend.logging import log
 from backend.DashboardHandler import DashboardHandler
 from backend.SessionsHandler import SessionsHandler
 from backend.RecordingsHandler import RecordingsHandler
+from backend.Services import Services
 
 
 ACTION_MAP = {
@@ -37,6 +38,10 @@ class AppState:
         self.dashboard: DashboardHandler = DashboardHandler()
         self.sessions: SessionsHandler = SessionsHandler()
         self.recordings: RecordingsHandler = RecordingsHandler()
+
+        # a service will run as a background thread and notifies the
+        # session or dashboard on task completion.
+        self.services: Services = Services(self.dashboard, self.recordings)
 
         self.mdns: Optional[AsyncZeroconf] = None
         self.mdns_conf: Optional[AsyncServiceInfo] = None
@@ -130,7 +135,6 @@ class AppState:
         if self.mdns_conf:
             await self.mdns.async_unregister_service(self.mdns_conf)
         await self.mdns.async_close()
-
 
 
     async def handle_events(self, payload: P.WSPayload, ws: WebSocket):
@@ -235,6 +239,30 @@ class AppState:
                 await send_error(ws, P.WSErrors.INVALID_BODY)
                 return
             await self.dashboard.notify(payload)
+
+
+        elif event_type == P.WSEvents.REC_STAGE:
+            try:
+                stageInfo = P.RecStageInfo.model_validate(payload.body)
+            except ValidationError:
+                await send_error(ws, P.WSErrors.INVALID_BODY)
+                return
+            
+            meta = await self.sessions.getMetaFromActive(stageInfo.sessionId)
+            if not meta:
+                return
+            recMeta = await self.recordings.stage(stageInfo, meta)
+
+            if not recMeta:
+                return
+            payload = P.WSPayload(
+                                  kind = P.WSKind.EVENT,
+                                  msgType = P.WSEvents.REC_STAGED,
+                                  body = recMeta
+                              )
+
+            self.sessions.send_to_one(recMeta.sessionId, payload)
+            self.dashboard.notify(payload)
 
 
         else:

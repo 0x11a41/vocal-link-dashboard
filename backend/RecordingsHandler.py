@@ -1,4 +1,5 @@
-from typing import Dict, List, Optional, Callable
+from typing import Dict, List, Optional, Callable 
+from enum import Enum
 import asyncio
 import os
 import uuid
@@ -11,15 +12,19 @@ from backend.utils import now_ms
 from backend.audioToolkit import AudioToolkit
 
 NotifyCallback = Callable[[P.WSPayload], None]
-ALLOWED_EXTENSIONS = {".m4a", ".mp4", ".ogg", ".wav"}
+ALLOWED_EXTENSIONS = {".m4a", ".mp4", ".ogg"}
+
+class RecordingTypes(Enum):
+    ORIGINAL = 'original'
+    ENHANCED = 'enhanced'
+    TRANSCRIPT = 'transcript'
 
 class RecordingsHandler:
     def __init__(self, root: str = "storage"):    
-        self._files: Dict[str, P.FileMetadata] = {}
+        self._recordings: Dict[str, P.RecMetadata] = {}
         self._lock = asyncio.Lock()
 
-        self.audio = AudioToolkit()
-
+        self._audio = AudioToolkit()
         self.root: str = root
 
         self.original_dir: str = os.path.join(root, "original")
@@ -30,58 +35,74 @@ class RecordingsHandler:
         os.makedirs(self.enhanced_dir, exist_ok=True)
         os.makedirs(self.transcripts_dir, exist_ok=True)
 
-    def _get_ext(self, fileName: str) -> str:
-        _, ext = os.path.splitext(fileName or "")
+    def _get_ext(self, recName: str) -> str:
+        _, ext = os.path.splitext(recName or "")
         if ext not in ALLOWED_EXTENSIONS:
-            raise ValueError(f"Unsupported file extension: {ext}")
+            raise ValueError(f"Unsupported rec extension: {ext}")
         return ext
 
-    def _original_path(self, fileId: str, fileName: str) -> str:
-        ext = self._get_ext(fileName)
-        return os.path.join(self.original_dir, f"{fileId}{ext}")
+    def _original_path(self, meta: P.RecMetadata) -> str:
+        ext = self._get_ext(meta.recName)
+        return os.path.join(self.original_dir, f"{meta.rid}{ext}")
 
-    def _enhanced_path(self, fileId: str) -> str:
-        return os.path.join(self.enhanced_dir, f"{fileId}.wav")
+    def _enhanced_path(self, meta: P.RecMetadata) -> str:
+        ext = self._get_ext(meta.recName)
+        return os.path.join(self.enhanced_dir, f"{meta.rid}{ext}")
 
-    def _transcript_path(self, fileId: str) -> str:
-        return os.path.join(self.transcripts_dir, f"{fileId}.json")
+    def _transcript_path(self, meta: P.RecMetadata) -> str:
+        return os.path.join(self.transcripts_dir, f"{meta.rid}.json")
+
+    async def set_original(self, rid: str, state: P.RecStates):
+        async with self._lock:
+            meta = self._recordings.get(rid)
+            if meta:
+                meta.original = state
+
+    async def set_transcript(self, rid: str, state: P.RecStates):
+        async with self._lock:
+            meta = self._recordings.get(rid)
+            if meta:
+                meta.transcript = state
+
+    async def set_enhanced(self, rid: str, state: P.RecStates):
+        async with self._lock:
+            meta = self._recordings.get(rid)
+            if meta:
+                meta.enhanced = state
 
 
-    async def stage(self, info: P.FileStageInfo, session: P.SessionMetadata ) -> Optional[P.FileId]:
-        fmeta = P.FileMetadata(
-            fid=str(uuid.uuid4()),
-            fileName=info.fileName,
+    async def stage(self, info: P.RecStageInfo, session: P.SessionMetadata ) -> Optional[P.RecMetadata]:
+        meta = P.RecMetadata(
+            rid=str(uuid.uuid4()),
+            recName=info.recName,
             sessionId=session.id,
-            senderName=session.name,
+            speaker=session.name,
             device=session.device,
             duration=info.duration,
             sizeBytes=info.sizeBytes,
             createdAt=now_ms(),
-            status=P.FileStatus.UPLOADING,
+            original = P.RecStates.WORKING
         )
-
         async with self._lock:
-            self._files[fmeta.fid] = fmeta
+            self._recordings[meta.rid] = meta
+        return meta
 
-        return P.FileId(id=fmeta.fid)
 
-
-    async def save(self, fid: str, file: UploadFile) -> Optional[P.FileMetadata]:
+    async def save(self, rid: str, file: UploadFile) -> Optional[P.RecMetadata]:
         async with self._lock:
-            meta = self._files.get(fid)
+            meta = self._recordings.get(rid)
             if not meta:
                 return None
 
-            if meta.status != P.FileStatus.UPLOADING:
-                return None
+        if meta.original != P.RecStates.WORKING:
+            return None
 
         try:
-            final_path = self._original_path(fid, meta.fileName)
-            temp_path = final_path + ".tmp"
+            path = self._original_path(meta)
+            temp_path = path + ".tmp"
         except ValueError as e:
-            log.error(f"Invalid extension for {fid}: {e}")
-            async with self._lock:
-                meta.status = P.FileStatus.FAILED
+            log.error(f"Invalid extension for {rid}: {e}")
+            self.set_original(rid, P.RecStates.NA)
             return meta
 
         try:
@@ -92,17 +113,16 @@ class RecordingsHandler:
                         break
                     buffer.write(chunk)
 
-            os.replace(temp_path, final_path)
-            size = os.path.getsize(final_path)
+            os.replace(temp_path, path)
+            size = os.path.getsize(path)
 
             async with self._lock:
                 meta.sizeBytes = size
-                meta.status = P.FileStatus.READY
+                meta.original = P.RecStates.OK
 
             return meta
-
         except Exception as e:
-            log.error(f"File save failed for {fid}: {e}")
+            log.error(f"File save failed for {rid}: {e}")
             if os.path.exists(temp_path):
                 try:
                     os.remove(temp_path)
@@ -110,160 +130,239 @@ class RecordingsHandler:
                     pass
 
             async with self._lock:
-                if fid in self._files:
-                    meta.status = P.FileStatus.FAILED
-
+                if rid in self._recordings:
+                    meta.original = P.RecStates.NA
             return meta
 
         finally:
             await file.close()
 
 
-    async def transcribe(self, fid: str) -> Optional[P.FileMetadata]:
+    async def _transcribe(self, rid: str) -> Optional[P.RecMetadata]:
         async with self._lock:
-            meta = self._files.get(fid)
+            meta = self._recordings.get(rid)
             if not meta:
                 return None
-            if meta.status != P.FileStatus.PROCESSING:
+            if meta.transcript != P.RecStates.WORKING:
                 return None
 
-        src_path = self._original_path(fid, meta.fileName)
+        original = self._original_path(meta)
 
-        if not os.path.exists(src_path):
+        if not os.path.exists(original):
             async with self._lock:
-                meta.status = P.FileStatus.FAILED
+                meta.transcript = P.RecStates.NA
                 return meta.model_copy()
 
         try:
             transcript_result: P.TranscriptResult = await asyncio.to_thread(
-                self.audio.transcribe,
-                src_path,
-                fid
+                self._audio.transcribe,
+                original,
+                rid
             )
 
-            transcript_path = self._transcript_path(fid)
+            transcript_path = self._transcript_path(meta)
 
             with open(transcript_path, "w", encoding="utf-8") as f:
                 f.write(transcript_result.model_dump_json(indent=2))
 
             async with self._lock:
-                meta.transcriptPath = transcript_path
-                meta.status = P.FileStatus.READY
+                meta.transcript = P.RecStates.OK
                 return meta.model_copy()
 
         except Exception as e:
-            log.error(f"Transcription failed for {fid}: {e}")
+            log.error(f"Transcription failed for {rid}: {e}")
             async with self._lock:
-                meta.status = P.FileStatus.FAILED
+                meta.transcript = P.RecStates.NA
                 return meta.model_copy()
 
 
-    def resolve_transcript(self, fid: str) -> Optional[P.TranscriptResult]:
-        path = self._transcript_path(fid)
+    def resolve_transcript(self, rid: str) -> Optional[P.TranscriptResult]:
+        meta = self._recordings.get(rid)
+        if not meta:
+            return None
+
+        path = self._transcript_path(meta)
         if not os.path.exists(path):
             return None
 
         try:
             with open(path, "r", encoding="utf-8") as tf:
                 data = json.load(tf)
-
-            return P.TranscriptResult.model_validate(data)
-
         except Exception as e:
-            log.error(f"Failed to load transcript for {fid}: {e}")
+            log.error(f"Failed to load transcript for {rid}: {e}")
             return None
 
+        return P.TranscriptResult.model_validate(data)
 
-    async def merge(self, fids: List[str]) -> Optional[P.FileMetadata]:
-        if not fids:
+
+    async def _merge(self, ids: List[str]) -> Optional[P.RecMetadata]:
+        if not ids:
             return None
 
         async with self._lock:
-            source_metas = []
-            for fid in fids:
-                meta = self._files.get(fid)
-                if not meta or meta.status != P.FileStatus.READY:
+            metas = []
+            for id in ids:
+                meta = self._recordings.get(id)
+                if not meta or meta.original != P.RecStates.OK:
                     return None
-                source_metas.append(meta)
+                metas.append(meta)
 
-            merged_fid = str(uuid.uuid4())
+            new_id = str(uuid.uuid4())
+            ext = self._get_ext(metas[0].recName)
 
-            merged_meta = P.FileMetadata(
-                fid=merged_fid,
-                fileName=f"{merged_fid}.wav",
-                sessionId=source_metas[0].sessionId,
-                senderName="system",
-                device="server",
-                duration=0,
-                sizeBytes=0,
-                createdAt=now_ms(),
-                status=P.FileStatus.PROCESSING,
+            merged_meta = P.RecMetadata(
+                rid = new_id,
+                recName = f'{new_id}{ext}',
+                sessionId = "0",
+                speaker = "many",
+                device = "many",
+                duration = 0,
+                sizeBytes = 0,
+                createdAt = now_ms(),
             )
 
-            self._files[merged_fid] = merged_meta
+            self._recordings[new_id] = merged_meta
 
         try:
-            input_paths = [
-                self._original_path(meta.fid, meta.fileName)
-                for meta in source_metas
-            ]
-
-            output_path = self._original_path(merged_fid, merged_meta.fileName)
-
             duration, size = await asyncio.to_thread(
-                self.audio.merge,
-                input_paths,
-                output_path,
-                "overlay"
+                self._audio.merge,
+                [self._original_path(meta) for meta in metas],
+                self._original_path(merged_meta),
             )
 
             async with self._lock:
                 merged_meta.duration = duration
                 merged_meta.sizeBytes = size
-                merged_meta.status = P.FileStatus.READY
+                merged_meta.merged = ids
+                merged_meta.original = P.RecStates.OK
                 return merged_meta.model_copy()
 
         except Exception as e:
             log.error(f"Merge failed: {e}")
             async with self._lock:
-                merged_meta.status = P.FileStatus.FAILED
+                merged_meta.merged = None
                 return merged_meta.model_copy()
 
 
-    async def exist(self, fid: str) -> bool:
+    async def _enhance(self, rid: str, props: int) -> Optional[P.RecMetadata]:
         async with self._lock:
-            return fid in self._files
+            meta = self._recordings.get(rid)
+            if not meta:
+                return None
+            
+            original_path = self._original_path(meta)
+            if not os.path.exists(original_path):
+                return None
 
+            meta.enhanced = P.RecStates.WORKING
+            enhanced_path = self._enhanced_path(meta)
+
+        try:
+            await asyncio.to_thread(
+                self._audio.enhance,
+                original_path,
+                enhanced_path,
+                props
+            )
+
+            async with self._lock:
+                meta.enhanced = P.RecStates.OK
+                return meta.model_copy()
+
+        except Exception as e:
+            log.error(f"Enhancement failed for {rid}: {e}")
+            async with self._lock:
+                meta.enhanced = P.RecStates.NA
+                return meta.model_copy()
+
+
+    def _delete_file_safely(self, path: str):
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception as e:
+            log.error(f"Failed to delete file at {path}: {e}")
+
+
+    async def delete(self, rid: str) -> bool:
+        async with self._lock:
+            meta = self._recordings.get(rid)
+            if not meta:
+                return False
+
+            files_to_remove = [
+                self._original_path(meta),
+                self._enhanced_path(meta),
+                self._transcript_path(meta)
+            ]
+
+            for path in files_to_remove:
+                self._delete_file_safely(path)
+
+            del self._recordings[rid]
+            
+        log.info(f"Deleted all records and files for RID: {rid}")
+        return True
+
+
+    async def exist(self, rid: str) -> bool:
+        async with self._lock:
+            return rid in self._recordings
+
+
+    async def is_enhanced(self, rid: str) -> bool:
+        async with self._lock:
+            meta = self._recordings.get(rid)
+        if not meta:
+            return False
+        return meta.enhanced == P.RecStates.OK
     
-    async def get(self, fid: str) -> Optional[P.FileMetadata]:
+
+    async def is_uploaded(self, rid: str) -> bool:
         async with self._lock:
-            meta = self._files.get(fid)
-            return meta if meta else None
+            meta = self._recordings.get(rid)
+        if not meta:
+            return False
+        return meta.original == P.RecStates.OK
 
 
-    async def get_all(self) -> List[P.FileMetadata]:
+    async def is_transcribed(self, rid: str) -> bool:
         async with self._lock:
-            return [m.model_copy() for m in self._files.values()]
+            meta = self._recordings.get(rid)
+        if not meta:
+            return False
+        return meta.transcript == P.RecStates.OK
 
-        
-    async def set_status(self, fid: str, state: P.FileStatus):
+
+    async def is_merged(self, rid: str) -> bool:
         async with self._lock:
-            meta = self._files.get(fid)
-            if not meta:
-                return
-            meta.status = state
+            meta = self._recordings.get(rid)
+        if not meta:
+            return False
+        return True if meta.merged else False
 
 
-    async def status(self, fid: str):
+    async def path(self, rid: str, pathof: RecordingTypes) -> Optional[str]:
+        meta = self._recordings.get(rid)
+        if not meta:
+            return None
+
+        if pathof == RecordingTypes.ORIGINAL:
+            return self._original_path(meta)
+        elif pathof == RecordingTypes.ENHANCED:
+            return self._enhanced_path(meta)
+        elif pathof == RecordingTypes.TRANSCRIPT:
+            return self._transcript_path(meta)
+        else:
+            return None
+
+
+    async def get_meta(self, rid: str) -> Optional[P.RecMetadata]:
         async with self._lock:
-            meta = self._files.get(fid)
-            return meta.status if meta else None
+            meta = self._recordings.get(rid)
+        return meta if meta else None
 
 
-    async def set_transcript_path(self, fid: str):
+    async def get_all_metas(self) -> List[P.RecMetadata]:
         async with self._lock:
-            meta = self._files.get(fid)
-            if not meta:
-                return
-            meta.transcriptPath = self._transcript_path(fid)
-
+            return [m.model_copy() for m in self._recordings.values()]

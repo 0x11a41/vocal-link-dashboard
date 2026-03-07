@@ -4,3 +4,4 @@ __pycache__
 *.wav
 *.m4a
 logs
+storage

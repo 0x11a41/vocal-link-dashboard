@@ -799,7 +799,8 @@ aside .active:hover {
 }
 
 .recording-card .metadata.open {
-  max-height: 18ch;
+  max-height: 10ch;
+  overflow-y: auto;
   opacity: 1;
   transform: translateY(0);
 }

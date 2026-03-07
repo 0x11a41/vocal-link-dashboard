@@ -1,4 +1,5 @@
-from fastapi import FastAPI, WebSocket, HTTPException
+from fastapi import FastAPI, WebSocket, HTTPException, BackgroundTasks
+from fastapi import  UploadFile, File, Response, status, Query
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -10,11 +11,11 @@ import uuid
 import qrcode
 import io
 import os
-import asyncio
 
 from backend.AppState import AppState, send_error
 import backend.primitives as P
 from backend.logging import log
+from backend.RecordingsHandler import RecordingTypes
 
 
 app = AppState() # source of truth
@@ -110,52 +111,110 @@ async def get_server_qr():
     return StreamingResponse(buf, media_type="image/png")
 
 
-"""
-POST /files/upload/{fileId} - should be followed by a FILE_UPDATE before returning
-GET /files/original/{fileId}
-GET /files/enhanced/{fileId}
-GET /files - files metadata query
+@api.post("/recordings/{rid}")
+async def save_recording(rid: str, file: UploadFile = File(...)):
+    if not app.recordings.exist(rid):
+        raise HTTPException(status_code=404, detail="Recording ID not found")
 
-GET /files/{fileId}/stream
-<audio controls src="/files/{fileId}/stream"></audio>
+    updated_meta = await app.recordings.save(rid, file)
 
-DELETE /files/{fileId}
-"""
+    if not updated_meta or updated_meta.original != P.RecStates.OK:
+        raise HTTPException(status_code=500, detail="Audio storage failed")
 
-
-@api.post("/files/merge")
-async def start_merge(req: P.MergeRequest):
-    asyncio.create_task(merge_and_notify(req.fids))
-    return {"status": "started"}
+    await app.services.notify_amend(updated_meta)
+    return {"status": "ok", "rid": rid}
 
 
-@api.post("/files/{fid}/transcribe")
-async def start_transcription(fid: str):
-    if not await app.recordings.exist(fid) or await app.recordings.status(fid) != P.FileStatus.READY:
-        raise HTTPException(status_code=400)
+@api.get("/recordings/{rid}/original")
+async def get_recording(rid: str):
+    path = await app.recordings.path(rid, RecordingTypes.ORIGINAL)
+    if not path or not app.recordings.is_uploaded(rid):
+        raise HTTPException(status_code=404, detail="Recording ID not found")
 
-    await app.recordings.set_status(fid, P.FileStatus.PROCESSING)
-    await app.dashboard.notify(P.WSPayload(
-                                   kind = P.WSKind.EVENT,
-                                   msgType = P.WSEvents.FILE_UPDATE,
-                                   body = await app.recordings.get(fid)
-                               ))
+    filename = os.path.basename(path)
+    return FileResponse(
+        path=path,
+        media_type="audio/mpeg",
+        filename=filename
+    )
+    
 
-    asyncio.create_task(transcribe_and_notify(fid))
-    return {"status": "started"}
+@api.get("/recordings/{rid}/enhanced")
+async def get_enhanced_recording(rid: str):
+    path = await app.recordings.path(rid, RecordingTypes.ENHANCED)
+    if not path or not app.recordings.is_enhanced(rid):
+        raise HTTPException(status_code=404, detail="Recording ID not found")
+
+    filename = os.path.basename(path)
+    return FileResponse(
+        path=path,
+        media_type="audio/mpeg",
+        filename=filename
+    )
 
 
-@api.get("/files/transcript/{fid}", response_model=P.TranscriptResult)
-async def get_transcript(fid: str):
-    if not await app.recordings.exist(fid):
-        raise HTTPException(status_code=404, detail="File not found")
+@api.get("/recordings/{rid}/transcript")
+async def get_transcript_json(rid: str):
+    path = await app.recordings.path(rid, RecordingTypes.TRANSCRIPT)
+    if not path or not app.recordings.is_transcribed(rid):
+        raise HTTPException(status_code=404, detail="Recording ID not found")
 
-    transcript = app.recordings.resolve_transcript(fid)
-    if not transcript:
-        raise HTTPException(status_code=404, detail="Transcript not available")
+    filename = os.path.basename(path)
+    return FileResponse(
+        path=path,
+        media_type="application/json",
+        filename=filename
+    )
 
-    return transcript
 
+@api.delete("/recordings/{rid}")
+async def delete_recording(rid: str):
+    success = await app.recordings.delete(rid)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+     
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@api.post("/recordings/{rid}/transcribe")
+async def trigger_transcription(rid: str, bg: BackgroundTasks):
+    if not await app.recordings.exist(rid):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+        
+    if await app.recordings.is_transcribed(rid):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT)
+
+    await app.recordings.set_transcript(rid, P.RecStates.WORKING)
+    bg.add_task(app.services.transcribe, rid)
+
+    return Response(status_code=status.HTTP_202_ACCEPTED)
+
+
+@api.post("/recordings/{rid}/enhance")
+async def trigger_enhance(
+    rid: str,
+    bg: BackgroundTasks,
+    props: int = Query(..., description="Bitmask of enhancement properties")
+):
+    meta = await app.recordings.get_meta(rid)
+    if not meta:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
+
+    if meta.enhanced == P.RecStates.WORKING:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, 
+            detail="Enhancement already in progress"
+        )
+
+    await app.recordings.set_enhanced(rid, P.RecStates.WORKING)
+    bg.add_task(app.services.enhance, rid, props)
+
+    return Response(status_code=status.HTTP_202_ACCEPTED)
+
+
+@api.get("/recordings", response_model = List[P.RecMetadata])
+async def get_all_recordings():
+    return await app.recordings.get_all_metas()
 
 
 api.mount("/static", StaticFiles(directory="frontend"), name="static")
@@ -164,24 +223,3 @@ async def serve_frontend():
     index_path = os.path.join("frontend", "index.html")
     return FileResponse(index_path)
     
-
-
-
-# =============== Services ==================
-async def transcribe_and_notify(fid: str):
-    meta = await app.recordings.transcribe(fid)
-    if meta:
-        await app.dashboard.notify(P.WSPayload(
-            kind=P.WSKind.EVENT,
-            msgType=P.WSEvents.FILE_UPDATE,
-            body=meta
-        ))
-
-async def merge_and_notify(fids: List[str]):
-    meta = await app.recordings.merge(fids)
-    if meta:
-        await app.dashboard.notify(P.WSPayload(
-            kind=P.WSKind.EVENT,
-            msgType=P.WSEvents.FILE_STAGED,
-            body=meta
-        ))
