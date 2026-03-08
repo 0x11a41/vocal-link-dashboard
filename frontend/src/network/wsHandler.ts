@@ -4,17 +4,17 @@ import { dashboard } from '../views/dashboard.js';
 
 interface Props {
   payload: WSPayload;
-  renderView: () => void;
+  renderDashboard: () => void;
 }
 
-function handleEvents({payload, renderView}: Props) {
+function handleEvents({payload, renderDashboard}: Props) {
   switch (payload.msgType) {
 
     case WSEvents.SESSION_ACTIVATED: {
       const body = payload.body as SessionMetadata;
       if (!dashboard.sessions.has(body.id)) {
         dashboard.sessions.set(body.id, new SessionCard(body));
-        renderView();
+        renderDashboard();
       }
       break;
     }
@@ -25,7 +25,7 @@ function handleEvents({payload, renderView}: Props) {
       dashboard.clusterBtns.render();
       session?.card.remove();
       dashboard.sessions.delete(body.id);
-      renderView();
+      renderDashboard();
       break;
     }
 
@@ -89,6 +89,17 @@ function handleEvents({payload, renderView}: Props) {
       break;
     }
 
+    case WSEvents.REC_STAGED: {
+      // add recording card
+      break;      
+    }
+
+    case WSEvents.REC_AMEND: {
+      // update the card
+      break;
+    }
+
+
     case WSEvents.SUCCESS: case WSEvents.FAIL:
       console.log("Session result:", payload.msgType, payload.body);
       break;
@@ -96,13 +107,13 @@ function handleEvents({payload, renderView}: Props) {
 }
 
 
-export function wsHandler({payload, renderView: refresh}: Props): void {
+export function wsHandler({payload, renderDashboard: refresh}: Props): void {
   switch (payload.kind) {
     case WSKind.ERROR: console.error("Server error:", payload.msgType); break;
 
     case WSKind.EVENT: handleEvents({
         payload: payload,
-        renderView: refresh
+        renderDashboard: refresh
       });
       break;
 

@@ -24,7 +24,7 @@ export class VLApp {
     ws.onmessage = (ev: MessageEvent) =>
       wsHandler({
         payload: JSON.parse(ev.data),
-        renderView: () => this.viewSelector.render(),
+        renderDashboard: () => this.viewSelector.render(),
       });
 
     ws.onclose = async () => {

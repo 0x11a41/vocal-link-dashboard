@@ -261,8 +261,8 @@ class AppState:
                                   body = recMeta
                               )
 
-            self.sessions.send_to_one(recMeta.sessionId, payload)
-            self.dashboard.notify(payload)
+            await self.sessions.send_to_one(recMeta.sessionId, payload)
+            await self.dashboard.notify(payload)
 
 
         else:

@@ -19,7 +19,7 @@ export class VLApp {
         this.root = root;
         ws.onmessage = (ev) => wsHandler({
             payload: JSON.parse(ev.data),
-            renderView: () => this.viewSelector.render(),
+            renderDashboard: () => this.viewSelector.render(),
         });
         ws.onclose = async () => {
             dashboard.sessions.clear();

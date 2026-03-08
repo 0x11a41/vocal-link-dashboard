@@ -113,7 +113,7 @@ async def get_server_qr():
 
 @api.post("/recordings/{rid}")
 async def save_recording(rid: str, file: UploadFile = File(...)):
-    if not app.recordings.exist(rid):
+    if not await app.recordings.exist(rid):
         raise HTTPException(status_code=404, detail="Recording ID not found")
 
     updated_meta = await app.recordings.save(rid, file)
