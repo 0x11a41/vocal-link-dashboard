@@ -16,8 +16,8 @@ export class RecordingCard {
   private fullMetaSection: HTMLElement;
   private expandable:  HTMLElement = document.createElement('div');
 
-  public onSelect?: (isSelected: boolean) => void;
-  public onDelete?: (rid: string) => void;
+  public onselect?: (isSelected: boolean) => void;
+  public ondelete?: (rid: string) => void;
 
   public audioPlayer: AudioPlayer;
   public enhancePanel: HTMLElement;
@@ -43,23 +43,31 @@ export class RecordingCard {
     this.enhancePanel = EnhancePanel(meta.rid);
   }
 
+  public setOnPlay(onplay: (rid: string) => void) {
+    this.audioPlayer.onplay = onplay;
+  }
+
+  public setOnPause(onpause: (rid: string) => void) {
+    this.audioPlayer.onpause = onpause;
+  }
+
   public render(): void {
-  this.element.replaceChildren();
-  this.expandable.replaceChildren();
+    this.element.replaceChildren();
+    this.expandable.replaceChildren();
 
-  const header = this.createHeaderSection();    
-  const expandableInner = document.createElement('div');
-  expandableInner.className = 'expandable-inner';
+    const header = this.createHeaderSection();    
+    const expandableInner = document.createElement('div');
+    expandableInner.className = 'expandable-inner';
 
-  this.audioPlayer.render();
-  expandableInner.append(
-    this.audioPlayer.element,
-    this.enhancePanel
-  );
+    this.audioPlayer.render();
+    expandableInner.append(
+      this.audioPlayer.element,
+      this.enhancePanel
+    );
 
-  this.expandable.appendChild(expandableInner);
-  this.element.append(header, this.fullMetaSection, this.expandable);
-}
+    this.expandable.appendChild(expandableInner);
+    this.element.append(header, this.fullMetaSection, this.expandable);
+  }
 
   private createFullMetaSection() {
     const pane = document.createElement('div');
@@ -166,7 +174,7 @@ export class RecordingCard {
   private handleSelection(isChecked: boolean): void {
     this.checkbox.checked = isChecked;
     this.element.classList.toggle('checked', isChecked);
-    if (this.onSelect) this.onSelect(isChecked)
+    if (this.onselect) this.onselect(isChecked)
   }
 
   public amend(newMeta: RecMetadata): void {
@@ -195,7 +203,7 @@ export class RecordingCard {
   private UICleanup() {
     this.element.remove();
     this.audioPlayer.drop();
-    this.onDelete && this.onDelete(this.meta.rid);
+    this.ondelete && this.ondelete(this.meta.rid);
   }
 
   public async drop(): Promise<void> {

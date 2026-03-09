@@ -11,6 +11,7 @@ class RecordingsView {
     selectedRids = new Set();
     checkBox;
     mergeBtn;
+    currentPlaying = null;
     constructor() {
         this.view.classList.add("recordings-view", "stack");
         this.checkBox = checkbox({
@@ -144,7 +145,10 @@ class RecordingsView {
     }
     append(meta) {
         const card = new RecordingCard(meta);
-        card.onDelete = () => {
+        card.ondelete = () => {
+            if (this.currentPlaying === meta.rid) {
+                this.currentPlaying = null;
+            }
             this.cards.delete(meta.rid);
             if (this.selectedRids.has(meta.rid)) {
                 this.selectedRids.delete(meta.rid);
@@ -152,7 +156,7 @@ class RecordingsView {
             }
             this.render();
         };
-        card.onSelect = (isSelected) => {
+        card.onselect = (isSelected) => {
             if (isSelected) {
                 this.setCount(+1);
                 this.selectedRids.add(meta.rid);
@@ -162,6 +166,20 @@ class RecordingsView {
                 this.selectedRids.delete(meta.rid);
             }
         };
+        card.setOnPlay((rid) => {
+            if (this.currentPlaying && this.currentPlaying !== rid) {
+                const previousCard = this.cards.get(this.currentPlaying);
+                if (previousCard) {
+                    previousCard.audioPlayer.pause();
+                }
+            }
+            this.currentPlaying = rid;
+        });
+        card.setOnPause(() => {
+            if (this.currentPlaying === meta.rid) {
+                this.currentPlaying = null;
+            }
+        });
         this.cards.set(meta.rid, card);
         this.render();
     }

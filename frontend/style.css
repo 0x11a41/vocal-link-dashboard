@@ -928,6 +928,7 @@ aside .active:hover {
   background: transparent;
   color: var(--text-muted);
   border-radius: var(--border-radius);
+  margin: 0;
 }
 
 .player-toggle-group button.active {

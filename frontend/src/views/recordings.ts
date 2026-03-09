@@ -16,6 +16,8 @@ class RecordingsView {
     private checkBox: HTMLInputElement;
     private mergeBtn: HTMLButtonElement;
 
+    private currentPlaying?: string | null = null;
+
     constructor() {
       this.view.classList.add("recordings-view", "stack");
       this.checkBox = checkbox({
@@ -159,15 +161,21 @@ class RecordingsView {
 
     public append(meta: RecMetadata) {
         const card = new RecordingCard(meta);
-        card.onDelete = () => {
+
+        card.ondelete = () => {
+            if (this.currentPlaying === meta.rid) {
+                this.currentPlaying = null;
+            }
+    
             this.cards.delete(meta.rid);
             if (this.selectedRids.has(meta.rid)) {
                 this.selectedRids.delete(meta.rid);
                 this.setCount(-1);
             }
             this.render();
-        }
-        card.onSelect = (isSelected: boolean) => {
+        };
+
+        card.onselect = (isSelected: boolean) => {
             if (isSelected) {
                 this.setCount(+1);
                 this.selectedRids.add(meta.rid);
@@ -175,7 +183,24 @@ class RecordingsView {
                 this.setCount(-1);
                 this.selectedRids.delete(meta.rid);
             }
-        }
+        };
+
+        card.setOnPlay((rid: string) => {
+            if (this.currentPlaying && this.currentPlaying !== rid) {
+                const previousCard = this.cards.get(this.currentPlaying);
+                if (previousCard) {
+                    previousCard.audioPlayer.pause();
+                }
+            }
+            this.currentPlaying = rid;
+        });
+
+        card.setOnPause(() => {
+            if (this.currentPlaying === meta.rid) {
+                this.currentPlaying = null;
+            }
+        });
+
         this.cards.set(meta.rid, card);
         this.render();
     }

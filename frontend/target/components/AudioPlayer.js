@@ -18,6 +18,8 @@ export class AudioPlayer {
     isDragging = false;
     ui;
     currentMode = AudioMode.ORIGINAL;
+    onplay;
+    onpause;
     constructor({ meta }) {
         this.meta = meta;
         this.audio = new Audio();
@@ -147,16 +149,27 @@ export class AudioPlayer {
         }
     }
     setupAudioListeners() {
+        this.audio.onplay = () => {
+            this.isPlaying = true;
+            this.ui.playBtn.classList.replace('play-icon', 'pause-icon');
+            this.onplay?.(this.meta.rid);
+            this.updateMediaSession();
+        };
+        this.audio.onpause = () => {
+            this.isPlaying = false;
+            this.ui.playBtn.classList.replace('pause-icon', 'play-icon');
+            this.onpause?.(this.meta.rid);
+            if ('mediaSession' in navigator)
+                navigator.mediaSession.playbackState = 'paused';
+        };
         this.audio.ontimeupdate = () => {
-            if (this.audio.duration) {
+            if (this.audio.duration && !this.isDragging) {
                 const percent = (this.audio.currentTime / this.audio.duration) * 100;
                 this.ui.progressFill.style.width = `${percent}%`;
                 this.ui.currentTimeSpan.innerText = formatDuration(Math.floor(this.audio.currentTime));
             }
         };
         this.audio.onended = () => {
-            this.isPlaying = false;
-            this.ui.playBtn.classList.replace('pause-icon', 'play-icon');
             this.ui.progressFill.style.width = '0%';
         };
         this.audio.onerror = () => {
@@ -179,18 +192,31 @@ export class AudioPlayer {
             this.ui.currentTimeSpan.innerText = formatDuration(Math.floor(this.audio.currentTime));
         }
     }
+    updateMediaSession() {
+        if (!('mediaSession' in navigator))
+            return;
+        navigator.mediaSession.metadata = new MediaMetadata({
+            title: this.meta.recName,
+            artist: 'Voice Recorder',
+            album: this.currentMode === AudioMode.ENHANCED ? 'Enhanced' : 'Original'
+        });
+        navigator.mediaSession.playbackState = 'playing';
+        navigator.mediaSession.setActionHandler('play', () => this.play());
+        navigator.mediaSession.setActionHandler('pause', () => this.pause());
+        navigator.mediaSession.setActionHandler('seekbackward', () => { this.audio.currentTime -= 5; });
+        navigator.mediaSession.setActionHandler('seekforward', () => { this.audio.currentTime += 5; });
+    }
     pause() {
         this.audio.pause();
-        this.ui.playBtn.classList.replace('pause-icon', 'play-icon');
-        this.isPlaying = false;
     }
-    play() {
-        this.ui.playBtn.classList.replace('play-icon', 'pause-icon');
-        this.isPlaying = true;
-        this.audio.play().catch(err => {
-            console.warn("Playback aborted or blocked by browser:", err.message);
+    async play() {
+        try {
+            await this.audio.play();
+        }
+        catch (err) {
+            console.warn("Playback blocked:", err);
             this.pause();
-        });
+        }
     }
     drop() {
         this.pause();

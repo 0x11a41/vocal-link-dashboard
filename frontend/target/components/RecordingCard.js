@@ -14,8 +14,8 @@ export class RecordingCard {
     meta;
     fullMetaSection;
     expandable = document.createElement('div');
-    onSelect;
-    onDelete;
+    onselect;
+    ondelete;
     audioPlayer;
     enhancePanel;
     checkbox = checkbox({
@@ -34,6 +34,12 @@ export class RecordingCard {
             radius: 38,
         });
         this.enhancePanel = EnhancePanel(meta.rid);
+    }
+    setOnPlay(onplay) {
+        this.audioPlayer.onplay = onplay;
+    }
+    setOnPause(onpause) {
+        this.audioPlayer.onpause = onpause;
     }
     render() {
         this.element.replaceChildren();
@@ -138,8 +144,8 @@ export class RecordingCard {
     handleSelection(isChecked) {
         this.checkbox.checked = isChecked;
         this.element.classList.toggle('checked', isChecked);
-        if (this.onSelect)
-            this.onSelect(isChecked);
+        if (this.onselect)
+            this.onselect(isChecked);
     }
     amend(newMeta) {
         this.meta.recName = newMeta.recName;
@@ -166,7 +172,7 @@ export class RecordingCard {
     UICleanup() {
         this.element.remove();
         this.audioPlayer.drop();
-        this.onDelete && this.onDelete(this.meta.rid);
+        this.ondelete && this.ondelete(this.meta.rid);
     }
     async drop() {
         try {
