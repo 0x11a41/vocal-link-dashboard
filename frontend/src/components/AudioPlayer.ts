@@ -47,7 +47,8 @@ export class AudioPlayer {
     this.ui = {
       playBtn: circleButton({
         classes: ['play-icon'],
-        onClick: () => this.togglePlay()
+        onClick: () => this.togglePlay(),
+        radius: 48
       }),
       progressFill: document.createElement('div'),
       currentTimeSpan: document.createElement('span'),
@@ -82,10 +83,10 @@ export class AudioPlayer {
       return;
     }
 
+    this.element.appendChild(this.createPlayerControls());
     if (this.meta.enhanced === RecStates.OK) {
       this.element.appendChild(this.createToggleGroup());
     }
-    this.element.appendChild(this.createPlayerControls());
     this.syncToggleButtons();
   }
 

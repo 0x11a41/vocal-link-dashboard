@@ -23,56 +23,52 @@ class AudioToolkit:
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
 
-    def _reduce_noise(self, audio: AudioSegment, strength: float = 0.65) -> AudioSegment:
-        audio = effects.normalize(audio)
+    def _reduce_noise(self, audio: AudioSegment, strength: float = 0.75) -> AudioSegment:
         channels = audio.channels
         sr = audio.frame_rate
-        
         samples = np.array(audio.get_array_of_samples()).astype(np.float32)
         samples /= np.iinfo(np.int16).max
-        
+    
         if channels > 1:
-            samples = samples.reshape((-1, channels)).T # Shape: [2, N]
-
-        total_samples = samples.shape[-1] if channels > 1 else len(samples)
-        win_len = min(int(0.5 * sr), total_samples // 4)
-        
-        if win_len > 100:
-            if channels > 1:
-                energy = np.sum(samples[:, :win_len*10]**2, axis=0) 
-            else:
-                energy = samples[:win_len*10]**2
-                
-            energies = [np.sum(energy[i : i + win_len]) for i in range(0, len(energy) - win_len, win_len)]
-            best_idx = np.argmin(energies) * win_len
-            noise_sample = samples[:, best_idx : best_idx + win_len] if channels > 1 else samples[best_idx : best_idx + win_len]
-        else:
-            noise_sample = samples
+            samples = samples.reshape((-1, channels)).T
 
         reduced = nr.reduce_noise(
             y=samples, 
-            y_noise=noise_sample, 
             sr=sr, 
             prop_decrease=strength,
-            stationary=True
+            stationary=False,        
+            n_fft=2048,             
+            time_mask_smooth_ms=64, 
+            n_jobs=-1               
         )
 
         if channels > 1:
             reduced = reduced.T.flatten()
-            
+        
         reduced = np.clip(reduced * 32767, -32768, 32767).astype(np.int16)
-        return AudioSegment(reduced.tobytes(), frame_rate=sr, sample_width=2, channels=channels)
+        cleaned_audio = AudioSegment(
+            reduced.tobytes(), 
+            frame_rate=sr, 
+            sample_width=2, 
+            channels=channels
+        )
+
+        return effects.normalize(cleaned_audio)
 
 
     def _apply_studio_filter(self, audio: AudioSegment) -> AudioSegment:
         audio = high_pass_filter(audio, 80)
-        audio = audio.low_pass_filter(300).apply_gain(-3).overlay(audio.high_pass_filter(300))
+
+        bass_warmth = audio.low_pass_filter(250).apply_gain(4.5) 
+        audio = audio.overlay(bass_warmth)
+
         air = audio.high_pass_filter(6000).apply_gain(3)
         audio = audio.overlay(air)
+
         return effects.compress_dynamic_range(
             audio, 
-            threshold=-20.0, 
-            ratio=3.0, 
+            threshold=-22.0, 
+            ratio=3.5,
             attack=10.0, 
             release=150.0
         )

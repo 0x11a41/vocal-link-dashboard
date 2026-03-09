@@ -1,6 +1,5 @@
 import sys
 import subprocess
-import webview
 import webbrowser
 import socket
 import time
@@ -43,7 +42,6 @@ class VocalLinkRunner:
         else:
             time.sleep(0.5)
 
-
     def _kill_process_tree(self, pid):
         try:
             parent = psutil.Process(pid)
@@ -54,7 +52,6 @@ class VocalLinkRunner:
         except psutil.NoSuchProcess:
             pass
 
-
     def wait_for_server(self, timeout=15):
         start = time.time()
         while time.time() - start < timeout:
@@ -62,9 +59,8 @@ class VocalLinkRunner:
                 with socket.create_connection(("127.0.0.1", PORT), timeout=0.5):
                     return True
             except (OSError, ConnectionRefusedError):
-                time.sleep(0.1)
+                time.sleep(0.1) # Fast polling for quick launch
         return False
-
 
     def start_tsc(self):
         print("[*] Starting TSC watch...")
@@ -72,13 +68,11 @@ class VocalLinkRunner:
         self.processes.append(proc)
         return proc
 
-
     def start_logger(self):
-        print("watching log files...")
+        print("[*] Watching log files...")
         proc = subprocess.Popen(["tail", "-f", "logs/server.log"])
         self.processes.append(proc)
         return proc
-
 
     def start_backend(self):
         print("[*] Starting backend...")
@@ -86,7 +80,6 @@ class VocalLinkRunner:
         proc = subprocess.Popen(cmd)
         self.processes.append(proc)
         return proc
-
 
     def cleanup(self):
         if self.is_shutting_down:
@@ -106,11 +99,9 @@ class VocalLinkRunner:
         if not self.debug:
             os._exit(0)
 
-
     def _signal_handler(self, *_):
         self.cleanup()
         sys.exit(0)
-
 
     def run(self):
         self.nuke_orphans()
@@ -124,28 +115,22 @@ class VocalLinkRunner:
             if self.debug:
                 self.start_tsc()
                 self.start_logger()
-                print("[*] Debug: Opening browser...")
-                if self.wait_for_server():
-                    webbrowser.open(URL)
 
-                while not self.is_shutting_down:
-                    time.sleep(1)
+            print("[*] Waiting for server...")
+            if not self.wait_for_server():
+                print("[!] Backend failed to start.")
+                return
 
-            else:
-                if not self.wait_for_server():
-                    print("[!] Backend failed to start.")
-                    return
+            print("[*] Launching Browser...")
+            webbrowser.open(URL)
 
-                print("[*] Launching WebView...")
-                os.environ["QTWEBENGINE_DISABLE_SANDBOX"] = "1"
-                webview.create_window("VocalLink", URL, width=1200, height=800)
-                webview.start()
+            while not self.is_shutting_down:
+                time.sleep(1)
                 
         except Exception as e:
             print(f"[!] Error: {e}")
         finally:
             self.cleanup()
-
 
 if __name__ == "__main__":
     is_debug = "--debug" in sys.argv

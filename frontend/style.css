@@ -63,7 +63,7 @@
   --accent-hover: #d67c56;
   --success: #4CAF50;
   --danger: #FF5252;
-  --border-radius: 12px;
+  --border-radius: 8px;
   --shadow-recording: 0 8px 20px rgba(0, 0, 0, 0.08);
   --card-border-highlight: rgba(255, 255, 255, 0.8);
   --card-border-dim: rgba(0, 0, 0, 0.05);
@@ -922,6 +922,7 @@ aside .active:hover {
   width: fit-content;
   margin-bottom: .5rem;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow);
 }
 
 .player-toggle-group button {
