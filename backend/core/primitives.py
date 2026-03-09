@@ -142,7 +142,7 @@ class RecMetadata(BaseModel):
     original: RecStates = RecStates.NA #
     enhanced: RecStates = RecStates.NA #
     transcript: RecStates = RecStates.NA #
-    merged: Optional[List[str]] = None
+    merged: Optional[List[str]] = None #
 
 
 class WSPayload(BaseModel):

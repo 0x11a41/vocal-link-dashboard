@@ -22,7 +22,11 @@ class Services:
 
     async def merge(self, rids: List[str]):
         meta = await self._recordings._merge(rids)
-        await self.notify_amend(meta)
+        await self._dashboard.notify(P.WSPayload(
+                                    kind = P.WSKind.EVENT,
+                                    msgType = P.WSEvents.REC_STAGED,
+                                    body=meta
+                                 ))
 
     async def enhance(self, rid: str, props: int):
         meta = await self._recordings._enhance(rid, props)

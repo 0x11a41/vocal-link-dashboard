@@ -3,10 +3,10 @@ interface checkboxProps {
   onCheck: (isChecked: boolean) => void;
 }
  
-export function checkbox({checked = false, onCheck}: checkboxProps) {
-  const input = document.createElement('input');
-  input.type = 'checkbox';
-  input.checked = checked;
-  input.onchange = () => onCheck(input.checked); 
-  return input;
+export function checkbox({checked = false, onCheck}: checkboxProps): HTMLInputElement {
+  const chkbox = document.createElement('input');
+  chkbox.type = 'checkbox';
+  chkbox.checked = checked;
+  chkbox.onchange = () => onCheck(chkbox.checked); 
+  return chkbox;
 }

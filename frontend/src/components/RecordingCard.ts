@@ -5,15 +5,17 @@ import { BadgeColors, Badge } from "./Badge.js";
 import { button } from "./button.js";
 import { circleButton } from "./circleButton.js";
 import { formatBytes, formatDuration, formatTime } from "../utils/formatting.js";
-import { AudioPlayer, AudioMode } from "./AudioPlayer.js";
+import { AudioPlayer } from "./AudioPlayer.js";
+import { modalDialog } from "./modalDialog.js";
+import { URL } from "../models/constants.js";
 
 export class RecordingCard {
-  public card = document.createElement('section');
+  public element = document.createElement('section');
   private meta: RecMetadata; 
   private fullMetaSection: HTMLElement;
   private expandable:  HTMLElement = document.createElement('div');
 
-  public onSelect?: (selected: boolean) => void;
+  public onSelect?: (isSelected: boolean) => void;
   public onDelete?: (rid: string) => void;
 
   public audioPlayer: AudioPlayer;
@@ -22,24 +24,36 @@ export class RecordingCard {
     onCheck: (isChecked) => this.handleSelection(isChecked)
   });
 
+  private expandBtn: HTMLElement; 
+
 
   constructor(meta: RecMetadata) {
-    this.card.className = "recording-card";
+    this.element.className = "recording-card";
     this.expandable.className = 'expandable';
     this.meta = meta;
     this.fullMetaSection = this.createFullMetaSection();
-    this.audioPlayer = new AudioPlayer(meta);
+    this.audioPlayer = new AudioPlayer({meta: meta});
+    this.expandBtn = circleButton({
+                      classes: ['expand-icon', 'transparent'],
+                      onClick: () => this.handleExpand(),
+                      radius: 38,
+                    });
   }
 
   public render(): void {
-    const header = this.createHeaderSection();    
-    const expandableInner = document.createElement('div');
-    expandableInner.className = 'expandable-inner';
-    expandableInner.append(this.audioPlayer.element);
+  this.element.replaceChildren();
+  this.expandable.replaceChildren();
 
-    this.expandable.appendChild(expandableInner);
-    this.card.append(header, this.fullMetaSection, this.expandable);
-  }
+  const header = this.createHeaderSection();    
+  const expandableInner = document.createElement('div');
+  expandableInner.className = 'expandable-inner';
+
+  this.audioPlayer.render();
+  expandableInner.append(this.audioPlayer.element);
+
+  this.expandable.appendChild(expandableInner);
+  this.element.append(header, this.fullMetaSection, this.expandable);
+}
 
   private createFullMetaSection() {
     const pane = document.createElement('div');
@@ -98,44 +112,32 @@ export class RecordingCard {
 
     const right = document.createElement('span');
     right.className = 'card-right';
-
-    const buttons: HTMLElement[] = [];
-    const expandBtn = circleButton({
-      classes: ['expand-icon'],
-      radius: 42,
-      onClick: () => this.handleExpand(expandBtn)
-    });
-    buttons.push(button({
+    right.appendChild(this.expandBtn);
+    right.appendChild(button({
       label: 'Delete',
       classes: ['immutable'],
-      onClick: () => {
-        this.card.remove();
-        this.onDelete && this.onDelete(this.meta.rid);
-         // TODO deleting
-      }
+      onClick: () => this.drop()
     }));
-    buttons.push(button({
+    right.appendChild(button({
       label: 'Save',
       onClick: () => {} // TODO saving
     }))
-    buttons.push(expandBtn);
 
-    title.onclick = () => this.handleExpand(expandBtn);
+    title.onclick = () => this.handleExpand();
 
-    buttons.forEach((button) => right.appendChild(button));
     miniMeta.append(title, details, badgesWrapper);
     left.append(chkbox, miniMeta)
     header.append(left, right);
     return header;
   }
 
-  private handleExpand(expandBtn: HTMLElement): void {
+  private handleExpand(): void {
     if (this.expandable.classList.contains('open')) {
-      expandBtn.classList.remove('open');
+      this.expandBtn.classList.remove('open');
       this.expandable.classList.remove('open');
       this.audioPlayer.pause();
     } else {
-      expandBtn.classList.add('open');
+      this.expandBtn.classList.add('open');
       this.expandable.classList.add('open');
     }
   }
@@ -157,8 +159,49 @@ export class RecordingCard {
   
   private handleSelection(isChecked: boolean): void {
     this.checkbox.checked = isChecked;
-    this.card.classList.toggle('checked', isChecked);
+    this.element.classList.toggle('checked', isChecked);
     if (this.onSelect) this.onSelect(isChecked)
+  }
+
+  public amend(newMeta: RecMetadata): void {
+    this.meta.recName = newMeta.recName;
+    this.meta.original = newMeta.original;
+    this.meta.enhanced = newMeta.enhanced;
+    this.meta.transcript = newMeta.transcript;
+    this.meta.merged = newMeta.merged;
+
+    if (this.meta.original === RecStates.OK) {
+      this.audioPlayer.loadAudio();
+    }
+    this.fullMetaSection = this.createFullMetaSection();
+    this.render();
+  }
+
+  private UICleanup() {
+    this.element.remove();
+    this.audioPlayer.drop();
+    this.onDelete && this.onDelete(this.meta.rid);
+  }
+
+  public async drop(): Promise<void> {
+    try {
+      const response = await fetch(`${URL}/recordings/${this.meta.rid}`, {
+        method: 'DELETE',
+      });
+      if (!response.ok) {
+        throw new Error(`Delete failed: ${response.statusText}`);
+      }
+    } catch (err) {
+      modalDialog({
+        msg: "Failed to delete recording, but you can still remove it from here.",
+        opts: [
+          {label: 'ok'},
+          {label: "Remove", handler: () => this.UICleanup()}
+        ]
+      })
+      return;
+    }
+    this.UICleanup();
   }
 
   public select(): void { this.handleSelection(true); }

@@ -5,7 +5,8 @@ import { server } from './network/serverInfo.js';
 import { sendPayload, ws } from './network/ws.js';
 import { wsHandler } from './network/wsHandler.js';
 import { ViewSelector } from './components/ViewSelector.js';
-import { dashboard } from './views/dashboard.js';
+import { Dashboard } from './views/dashboard.js';
+import { Recordings } from './views/recordings.js';
 import { modalDialog } from './components/modalDialog.js';
 export class VLApp {
     root;
@@ -21,23 +22,16 @@ export class VLApp {
             payload: JSON.parse(ev.data),
             renderDashboard: () => this.viewSelector.render(),
         });
-        ws.onclose = async () => {
-            dashboard.sessions.clear();
-            dashboard.render();
-            const exit = "Exit";
-            const reload = "Reload";
-            const choice = await modalDialog({
-                msg: "error! Connection closed unexpectedly.",
-                choices: [reload, exit]
+        ws.onclose = () => {
+            Dashboard.sessions.clear();
+            Dashboard.render();
+            modalDialog({
+                msg: "Error! Connection closed unexpectedly.",
+                opts: [
+                    { label: "Reload", handler: () => window.location.reload() },
+                    { label: "Exit", handler: () => window.close() }
+                ]
             });
-            switch (choice) {
-                case exit:
-                    window.close();
-                    break;
-                case reload:
-                    window.location.reload();
-                    break;
-            }
         };
         this.root.append(this.sidePanel, this.mainPanel);
         this.bindServerUpdates();
@@ -74,8 +68,13 @@ export class VLApp {
             const res = await fetch(URL + "/sessions");
             const metas = await res.json();
             for (const meta of metas) {
-                dashboard.sessions.set(meta.id, new SessionCard(meta));
+                Dashboard.sessions.set(meta.id, new SessionCard(meta));
                 sendPayload(Payloads.action(WSActions.GET_STATE, meta.id));
+            }
+            const recResponse = await fetch(URL + '/recordings');
+            const recMetas = await recResponse.json();
+            for (const meta of recMetas) {
+                Recordings.append(meta);
             }
         }
         catch (err) {

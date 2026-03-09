@@ -1,41 +1,54 @@
-import { button } from "./button.js"
+import { button } from "./button.js";
 
-interface DialogProps {
-  msg: string;
-  choices: string[];
+export interface DialogOpts {
+  label: string;
+  handler?: () => void;
 }
 
-export function modalDialog({ msg, choices }: DialogProps): Promise<string> {
-  return new Promise((resolve) => {
+export interface DialogProps {
+  msg: string;
+  opts: DialogOpts[];
+}
 
-    const overlay = document.createElement("div");
-    overlay.className = "dialog-overlay";
+export function modalDialog({ msg, opts }: DialogProps): void {
+  if (document.querySelector(".dialog-overlay")) {
+    return;
+  }
 
-    const dialogWindow = document.createElement("div");
-    dialogWindow.className = "dialog";
+  const overlay = document.createElement("div");
+  overlay.className = "dialog-overlay";
 
-    const para = document.createElement("p");
-    para.innerText = msg;
+  const dialogWindow = document.createElement("div");
+  dialogWindow.className = "dialog";
 
-    const dialogButtons = document.createElement("div");
-    dialogButtons.className = "flex-right-center";
+  const para = document.createElement("p");
+  para.innerText = msg;
 
-    const close = (value: string) => {
-      overlay.remove();
-      resolve(value);
-    };
+  const dialogButtons = document.createElement("div");
+  dialogButtons.className = "flex-right-center";
 
-    choices.forEach((choice) => {
-      const btn = button({
-        label: choice,
-        onClick: () => close(choice)
-      });
-      dialogButtons.appendChild(btn);
+  const close = () => overlay.remove();
+
+  opts.forEach((opt) => {
+    const btn = button({
+      label: opt.label,
+      onClick: () => {
+        if (opt.handler) opt.handler();
+        close();
+      }
     });
-
-    dialogWindow.appendChild(para);
-    dialogWindow.appendChild(dialogButtons);
-    overlay.appendChild(dialogWindow);
-    document.body.appendChild(overlay);
+    dialogButtons.appendChild(btn);
   });
+
+  const handleEsc = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      close();
+      document.removeEventListener("keydown", handleEsc);
+    }
+  };
+
+  document.addEventListener("keydown", handleEsc);
+  dialogWindow.append(para, dialogButtons);
+  overlay.appendChild(dialogWindow);
+  document.body.appendChild(overlay);
 }

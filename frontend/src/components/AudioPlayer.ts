@@ -3,6 +3,8 @@ import { circleButton } from "./circleButton.js";
 import { button } from "./button.js";
 import { formatDuration } from "../utils/formatting.js";
 import { URL } from "../models/constants.js";
+import { downloadFile } from "../utils/downloadFile.js";
+import { modalDialog } from "./modalDialog.js";
 
 export enum AudioMode {
   ORIGINAL,
@@ -18,24 +20,26 @@ interface PlayerUI {
   playBtn: HTMLElement;
   progressFill: HTMLDivElement;
   currentTimeSpan: HTMLSpanElement;
+  saveBtn: HTMLButtonElement;
   modeButtons?: ModeButtons; // if meta.enhanced
 }
 
 export class AudioPlayer {
-  public readonly element: HTMLDivElement;
-  private readonly audio: HTMLAudioElement;
-  private readonly meta: RecMetadata;
+  public element: HTMLDivElement;
+  private audio: HTMLAudioElement;
+  private meta: RecMetadata;
   
   private isPlaying: boolean = false;
   private ui:  PlayerUI; 
 
   private currentMode: AudioMode = AudioMode.ORIGINAL;
 
-  constructor(meta: RecMetadata) {
+  constructor({meta}: {meta: RecMetadata}) {
     this.meta = meta;
     this.audio = new Audio();
     this.element = document.createElement('div');
     this.element.className = 'player-panel';
+
     this.ui = {
       playBtn: circleButton({
         classes: ['play-icon'],
@@ -43,6 +47,12 @@ export class AudioPlayer {
       }),
       progressFill: document.createElement('div'),
       currentTimeSpan: document.createElement('span'),
+      saveBtn: button({
+            label: 'SAVE',
+            classes: ['btn-small'],
+            onClick: async () => await downloadFile(this.audio.src, this.meta.recName, this.ui.saveBtn)
+
+          }),
     };
     this.ui.progressFill.className = 'progress-fill';
     this.ui.currentTimeSpan.className = 'time-stamp';
@@ -53,10 +63,26 @@ export class AudioPlayer {
   }
 
   public render(): void {
+    this.element.replaceChildren();
+    this.element.classList.remove('loading');
+
+    if (this.meta.original === RecStates.NA) {
+      return;
+    }
+
+    if (this.meta.original === RecStates.WORKING) {
+      const statusText = document.createElement('span');
+      statusText.innerText = "Obtaining file...";
+      this.element.appendChild(statusText);
+      this.element.classList.add('loading');
+      return;
+    }
+
     if (this.meta.enhanced === RecStates.OK) {
       this.element.appendChild(this.createToggleGroup());
     }
     this.element.appendChild(this.createPlayerControls());
+    this.syncToggleButtons();
   }
 
   private createToggleGroup(): HTMLDivElement {
@@ -88,7 +114,6 @@ export class AudioPlayer {
     const playerRow = document.createElement('div');
     playerRow.className = 'player';
 
-
     this.ui.currentTimeSpan.innerText = '00:00';
 
     const progressContainer = document.createElement('div');
@@ -101,18 +126,12 @@ export class AudioPlayer {
     totalTimeSpan.className = 'time-stamp';
     totalTimeSpan.innerText = formatDuration(this.meta.duration);
 
-    const saveBtn = button({
-      label: 'SAVE',
-      classes: ['btn-small'],
-      onClick: () => this.handleDownloadBtn()
-    });
-
     playerRow.append(
       this.ui.playBtn, 
       this.ui.currentTimeSpan, 
       progressContainer, 
       totalTimeSpan, 
-      saveBtn
+      this.ui.saveBtn
     );
     
     return playerRow;
@@ -126,22 +145,29 @@ export class AudioPlayer {
     }
   }
 
-  private loadAudio(mode: AudioMode = this.currentMode): void {
-    this.ui.modeButtons?.original.classList.toggle('active', mode === AudioMode.ORIGINAL);
-    this.ui.modeButtons?.enhanced.classList.toggle('active', mode === AudioMode.ENHANCED);
+  private syncToggleButtons(): void {
+    this.ui.modeButtons?.original.classList.toggle('active', this.currentMode === AudioMode.ORIGINAL);
+    this.ui.modeButtons?.enhanced.classList.toggle('active', this.currentMode === AudioMode.ENHANCED);
+  }
+
+  public loadAudio(mode: AudioMode = this.currentMode): void {
+    this.currentMode = mode;
+    this.syncToggleButtons();
 
     const wasPlaying = this.isPlaying;
     const prevTime = this.audio.currentTime;
 
     if (mode === AudioMode.ENHANCED && this.meta.enhanced === RecStates.OK) {
       this.audio.src = `${URL}/recordings/${this.meta.rid}/enhanced`;
-    } else if (mode === AudioMode.ORIGINAL && this.meta.original === RecStates.OK){
+    } else if (mode === AudioMode.ORIGINAL && this.meta.original === RecStates.OK) {
       this.audio.src = `${URL}/recordings/${this.meta.rid}/original`;
     }
     
     if (wasPlaying) {
-      this.audio.currentTime = prevTime;
-      this.audio.play();
+      this.audio.addEventListener('loadedmetadata', () => {
+        this.audio.currentTime = prevTime;
+        this.play();
+      }, { once: true });
     }
   }
 
@@ -162,8 +188,13 @@ export class AudioPlayer {
 
     this.audio.onerror = () => {
       this.isPlaying = false;
-      this.element.innerHTML = "error! Audio file is broken or not found."
-    }
+      this.ui.playBtn.classList.replace('pause-icon', 'play-icon');
+      this.element.replaceChildren();
+      modalDialog({
+        msg: "⚠️ Audio file is broken or not found.",
+        opts: [{label: 'ok'}]
+      });
+    };
   }
 
   private handleSeek(e: MouseEvent, container: HTMLDivElement): void {
@@ -175,13 +206,6 @@ export class AudioPlayer {
     }
   }
 
-  private handleDownloadBtn(): void {
-    const a = document.createElement('a');
-    a.href = this.audio.src;
-    a.download = this.meta.recName;
-    a.click();
-  }
-
   public pause(): void {
     this.audio.pause();
     this.ui.playBtn.classList.replace('pause-icon', 'play-icon');
@@ -189,8 +213,23 @@ export class AudioPlayer {
   }
 
   public play(): void {
-    this.audio.play();
     this.ui.playBtn.classList.replace('play-icon', 'pause-icon');
     this.isPlaying = true;
+    this.audio.play().catch(err => {
+      console.warn("Playback aborted or blocked by browser:", err.message);
+      this.pause(); 
+    });
+  }
+
+  public drop(): void {
+    this.pause();
+    this.audio.src = "";
+    this.audio.load();
+    this.audio.ontimeupdate = null;
+    this.audio.onended = null;
+    this.audio.onerror = null;
+    this.element.remove();
+    this.element.replaceChildren();
+    (this.ui as any) = null;
   }
 }

@@ -57,4 +57,4 @@ class DashboardView {
         this.view.appendChild(header);
     }
 }
-export const dashboard = new DashboardView();
+export const Dashboard = new DashboardView();

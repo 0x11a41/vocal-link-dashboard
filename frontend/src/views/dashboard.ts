@@ -70,4 +70,4 @@ class DashboardView {
   }
 }
 
-export const dashboard = new DashboardView();
+export const Dashboard = new DashboardView();

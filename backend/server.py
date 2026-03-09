@@ -111,6 +111,18 @@ async def get_server_qr():
     return StreamingResponse(buf, media_type="image/png")
 
 
+@api.post("/recordings/merge")
+async def trigger_merge(req: P.MergeRequest, bg: BackgroundTasks):
+    if not req.rids or len(req.rids) < 2:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="At least two recording IDs are required to merge."
+        )
+
+    bg.add_task(app.services.merge, req.rids)
+    return Response(status_code=status.HTTP_202_ACCEPTED)
+
+
 @api.post("/recordings/{rid}")
 async def save_recording(rid: str, file: UploadFile = File(...)):
     if not await app.recordings.exist(rid):
@@ -215,6 +227,7 @@ async def trigger_enhance(
 @api.get("/recordings", response_model = List[P.RecMetadata])
 async def get_all_recordings():
     return await app.recordings.get_all_metas()
+
 
 
 api.mount("/static", StaticFiles(directory="frontend"), name="static")

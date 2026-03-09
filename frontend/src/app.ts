@@ -1,11 +1,12 @@
 import { URL } from './models/constants.js';
-import { Views, SessionMetadata, Payloads, WSActions } from './models/primitives.js';
+import { Views, SessionMetadata, Payloads, WSActions, RecMetadata } from './models/primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import { server } from './network/serverInfo.js';
 import { sendPayload, ws } from './network/ws.js';
 import { wsHandler } from './network/wsHandler.js';
 import { ViewSelector } from './components/ViewSelector.js';
-import { dashboard } from './views/dashboard.js';
+import { Dashboard } from './views/dashboard.js';
+import { Recordings } from './views/recordings.js';
 import { modalDialog } from './components/modalDialog.js';
 
 
@@ -27,22 +28,18 @@ export class VLApp {
         renderDashboard: () => this.viewSelector.render(),
       });
 
-    ws.onclose = async () => {
-      dashboard.sessions.clear();
-      dashboard.render();
+      ws.onclose = () => {
+        Dashboard.sessions.clear();
+        Dashboard.render();
 
-      const exit = "Exit";
-      const reload = "Reload";
-
-      const choice = await modalDialog({
-        msg: "error! Connection closed unexpectedly.",
-        choices: [ reload, exit ]
-      })
-      switch (choice) {
-        case exit: window.close(); break;
-        case reload: window.location.reload(); break;
-      }
-    };
+        modalDialog({
+          msg: "Error! Connection closed unexpectedly.",
+          opts: [
+            {label: "Reload", handler: () => window.location.reload()},
+            {label: "Exit", handler: () => window.close()}
+          ]
+        });
+      };
 
     this.root.append(this.sidePanel, this.mainPanel);
     this.bindServerUpdates();
@@ -87,8 +84,15 @@ export class VLApp {
       const metas: SessionMetadata[] = await res.json();
 
       for (const meta of metas) {
-        dashboard.sessions.set(meta.id, new SessionCard(meta));
+        Dashboard.sessions.set(meta.id, new SessionCard(meta));
         sendPayload(Payloads.action(WSActions.GET_STATE, meta.id));
+      }
+
+      const recResponse = await fetch(URL + '/recordings');
+      const recMetas: RecMetadata[] = await recResponse.json();
+      
+      for (const meta of recMetas) {
+        Recordings.append(meta);
       }
     } catch (err) {
       console.error("Init failed:", err);

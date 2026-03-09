@@ -2,7 +2,7 @@ import { SessionMetadata, WSActions, Payloads, SessionStates } from "../models/p
 import { circleButton } from "./circleButton.js";
 import { sendPayload } from "../network/ws.js";
 import { StopWatch } from "./StopWatch.js";
-import { dashboard } from "../views/dashboard.js";
+import { Dashboard } from "../views/dashboard.js";
 
 
 const DROP_BUTTON_RADIUS = 26;
@@ -61,8 +61,8 @@ export class SessionCard {
       radius: DROP_BUTTON_RADIUS,
       onClick: () => {
         this.notify(WSActions.DROP);
-        dashboard.sessions.delete(meta.id);
-        dashboard.render();
+        Dashboard.sessions.delete(meta.id);
+        Dashboard.render();
       }});
 
     const left = document.createElement('div');
