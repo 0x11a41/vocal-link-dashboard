@@ -140,7 +140,7 @@ async def save_recording(rid: str, file: UploadFile = File(...)):
 @api.get("/recordings/{rid}/original")
 async def get_recording(rid: str):
     path = await app.recordings.path(rid, RecordingTypes.ORIGINAL)
-    if not path or not app.recordings.is_uploaded(rid):
+    if not path or not await app.recordings.is_uploaded(rid):
         raise HTTPException(status_code=404, detail="Recording ID not found")
 
     filename = os.path.basename(path)
@@ -154,7 +154,7 @@ async def get_recording(rid: str):
 @api.get("/recordings/{rid}/enhanced")
 async def get_enhanced_recording(rid: str):
     path = await app.recordings.path(rid, RecordingTypes.ENHANCED)
-    if not path or not app.recordings.is_enhanced(rid):
+    if not path or not await app.recordings.is_enhanced(rid):
         raise HTTPException(status_code=404, detail="Recording ID not found")
 
     filename = os.path.basename(path)
@@ -168,7 +168,7 @@ async def get_enhanced_recording(rid: str):
 @api.get("/recordings/{rid}/transcript")
 async def get_transcript_json(rid: str):
     path = await app.recordings.path(rid, RecordingTypes.TRANSCRIPT)
-    if not path or not app.recordings.is_transcribed(rid):
+    if not path or not await app.recordings.is_transcribed(rid):
         raise HTTPException(status_code=404, detail="Recording ID not found")
 
     filename = os.path.basename(path)
@@ -190,6 +190,7 @@ async def delete_recording(rid: str):
 
 @api.post("/recordings/{rid}/transcribe")
 async def trigger_transcription(rid: str, bg: BackgroundTasks):
+    meta = await app.recordings.get_meta(rid)
     if not await app.recordings.exist(rid):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND)
         
@@ -197,6 +198,11 @@ async def trigger_transcription(rid: str, bg: BackgroundTasks):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT)
 
     await app.recordings.set_transcript(rid, P.RecStates.WORKING)
+    await app.dashboard.notify(P.WSPayload(
+                             kind=P.WSKind.EVENT,
+                             msgType=P.WSEvents.REC_AMEND,
+                             body=meta
+                         ))
     bg.add_task(app.services.transcribe, rid)
 
     return Response(status_code=status.HTTP_202_ACCEPTED)
@@ -218,7 +224,14 @@ async def trigger_enhance(
             detail="Enhancement already in progress"
         )
 
+    log.info('Enhancement level: ' + str(props))
     await app.recordings.set_enhanced(rid, P.RecStates.WORKING)
+    await app.dashboard.notify(P.WSPayload(
+                             kind=P.WSKind.EVENT,
+                             msgType=P.WSEvents.REC_AMEND,
+                             body=meta
+                         ))
+
     bg.add_task(app.services.enhance, rid, props)
 
     return Response(status_code=status.HTTP_202_ACCEPTED)

@@ -15,6 +15,7 @@ export class AudioPlayer {
     audio;
     meta;
     isPlaying = false;
+    isDragging = false;
     ui;
     currentMode = AudioMode.ORIGINAL;
     constructor({ meta }) {
@@ -86,11 +87,29 @@ export class AudioPlayer {
     createPlayerControls() {
         const playerRow = document.createElement('div');
         playerRow.className = 'player';
-        this.ui.currentTimeSpan.innerText = '00:00';
+        this.ui.currentTimeSpan.innerText = '00:00 sec';
         const progressContainer = document.createElement('div');
         progressContainer.className = 'progress-bar-container';
         progressContainer.appendChild(this.ui.progressFill);
-        progressContainer.onclick = (e) => this.handleSeek(e, progressContainer);
+        const onMouseMove = (e) => {
+            if (this.isDragging)
+                this.handleSeek(e, progressContainer);
+        };
+        const onMouseUp = () => {
+            if (this.isDragging) {
+                this.isDragging = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+                if (this.isPlaying)
+                    this.audio.play();
+            }
+        };
+        progressContainer.onmousedown = (e) => {
+            this.isDragging = true;
+            this.handleSeek(e, progressContainer);
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
         const totalTimeSpan = document.createElement('span');
         totalTimeSpan.className = 'time-stamp';
         totalTimeSpan.innerText = formatDuration(this.meta.duration);
@@ -152,9 +171,12 @@ export class AudioPlayer {
     }
     handleSeek(e, container) {
         const rect = container.getBoundingClientRect();
-        const percent = (e.clientX - rect.left) / rect.width;
+        const x = e.clientX - rect.left;
+        const percent = Math.min(Math.max(x / rect.width, 0), 1);
         if (!isNaN(this.audio.duration)) {
             this.audio.currentTime = percent * this.audio.duration;
+            this.ui.progressFill.style.width = `${percent * 100}%`;
+            this.ui.currentTimeSpan.innerText = formatDuration(Math.floor(this.audio.currentTime));
         }
     }
     pause() {
@@ -173,10 +195,10 @@ export class AudioPlayer {
     drop() {
         this.pause();
         this.audio.src = "";
-        this.audio.load();
         this.audio.ontimeupdate = null;
         this.audio.onended = null;
         this.audio.onerror = null;
+        this.audio.load();
         this.element.remove();
         this.element.replaceChildren();
         this.ui = null;

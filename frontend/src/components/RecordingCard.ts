@@ -6,6 +6,7 @@ import { button } from "./button.js";
 import { circleButton } from "./circleButton.js";
 import { formatBytes, formatDuration, formatTime } from "../utils/formatting.js";
 import { AudioPlayer } from "./AudioPlayer.js";
+import { EnhancePanel } from "./EnhancePanel.js";
 import { modalDialog } from "./modalDialog.js";
 import { URL } from "../models/constants.js";
 
@@ -19,6 +20,7 @@ export class RecordingCard {
   public onDelete?: (rid: string) => void;
 
   public audioPlayer: AudioPlayer;
+  public enhancePanel: HTMLElement;
 
   private checkbox = checkbox({
     onCheck: (isChecked) => this.handleSelection(isChecked)
@@ -38,6 +40,7 @@ export class RecordingCard {
                       onClick: () => this.handleExpand(),
                       radius: 38,
                     });
+    this.enhancePanel = EnhancePanel(meta.rid);
   }
 
   public render(): void {
@@ -49,7 +52,10 @@ export class RecordingCard {
   expandableInner.className = 'expandable-inner';
 
   this.audioPlayer.render();
-  expandableInner.append(this.audioPlayer.element);
+  expandableInner.append(
+    this.audioPlayer.element,
+    this.enhancePanel
+  );
 
   this.expandable.appendChild(expandableInner);
   this.element.append(header, this.fullMetaSection, this.expandable);
@@ -170,8 +176,17 @@ export class RecordingCard {
     this.meta.transcript = newMeta.transcript;
     this.meta.merged = newMeta.merged;
 
-    if (this.meta.original === RecStates.OK) {
+    if (this.meta.original == RecStates.OK) {
+      this.element.classList.remove('loading');
       this.audioPlayer.loadAudio();
+    } else if (this.meta.original === RecStates.WORKING) {
+      this.element.classList.add('loading');
+    }
+
+    if (this.meta.enhanced === RecStates.WORKING) {
+      this.enhancePanel.classList.add('loading');
+    } else {
+      this.enhancePanel.classList.remove('loading');
     }
     this.fullMetaSection = this.createFullMetaSection();
     this.render();

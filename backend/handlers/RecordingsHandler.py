@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Callable
 from enum import Enum
 import asyncio
 import os
+import shutil
 import uuid
 import json
 from fastapi import UploadFile
@@ -21,11 +22,14 @@ class RecordingTypes(Enum):
 
 class RecordingsHandler:
     def __init__(self, root: str = "storage"):    
+        self.root: str = root
+        if os.path.exists(self.root):
+            shutil.rmtree(self.root)
+
         self._recordings: Dict[str, P.RecMetadata] = {}
         self._lock = asyncio.Lock()
 
         self._audio = AudioToolkit()
-        self.root: str = root
 
         self.original_dir: str = os.path.join(root, "original")
         self.enhanced_dir: str = os.path.join(root, "enhanced")

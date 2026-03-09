@@ -1,4 +1,3 @@
-import { RecStates } from '../models/primitives.js';
 import { RecordingCard } from '../components/RecordingCard.js';
 import { button } from '../components/button.js';
 import { checkbox } from '../components/checkbox.js';
@@ -34,12 +33,23 @@ class RecordingsView {
     }
     render() {
         this.view.replaceChildren();
-        this.view.appendChild(this.createHeader());
-        this.cards.forEach((card) => {
-            card.render();
-            this.view.appendChild(card.element);
-        });
-        this.setCount(0);
+        if (this.cards.size > 0) {
+            this.view.appendChild(this.createHeader());
+            this.cards.forEach((card) => {
+                card.render();
+                this.view.appendChild(card.element);
+            });
+            this.setCount(0);
+        }
+        else {
+            this.view.innerHTML = `
+                <header>
+                    <span class="muted" style="width: 100%; text-align: center;">
+                        No recordings has been uploaded yet
+                    </span>
+                </header>
+            `;
+        }
     }
     createHeader() {
         const header = document.createElement('header');
@@ -101,16 +111,20 @@ class RecordingsView {
         this.selectedRids.forEach((rid) => {
             const card = this.cards.get(rid);
             card?.drop();
-            this.setCount(-1);
-            this.selectedRids.delete(rid);
+            this.cards.delete(rid);
         });
+        this.selectedRids.clear();
+        this.setCount(-this.selectionCount);
+        this.render();
     }
     deleteAll() {
         this.cards.forEach((card) => {
             card.drop();
         });
-        this.setCount(-this.selectionCount);
+        this.cards.clear();
         this.selectedRids.clear();
+        this.setCount(-this.selectionCount);
+        this.render();
     }
     setCount(step) {
         this.selectionCount += step;
@@ -136,6 +150,7 @@ class RecordingsView {
                 this.selectedRids.delete(meta.rid);
                 this.setCount(-1);
             }
+            this.render();
         };
         card.onSelect = (isSelected) => {
             if (isSelected) {
@@ -162,25 +177,3 @@ class RecordingsView {
     }
 }
 export const Recordings = new RecordingsView();
-export function recordingsView() {
-    const dummyRecording = {
-        rid: "68b81008-2ea4-4a3d-9a8a-aba60e693ed9",
-        recName: "20260308_085408.m4a",
-        sessionId: "a0540a3a-540f-44cf-9d18-252b926025d4",
-        speaker: "calcifer",
-        device: "Motorola moto g84 5G",
-        duration: 3,
-        sizeBytes: 43909,
-        createdAt: 1772940253688,
-        original: RecStates.OK,
-        enhanced: RecStates.NA,
-        transcript: RecStates.NA,
-        merged: null
-    };
-    const recording = new RecordingCard(dummyRecording);
-    recording.render();
-    const recordingsView = document.createElement('section');
-    recordingsView.classList.add("recordings-view", "stack");
-    recordingsView.appendChild(recording.element);
-    return recordingsView;
-}

@@ -193,6 +193,8 @@ export const EnhanceProps = {
   STUDIO_FILTER: 4,
 } as const;
 
+export const MAX_ENH_PROPS = 3;
+
 export interface QRData {
   type: "vocal_link_server";
   name: string;

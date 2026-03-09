@@ -209,17 +209,19 @@ body {
 
 
 /* ================== Generic classess ================ */
+.disabled {
+  user-select: none;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 .loading {
   position: relative;
   pointer-events: none;
   user-select: none;
-  border-radius: 4px;
   animation: pulse 1.8s ease-in-out infinite;
 }
 
-.loading * {
-  color: transparent !important;
-}
 
 @keyframes pulse {
   0% {
@@ -976,9 +978,7 @@ aside .active:hover {
   /* Prevents the text from wrapping/squashing */
 }
 
-.btn-enhance {
-  background-color: var(--accent);
-  color: white;
+.push-right {
   margin-left: auto;
 }
 

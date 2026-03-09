@@ -75,6 +75,7 @@ export const EnhanceProps = {
     REDUCE_NOISE: 2,
     STUDIO_FILTER: 4,
 };
+export const MAX_ENH_PROPS = 3;
 export const Payloads = {
     action: (type, id, triggerTime) => ({
         kind: WSKind.ACTION,

@@ -38,6 +38,7 @@ class DashboardHandler:
                 return
         try:
             await self._dashboard.send_json(payload.model_dump())
+            log.info(payload)
         except Exception:
             log.warning('dashboard got disconnected due to unexpected exception')
             await self.drop(self._dashboard)
