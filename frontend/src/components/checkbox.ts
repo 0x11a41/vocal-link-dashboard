@@ -8,5 +8,6 @@ export function checkbox({checked = false, onCheck}: checkboxProps): HTMLInputEl
   chkbox.type = 'checkbox';
   chkbox.checked = checked;
   chkbox.onchange = () => onCheck(chkbox.checked); 
+  chkbox.onclick = (e) => {e.stopPropagation()};
   return chkbox;
 }

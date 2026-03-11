@@ -3,5 +3,6 @@ export function checkbox({ checked = false, onCheck }) {
     chkbox.type = 'checkbox';
     chkbox.checked = checked;
     chkbox.onchange = () => onCheck(chkbox.checked);
+    chkbox.onclick = (e) => { e.stopPropagation(); };
     return chkbox;
 }

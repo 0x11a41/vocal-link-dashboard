@@ -309,6 +309,29 @@ class RecordingsHandler:
         return True
 
 
+    async def rename(self, rid: str, new_name: str) -> Optional[P.RecMetadata]:
+        async with self._lock:
+            meta = self._recordings.get(rid)
+            if not meta:
+                log.warning(f"Rename failed: RID {rid} not found.")
+                return None
+
+            try:
+                self._get_ext(new_name)
+                old_name = meta.recName
+                meta.recName = new_name
+            
+                log.info(f"Renamed recording {rid}: '{old_name}' -> '{new_name}'")
+                return meta.model_copy()
+
+            except ValueError:
+                log.error(f"Rename failed for {rid}: Invalid extension in '{new_name}'")
+                return None
+            except Exception as e:
+                log.error(f"Unexpected error during rename of {rid}: {e}")
+                return None
+
+
     async def exist(self, rid: str) -> bool:
         async with self._lock:
             return rid in self._recordings

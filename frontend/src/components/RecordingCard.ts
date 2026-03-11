@@ -1,4 +1,4 @@
-import { RecMetadata, RecStates } from "../models/primitives.js";
+import { RecMetadata, RecStates, WSActions, WSKind, WSPayload } from "../models/primitives.js";
 import { Link } from "./Link.js";
 import { checkbox } from "./checkbox.js";
 import { BadgeColors, Badge } from "./Badge.js";
@@ -10,6 +10,8 @@ import { EnhancePanel } from "./EnhancePanel.js";
 import { modalDialog } from "./modalDialog.js";
 import { URL } from "../models/constants.js";
 import { TranscriptionSection } from "./TranscriptSection.js";
+import { sendPayload } from "../network/ws.js";
+import { MutableTextBox } from "./MutableTextBox.js";
 
 export class RecordingCard {
   public element = document.createElement('section');
@@ -39,7 +41,7 @@ export class RecordingCard {
     this.audioPlayer = new AudioPlayer({meta: meta});
     this.expandBtn = circleButton({
                       classes: ['expand-icon', 'transparent'],
-                      onClick: () => this.handleExpand(),
+                      onClick: () => {},
                       radius: 38,
                     });
     this.enhancePanel = EnhancePanel(meta.rid);
@@ -96,6 +98,7 @@ export class RecordingCard {
   private createHeaderSection() {
     const header = document.createElement('div');
     header.className = 'card-header'
+    header.onclick = () => this.handleExpand();
 
     const left = document.createElement('span');
     left.className = 'card-left';
@@ -105,16 +108,19 @@ export class RecordingCard {
     const miniMeta = document.createElement('div');
     miniMeta.className = 'mini-meta';
 
-    const title = document.createElement('div');
-    title.className = 'title';
-    title.innerText = this.meta.recName;
+    const title =MutableTextBox({
+      initial: this.meta.recName,
+      onsave: (val: string) => { this.rename(val) },
+      classes: ['title']
+    })
 
     const details = document.createElement('div');
     details.className = 'details';
     details.innerText = `${this.meta.speaker} • ${this.meta.device} • ${formatTime(this.meta.createdAt)} • `;
     const toggleFullMetaViewBtn = Link({
       label: 'More info',
-      onClick: () => {
+      onClick: (e) => {
+        e.stopPropagation();
         if (this.fullMetaSection.classList.contains('open')) {
           toggleFullMetaViewBtn.innerText = 'More info';
           this.fullMetaSection.classList.remove('open');
@@ -137,14 +143,12 @@ export class RecordingCard {
     right.appendChild(button({
       label: 'Delete',
       classes: ['immutable'],
-      onClick: () => this.drop()
+      onClick: (e: PointerEvent) => { e.stopPropagation(); this.drop(); }
     }));
     right.appendChild(button({
       label: 'Save',
-      onClick: () => {} // TODO saving
+      onClick: (e) => { e.stopPropagation(); } // TODO saving
     }))
-
-    title.onclick = () => this.handleExpand();
 
     miniMeta.append(title, details, badgesWrapper);
     left.append(chkbox, miniMeta)
@@ -205,9 +209,18 @@ export class RecordingCard {
     }
 
     this.transcriptPanel.sync();
-    
     this.fullMetaSection = this.createFullMetaSection();
     this.render();
+  }
+
+  public async rename(newName: string): Promise<void> {
+    const payload: WSPayload = {
+      kind: WSKind.ACTION,
+      msgType: WSActions.REC_RENAME,
+      body: { ...this.meta, recName: newName }
+    };
+
+    sendPayload(payload)
   }
 
   private UICleanup() {

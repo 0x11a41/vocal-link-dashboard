@@ -209,6 +209,37 @@ body {
 
 
 /* ================== Generic classess ================ */
+.mutable-container {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+}
+
+.mutable-text {
+  cursor: text;
+  border-bottom: 1px dashed transparent;
+  transition: border-color 0.2s;
+}
+
+.mutable-text:hover {
+  border-bottom-color: currentColor;
+}
+
+.mutable-input {
+  font: inherit;
+  color: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--accent, #007bff);
+  outline: none;
+  padding: 0;
+  margin: 0;
+  width: 100%;
+}
+
 .disabled {
   user-select: none;
   pointer-events: none;
@@ -394,38 +425,6 @@ body {
   gap: 4px;
   justify-content: flex-end;
   align-items: center;
-}
-
-input[type="text"] {
-  border: 0;
-  border-bottom: 3px solid var(--border);
-  background-color: var(--bg-card);
-  color: var(--text-muted);
-  border-radius: 4px 4px 0 0;
-  padding: 0.75rem 0.8rem;
-  font-size: 0.95rem;
-  outline: none;
-  transition: background-color 0.2s, border-color 0.2s;
-  width: 16ch;
-  max-width: 400px;
-}
-
-input[type="text"]:focus {
-  border-bottom: 3px solid var(--accent);
-  color: var(--text-main);
-}
-
-input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  background: var(--bg-body);
-  cursor: pointer;
-  position: relative;
 }
 
 input[type="checkbox"]:checked {
@@ -816,6 +815,7 @@ aside .active:hover {
   padding: 1.5rem;
   border: 1px solid var(--border);
   display: flex;
+  cursor: pointer;
   flex-direction: column;
 }
 
@@ -850,7 +850,6 @@ aside .active:hover {
 .recording-card .title {
   font-weight: 600;
   font-size: 1.1rem;
-  cursor: pointer;
 }
 
 .recording-card .details {

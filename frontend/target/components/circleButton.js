@@ -3,7 +3,7 @@ function circleButton({ classes: classes, onClick, radius = 45, visibility: visi
     micBtn.style.width = `${radius}px`;
     micBtn.style.height = `${radius}px`;
     micBtn.classList.add('btn-circle', 'highlight-on-cursor', ...classes);
-    micBtn.onclick = onClick;
+    micBtn.onclick = (e) => onClick(e);
     micBtn.style.visibility = visibility;
     return micBtn;
 }

@@ -1,6 +1,6 @@
 interface Props {
   classes: string[];
-  onClick: () => void;
+  onClick: (e: PointerEvent) => void;
   radius?: number;
   visibility?: 'visible' | 'hidden';
 }
@@ -10,7 +10,7 @@ function circleButton({ classes: classes, onClick, radius = 45, visibility: visi
   micBtn.style.width = `${radius}px`;
   micBtn.style.height = `${radius}px`;
   micBtn.classList.add('btn-circle', 'highlight-on-cursor', ...classes);
-  micBtn.onclick = onClick;
+  micBtn.onclick = (e: PointerEvent) => onClick(e);
   micBtn.style.visibility = visibility;
   return micBtn;
 }

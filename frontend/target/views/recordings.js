@@ -6,7 +6,6 @@ import { URL } from '../models/constants.js';
 class RecordingsView {
     view = document.createElement('section');
     cards = new Map();
-    selectionCount = 0;
     selectionCounter = document.createElement('span');
     selectedRids = new Set();
     checkBox;
@@ -14,21 +13,10 @@ class RecordingsView {
     currentPlaying = null;
     constructor() {
         this.view.classList.add("recordings-view", "stack");
-        this.checkBox = checkbox({
-            onCheck: (isChecked) => {
-                this.cards.forEach((card) => {
-                    if (isChecked) {
-                        card.select();
-                    }
-                    else {
-                        card.deselect();
-                    }
-                });
-            }
-        });
+        this.checkBox = checkbox({ onCheck: (val) => this.toggleAll(val) });
         this.mergeBtn = button({
             label: "Merge",
-            onClick: async () => { await this.mergeSelected(); },
+            onClick: () => this.mergeSelected(),
             visibility: "hidden"
         });
     }
@@ -40,7 +28,6 @@ class RecordingsView {
                 card.render();
                 this.view.appendChild(card.element);
             });
-            this.setCount(0);
         }
         else {
             this.view.innerHTML = `
@@ -64,13 +51,13 @@ class RecordingsView {
             classes: ['immutable'],
             onClick: () => {
                 modalDialog({
-                    msg: this.selectionCount > 0 ?
-                        'Proceed to permenantly delete SELECTED recordings?' :
-                        "Are you sure you want to delete ALL recordings?",
+                    msg: this.selectedRids.size > 0 ?
+                        `Proceed to permenantly delete ${this.selectedRids.size} recordings?` :
+                        `Are you sure you want to delete all ${this.cards.size} recordings?`,
                     opts: [
                         { label: 'Cancel' },
                         { label: 'Proceed', handler: () => {
-                                if (this.selectionCount > 0)
+                                if (this.selectedRids.size > 0)
                                     this.deleteSelected();
                                 else
                                     this.deleteAll();
@@ -83,9 +70,9 @@ class RecordingsView {
         return header;
     }
     resetSelection() {
-        this.cards.forEach((card) => card.deselect());
-        this.checkBox.checked = false;
-        this.setCount(-this.selectionCount);
+        this.selectedRids.clear();
+        this.cards.forEach(card => card.deselect());
+        this.syncSelectionUI();
     }
     async mergeSelected() {
         if (this.selectedRids.size < 2)
@@ -109,62 +96,61 @@ class RecordingsView {
         }
     }
     deleteSelected() {
-        this.selectedRids.forEach((rid) => {
-            const card = this.cards.get(rid);
-            card?.drop();
-            this.cards.delete(rid);
-        });
+        this.selectedRids.forEach(rid => this.removeCard(rid));
         this.selectedRids.clear();
-        this.setCount(-this.selectionCount);
         this.render();
+        this.syncSelectionUI();
     }
     deleteAll() {
-        this.cards.forEach((card) => {
-            card.drop();
-        });
-        this.cards.clear();
+        this.cards.forEach((_, rid) => this.removeCard(rid));
         this.selectedRids.clear();
-        this.setCount(-this.selectionCount);
         this.render();
+        this.syncSelectionUI();
     }
-    setCount(step) {
-        this.selectionCount += step;
-        this.selectionCounter.innerText = `Select all (${this.selectionCount})`;
-        if (this.selectionCount == this.cards.size) {
-            this.checkBox.checked = true;
+    removeCard(rid) {
+        const card = this.cards.get(rid);
+        if (!card)
+            return;
+        if (this.currentPlaying === rid) {
+            card.audioPlayer.pause();
+            this.currentPlaying = null;
         }
-        else {
-            this.checkBox.checked = false;
-        }
-        if (this.selectionCount > 1) {
-            this.mergeBtn.style.visibility = 'visible';
-        }
-        else {
-            this.mergeBtn.style.visibility = 'hidden';
-        }
+        card.drop();
+        this.cards.delete(rid);
+    }
+    syncSelectionUI() {
+        const count = this.selectedRids.size;
+        const total = this.cards.size;
+        this.selectionCounter.innerText = count > 0
+            ? `Selected ${count} of ${total}`
+            : `Select all (${total})`;
+        this.checkBox.checked = total > 0 && count === total;
+        this.checkBox.indeterminate = count > 0 && count < total;
+        this.mergeBtn.style.visibility = count > 1 ? 'visible' : 'hidden';
+    }
+    toggleAll(forceSelect) {
+        this.cards.forEach((card, rid) => {
+            forceSelect ? card.select() : card.deselect();
+            forceSelect ? this.selectedRids.add(rid) : this.selectedRids.delete(rid);
+        });
+        this.syncSelectionUI();
     }
     append(meta) {
         const card = new RecordingCard(meta);
-        card.ondelete = () => {
-            if (this.currentPlaying === meta.rid) {
-                this.currentPlaying = null;
-            }
-            this.cards.delete(meta.rid);
-            if (this.selectedRids.has(meta.rid)) {
-                this.selectedRids.delete(meta.rid);
-                this.setCount(-1);
-            }
-            this.render();
-        };
         card.onselect = (isSelected) => {
             if (isSelected) {
-                this.setCount(+1);
                 this.selectedRids.add(meta.rid);
             }
             else {
-                this.setCount(-1);
                 this.selectedRids.delete(meta.rid);
             }
+            this.syncSelectionUI();
+        };
+        card.ondelete = () => {
+            this.cards.delete(meta.rid);
+            this.selectedRids.delete(meta.rid);
+            this.syncSelectionUI();
+            this.render();
         };
         card.setOnPlay((rid) => {
             if (this.currentPlaying && this.currentPlaying !== rid) {
@@ -181,6 +167,7 @@ class RecordingsView {
             }
         });
         this.cards.set(meta.rid, card);
+        this.syncSelectionUI();
         this.render();
     }
     amend(id, newMeta) {
