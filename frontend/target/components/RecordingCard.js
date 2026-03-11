@@ -9,6 +9,7 @@ import { AudioPlayer } from "./AudioPlayer.js";
 import { EnhancePanel } from "./EnhancePanel.js";
 import { modalDialog } from "./modalDialog.js";
 import { URL } from "../models/constants.js";
+import { TranscriptionSection } from "./TranscriptSection.js";
 export class RecordingCard {
     element = document.createElement('section');
     meta;
@@ -18,6 +19,7 @@ export class RecordingCard {
     ondelete;
     audioPlayer;
     enhancePanel;
+    transcriptPanel;
     checkbox = checkbox({
         onCheck: (isChecked) => this.handleSelection(isChecked)
     });
@@ -34,6 +36,10 @@ export class RecordingCard {
             radius: 38,
         });
         this.enhancePanel = EnhancePanel(meta.rid);
+        this.transcriptPanel = new TranscriptionSection({ meta: meta });
+        this.audioPlayer.ontimeupdate = (time) => this.transcriptPanel.updateTime(time);
+        this.audioPlayer.onend = () => { this.transcriptPanel.resetScroll(); };
+        this.transcriptPanel.onSeekRequest = (time) => { this.audioPlayer.seekTo(time); };
     }
     setOnPlay(onplay) {
         this.audioPlayer.onplay = onplay;
@@ -48,7 +54,7 @@ export class RecordingCard {
         const expandableInner = document.createElement('div');
         expandableInner.className = 'expandable-inner';
         this.audioPlayer.render();
-        expandableInner.append(this.audioPlayer.element, this.enhancePanel);
+        expandableInner.append(this.audioPlayer.element, this.enhancePanel, this.transcriptPanel.element);
         this.expandable.appendChild(expandableInner);
         this.element.append(header, this.fullMetaSection, this.expandable);
     }
@@ -166,6 +172,7 @@ export class RecordingCard {
         else {
             this.enhancePanel.classList.remove('loading');
         }
+        this.transcriptPanel.sync();
         this.fullMetaSection = this.createFullMetaSection();
         this.render();
     }

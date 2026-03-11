@@ -20,6 +20,8 @@ export class AudioPlayer {
     currentMode = AudioMode.ORIGINAL;
     onplay;
     onpause;
+    ontimeupdate;
+    onend;
     constructor({ meta }) {
         this.meta = meta;
         this.audio = new Audio();
@@ -168,10 +170,12 @@ export class AudioPlayer {
                 const percent = (this.audio.currentTime / this.audio.duration) * 100;
                 this.ui.progressFill.style.width = `${percent}%`;
                 this.ui.currentTimeSpan.innerText = formatDuration(Math.floor(this.audio.currentTime));
+                this.ontimeupdate?.(this.audio.currentTime);
             }
         };
         this.audio.onended = () => {
             this.ui.progressFill.style.width = '0%';
+            this.onend?.();
         };
         this.audio.onerror = () => {
             this.isPlaying = false;
@@ -192,6 +196,16 @@ export class AudioPlayer {
             this.ui.progressFill.style.width = `${percent * 100}%`;
             this.ui.currentTimeSpan.innerText = formatDuration(Math.floor(this.audio.currentTime));
         }
+    }
+    seekTo(time) {
+        if (isNaN(this.audio.duration))
+            return;
+        const targetTime = Math.min(Math.max(time, 0), this.audio.duration);
+        this.audio.currentTime = targetTime;
+        const percent = (targetTime / this.audio.duration) * 100;
+        this.ui.progressFill.style.width = `${percent}%`;
+        this.ui.currentTimeSpan.innerText = formatDuration(Math.floor(targetTime));
+        this.ontimeupdate?.(targetTime);
     }
     updateMediaSession() {
         if (!('mediaSession' in navigator))

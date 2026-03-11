@@ -671,7 +671,7 @@ aside .active:hover {
   background-color: var(--bg-sidebar);
   min-width: 30ch;
   padding: 1rem;
-  border-radius: 14px;
+  border-radius: var(--border-radius);
   border: 2px solid var(--border);
   position: relative;
 }
@@ -999,8 +999,10 @@ aside .active:hover {
 }
 
 .transcript-scroll {
+  position: relative;
   max-height: 12ch;
-  overflow: auto;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .sentence {

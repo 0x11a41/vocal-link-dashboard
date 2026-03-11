@@ -202,6 +202,19 @@ export interface QRData {
   port: number;
 }
 
+export interface TranscriptSegment {
+  start: number;
+  end: number;
+  text: string;
+}
+
+export interface TranscriptResult {
+  rid: string;
+  language: string;
+  duration: number;
+  segments: TranscriptSegment[];
+}
+
 // ============================================
 // ============== PAYLOAD BUILDERS ============
 // ============================================

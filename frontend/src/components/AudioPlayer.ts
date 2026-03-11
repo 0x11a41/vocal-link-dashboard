@@ -37,6 +37,8 @@ export class AudioPlayer {
 
   public onplay?: (rid: string) => void;
   public onpause?: (rid: string) => void;
+  public ontimeupdate?: (currentTime: number) => void;
+  public onend?: () => void;
 
   constructor({meta}: {meta: RecMetadata}) {
     this.meta = meta;
@@ -134,7 +136,6 @@ export class AudioPlayer {
               this.isDragging = false;
               document.removeEventListener('mousemove', onMouseMove);
               document.removeEventListener('mouseup', onMouseUp);
-              // Resume playback if it was playing before the drag
               if (this.isPlaying) this.audio.play();
           }
       };
@@ -215,11 +216,13 @@ export class AudioPlayer {
         const percent = (this.audio.currentTime / this.audio.duration) * 100;
         this.ui.progressFill.style.width = `${percent}%`;
         this.ui.currentTimeSpan.innerText = formatDuration(Math.floor(this.audio.currentTime));
+        this.ontimeupdate?.(this.audio.currentTime);
       }
     };
 
     this.audio.onended = () => {
       this.ui.progressFill.style.width = '0%';
+      this.onend?.();
     };
 
     this.audio.onerror = () => {
@@ -243,6 +246,19 @@ export class AudioPlayer {
         this.ui.progressFill.style.width = `${percent * 100}%`;
         this.ui.currentTimeSpan.innerText = formatDuration(Math.floor(this.audio.currentTime));
     }
+  }
+
+  public seekTo(time: number): void {
+    if (isNaN(this.audio.duration)) return;
+
+    const targetTime = Math.min(Math.max(time, 0), this.audio.duration);
+    this.audio.currentTime = targetTime;
+
+    const percent = (targetTime / this.audio.duration) * 100;
+    this.ui.progressFill.style.width = `${percent}%`;
+    this.ui.currentTimeSpan.innerText = formatDuration(Math.floor(targetTime));
+
+    this.ontimeupdate?.(targetTime);
   }
 
   private updateMediaSession(): void {
