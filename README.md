@@ -1,7 +1,5 @@
 > **vocal-link-dashboard ~ A controller for vocal-link-recorder**
 
-[Read notes →](docs/NOTES.md)
-
 ## Prerequisites
 
 Before running the project, install:
@@ -10,8 +8,7 @@ Before running the project, install:
 - pip
 - git
 - tsc (optional, required only for debug mode only)
-- Qt WebEngine (on Linux distributions only)
-- **IMPORTANT:** TCP port - 6210 and UDP port - 5353 must be open.
+- **IMPORTANT: TCP port - 6210 and UDP port - 5353 must be open.**
 
 ## Setup
 
@@ -42,9 +39,7 @@ pip install -r requirements.txt
 
 ## Running the server
 
-#### Desktop Mode (Default)
-
-Starts backend + native window.
+#### Normal mode
 
 ```bash
 python app.py
@@ -52,17 +47,24 @@ python app.py
 
 #### Running in Debug Mode
 
+you'll need tsc to be installed to open the application in this mode.
+
 ```bash
 python app.py --debug
 ```
 
-## Creating test clients
+## Todo
 
-Command to create 3 test clients:
-
-```bash
-python puppets.py 3
-```
+- [ ] storing server configuration
+- [ ] setting page
+- [ ] dark and light mode toggle button at top
+- [ ] about page
+- [ ] key bindings
+- [ ] key bindings documentation
+- [ ] log section to show toast notifications
+- [ ] indicate new recordings
+- [ ] css refinements
 
 ## License
+
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) for details.
