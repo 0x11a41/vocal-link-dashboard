@@ -2,15 +2,6 @@
 
 pkgs.mkShell {
   buildInputs = with pkgs; [
-    # Qt runtime (replacement for qt6.full)
-    qt6.qtbase
-    qt6.qtwebengine
-
-    # Python Qt bindings
-    python3Packages.pyqt6
-    python3Packages.pyqt6-webengine
-
-    # Dev tools
     ty
     ruff
     vscode-css-languageserver
@@ -39,6 +30,6 @@ pkgs.mkShell {
   ];
 
   shellHook = ''
-    echo "Entered dev-shell (Qt WebEngine ready)"
+    echo "Entered dev-shell."
   '';
 }
