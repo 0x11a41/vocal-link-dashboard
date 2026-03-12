@@ -1,10 +1,16 @@
-fastapi
 uvicorn
+fastapi
 websockets
+livereload
 httpx
 zeroconf
 pydantic
 qrcode
+faster-whisper
 pillow
 pydub
 pywebview
+psutil
+noisereduce
+numpy
+python-multipart
