@@ -1,4 +1,4 @@
-export const VERSION = "v0.81-alpha";
+export const VERSION = "v0.82-alpha";
 export const PORT = 6210;
 export const BROADCAST = "all";
 export var WSKind;
@@ -16,6 +16,8 @@ export var WSErrors;
     WSErrors["INVALID_BODY"] = "invalid_body";
     WSErrors["ACTION_NOT_ALLOWED"] = "action_not_allowed";
     WSErrors["SESSION_NOT_FOUND"] = "session_not_found";
+    WSErrors["INVALID_EXTENSION"] = "invalid_extension";
+    WSErrors["ITEM_NOT_FOUND"] = "item_not_found";
 })(WSErrors || (WSErrors = {}));
 export var WSEvents;
 (function (WSEvents) {
@@ -35,6 +37,7 @@ export var WSEvents;
     WSEvents["REC_STAGE"] = "rec_stage";
     WSEvents["REC_STAGED"] = "rec_staged";
     WSEvents["REC_AMEND"] = "rec_amend";
+    WSEvents["REC_RENAME"] = "rec_rename";
 })(WSEvents || (WSEvents = {}));
 export var WSActions;
 (function (WSActions) {
@@ -50,7 +53,6 @@ export var WSActions;
     WSActions["PAUSE_ALL"] = "pause_all";
     WSActions["RESUME_ALL"] = "resume_all";
     WSActions["CANCEL_ALL"] = "cancel_all";
-    WSActions["REC_RENAME"] = "rec_rename";
 })(WSActions || (WSActions = {}));
 export var WSClockSync;
 (function (WSClockSync) {

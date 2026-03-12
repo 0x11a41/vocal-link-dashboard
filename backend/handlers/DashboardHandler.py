@@ -44,6 +44,20 @@ class DashboardHandler:
             await self.drop(self._dashboard)
 
 
+    async def error(self, err: P.WSErrors):
+        async with self.lock:
+            if not self._dashboard:
+                return
+
+        payload = P.WSPayload(kind=P.WSKind.ERROR, msgType=err)
+        try:
+            await self._dashboard.send_json(payload.model_dump())
+            log.info(payload)
+        except Exception:
+            log.warning('dashboard got disconnected due to unexpected exception')
+            await self.drop(self._dashboard)
+
+
     async def available(self) -> bool:
         async with self.lock:
             return self._dashboard is not None

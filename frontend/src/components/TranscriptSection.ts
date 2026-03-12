@@ -178,7 +178,7 @@ export class TranscriptionSection {
     }
   }
 
-  private downloadSRT(): void {
+  public downloadSRT(): void {
     if (!this.transcriptData) return;
     
     let srtContent = '';

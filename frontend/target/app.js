@@ -6,13 +6,13 @@ import { sendPayload, ws } from './network/ws.js';
 import { wsHandler } from './network/wsHandler.js';
 import { ViewSelector } from './components/ViewSelector.js';
 import { Dashboard } from './views/dashboard.js';
-import { Recordings } from './views/recordings.js';
+import { recordings } from './views/recordings.js';
 import { modalDialog } from './components/modalDialog.js';
 export class VLApp {
     root;
     sidePanel = document.createElement('aside');
     mainPanel = document.createElement('main');
-    viewSelector = new ViewSelector(this.mainPanel, Views.RECORDINGS);
+    viewSelector = new ViewSelector(this.mainPanel, Views.DASHBOARD);
     constructor() {
         const root = document.getElementById("app");
         if (!root)
@@ -74,7 +74,7 @@ export class VLApp {
             const recResponse = await fetch(URL + '/recordings');
             const recMetas = await recResponse.json();
             for (const meta of recMetas) {
-                Recordings.append(meta);
+                recordings.append(meta);
             }
         }
         catch (err) {

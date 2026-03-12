@@ -233,7 +233,7 @@ body {
 
   background: transparent;
   border: none;
-  border-bottom: 1px solid var(--accent, #007bff);
+  border-bottom: 1px solid var(--danger);
   outline: none;
   padding: 0;
   margin: 0;
@@ -645,6 +645,12 @@ aside .active:hover {
   width: 100%;
 }
 
+.dashboard-view .title {
+  font-weight: 700;
+  font-size: 2.5rem;
+  color: var(--text-muted);
+}
+
 .no-sessions-wrapper {
   align-items: center;
   width: 100%;
@@ -815,7 +821,6 @@ aside .active:hover {
   padding: 1.5rem;
   border: 1px solid var(--border);
   display: flex;
-  cursor: pointer;
   flex-direction: column;
 }
 
@@ -827,6 +832,7 @@ aside .active:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  cursor: pointer;
 }
 
 .recording-card .card-left {

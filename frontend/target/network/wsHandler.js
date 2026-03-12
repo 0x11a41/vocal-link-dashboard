@@ -1,7 +1,7 @@
 import { WSKind, WSEvents } from '../models/primitives.js';
 import { SessionCard } from '../components/SessionCard.js';
 import { Dashboard } from '../views/dashboard.js';
-import { Recordings } from '../views/recordings.js';
+import { recordings } from '../views/recordings.js';
 function handleEvents({ payload, renderDashboard }) {
     switch (payload.msgType) {
         case WSEvents.SESSION_ACTIVATED: {
@@ -76,12 +76,13 @@ function handleEvents({ payload, renderDashboard }) {
         }
         case WSEvents.REC_STAGED: {
             const meta = payload.body;
-            Recordings.append(meta);
+            recordings.append(meta);
+            recordings.setDefaultName(meta);
             break;
         }
         case WSEvents.REC_AMEND: {
             const meta = payload.body;
-            Recordings.amend(meta.rid, meta);
+            recordings.amend(meta.rid, meta);
             break;
         }
         case WSEvents.SUCCESS:

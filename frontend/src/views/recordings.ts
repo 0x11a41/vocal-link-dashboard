@@ -4,7 +4,7 @@ import { button } from '../components/button.js';
 import { checkbox } from '../components/checkbox.js';
 import { modalDialog } from '../components/modalDialog.js';
 import { URL } from '../models/constants.js';
-import { MutableTextBox } from '../components/MutableTextBox.js';
+import { fmtDate, fmtRecordingName, fmtTime } from '../utils/formatting.js';
 
 class RecordingsView {
     public view = document.createElement('section');
@@ -197,17 +197,23 @@ class RecordingsView {
         this.render();
     }
 
-    public amend(id: string, newMeta: RecMetadata) {
-        const card = this.cards.get(id);
+    public amend(rid: string, newMeta: RecMetadata) {
+        const card = this.cards.get(rid);
         if (card) {
             card.amend(newMeta);
         }
         this.render();
     }
 
+    public setDefaultName(meta: RecMetadata) {
+        const card = this.cards.get(meta.rid);
+        if (card) {
+            card.requestRename(fmtRecordingName(meta))
+        }
+    }
     public contains(rid: string): boolean {
         return this.cards.has(rid);
     }
 }
 
-export const Recordings = new RecordingsView();
+export const recordings = new RecordingsView();

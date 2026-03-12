@@ -1,17 +1,17 @@
-import { RecMetadata, RecStates, WSActions, WSKind, WSPayload } from "../models/primitives.js";
+import { RecMetadata, RecStates } from "../models/primitives.js";
 import { Link } from "./Link.js";
 import { checkbox } from "./checkbox.js";
 import { BadgeColors, Badge } from "./Badge.js";
 import { button } from "./button.js";
 import { circleButton } from "./circleButton.js";
-import { formatBytes, formatDuration, formatTime } from "../utils/formatting.js";
+import { formatBytes, formatDuration, fmtTime, fmtDate } from "../utils/formatting.js";
 import { AudioPlayer } from "./AudioPlayer.js";
 import { EnhancePanel } from "./EnhancePanel.js";
 import { modalDialog } from "./modalDialog.js";
 import { URL } from "../models/constants.js";
 import { TranscriptionSection } from "./TranscriptSection.js";
-import { sendPayload } from "../network/ws.js";
 import { MutableTextBox } from "./MutableTextBox.js";
+import { downloadFile } from "../utils/downloadFile.js";
 
 export class RecordingCard {
   public element = document.createElement('section');
@@ -84,10 +84,10 @@ export class RecordingCard {
     pane.innerHTML = `
       <div class="detail-row"><span>File Name:</span> ${this.meta.recName}</div>
       <div class="detail-row"><span>Size:</span>${formatBytes(this.meta.sizeBytes)}</div>
-      <div class="detail-row"><span>Device:</span>${this.meta.device}</div>
       <div class="detail-row"><span>Duration:</span>${formatDuration(this.meta.duration)}</div>
-      <div class="detail-row"><span>Created at:</span>${formatTime(this.meta.createdAt)}</div>
+      <div class="detail-row"><span>Created at:</span>${fmtDate(this.meta.createdAt)}, ${fmtTime(this.meta.createdAt)}</div>
       <div class="detail-row"><span>Speaker:</span>${this.meta.speaker}</div>
+      <div class="detail-row"><span>Device:</span>${this.meta.device}</div>
       <div class="detail-row"><span>Transcript:</span>${this.meta.transcript}</div>
       <div class="detail-row"><span>Enhanced:</span>${this.meta.enhanced}</div>
       <div class="detail-row"><span>Original:</span>${this.meta.original}</div>
@@ -108,15 +108,15 @@ export class RecordingCard {
     const miniMeta = document.createElement('div');
     miniMeta.className = 'mini-meta';
 
-    const title =MutableTextBox({
+    const title = MutableTextBox({
       initial: this.meta.recName,
-      onsave: (val: string) => { this.rename(val) },
+      onsave: (val: string) => { this.requestRename(val) },
       classes: ['title']
     })
 
     const details = document.createElement('div');
     details.className = 'details';
-    details.innerText = `${this.meta.speaker} • ${this.meta.device} • ${formatTime(this.meta.createdAt)} • `;
+    details.innerText = `${this.meta.speaker} • ${this.meta.device} • ${fmtTime(this.meta.createdAt)} • `;
     const toggleFullMetaViewBtn = Link({
       label: 'More info',
       onClick: (e) => {
@@ -147,13 +147,54 @@ export class RecordingCard {
     }));
     right.appendChild(button({
       label: 'Save',
-      onClick: (e) => { e.stopPropagation(); } // TODO saving
+      onClick: (e) => { e.stopPropagation(); this.handleSave(); } // TODO saving
     }))
 
     miniMeta.append(title, details, badgesWrapper);
     left.append(chkbox, miniMeta)
     header.append(left, right);
     return header;
+  }
+
+  private handleSave(): void {
+    const OK = (state: RecStates) => state === RecStates.OK;
+    const { rid, recName, original, enhanced, transcript } = this.meta;
+
+    const options: { label: string; handler: () => void }[] = [];
+
+    if (OK(original)) {
+      options.push({
+        label: 'Original',
+        handler: () => downloadFile(`${URL}/recordings/${rid}/original`, recName)
+      });
+    }
+
+    if (OK(enhanced)) {
+      options.push({
+        label: 'Enhanced',
+        handler: () => downloadFile(`${URL}/recordings/${rid}/enhanced`, recName)
+      });
+    }
+
+    if (OK(transcript)) {
+      options.push({
+        label: 'Transcript',
+        handler: () => this.transcriptPanel.downloadSRT()
+      });
+    }
+
+    if (options.length === 0) {
+      return;
+    }
+
+    if (options.length === 1) {
+      options[0].handler();
+    } else {
+      modalDialog({
+        msg: "Multiple files available. Select one to download",
+        opts: [ ...options, { label: 'Cancel' }]
+      });
+    }
   }
 
   private handleExpand(): void {
@@ -213,14 +254,11 @@ export class RecordingCard {
     this.render();
   }
 
-  public async rename(newName: string): Promise<void> {
-    const payload: WSPayload = {
-      kind: WSKind.ACTION,
-      msgType: WSActions.REC_RENAME,
-      body: { ...this.meta, recName: newName }
-    };
-
-    sendPayload(payload)
+  public async requestRename(newName: string): Promise<void> {
+    await fetch(
+      `${URL}/recordings/${this.rid()}/rename?newName=${newName}`,
+      { method: 'PATCH' }
+    );
   }
 
   private UICleanup() {

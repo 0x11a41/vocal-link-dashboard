@@ -1,7 +1,7 @@
 import { Views } from '../models/primitives.js';
 import { Dashboard } from '../views/dashboard.js';
 import { SettingsView } from "../views/settings.js"
-import { Recordings } from "../views/recordings.js"
+import { recordings } from "../views/recordings.js"
 
 
 export class ViewSelector {
@@ -52,8 +52,8 @@ export class ViewSelector {
         break;
 
       case Views.RECORDINGS:
-        this.mainPanel.appendChild(Recordings.view);
-        Recordings.render();
+        this.mainPanel.appendChild(recordings.view);
+        recordings.render();
         break;
 
       case Views.SETTINGS:

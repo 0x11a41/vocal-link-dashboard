@@ -3,6 +3,7 @@ import { button } from '../components/button.js';
 import { checkbox } from '../components/checkbox.js';
 import { modalDialog } from '../components/modalDialog.js';
 import { URL } from '../models/constants.js';
+import { fmtRecordingName } from '../utils/formatting.js';
 class RecordingsView {
     view = document.createElement('section');
     cards = new Map();
@@ -170,15 +171,21 @@ class RecordingsView {
         this.syncSelectionUI();
         this.render();
     }
-    amend(id, newMeta) {
-        const card = this.cards.get(id);
+    amend(rid, newMeta) {
+        const card = this.cards.get(rid);
         if (card) {
             card.amend(newMeta);
         }
         this.render();
     }
+    setDefaultName(meta) {
+        const card = this.cards.get(meta.rid);
+        if (card) {
+            card.requestRename(fmtRecordingName(meta));
+        }
+    }
     contains(rid) {
         return this.cards.has(rid);
     }
 }
-export const Recordings = new RecordingsView();
+export const recordings = new RecordingsView();

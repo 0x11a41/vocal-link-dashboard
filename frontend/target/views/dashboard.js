@@ -1,5 +1,6 @@
 import { server } from '../network/serverInfo.js';
 import { ClusterActionsHandler } from '../components/ClusterActionsHandler.js';
+import { MutableTextBox } from '../components/MutableTextBox.js';
 class DashboardView {
     sessions = new Map();
     clusterBtns = new ClusterActionsHandler({ sessions: this.sessions });
@@ -39,22 +40,27 @@ class DashboardView {
         });
     }
     renderHeader() {
-        const header = document.createElement('div');
-        header.classList.add("view-header");
-        header.innerHTML = `
-      <div class="head">
-        <h1>${server.data.name}</h1>
-        <p class="status">
-          status:
-          ${server.data.activeSessions < 0
+        const headerWrap = document.createElement('div');
+        headerWrap.classList.add("view-header");
+        const left = document.createElement('div');
+        left.className = "head";
+        const title = MutableTextBox({
+            initial: server.data.name,
+            onsave: () => { },
+            classes: ['title']
+        });
+        left.appendChild(title);
+        left.insertAdjacentHTML('beforeend', `
+      <p class="status">
+        status:
+        ${server.data.activeSessions < 0
             ? '<span class="danger">Offline</span>'
             : '<span class="success">Active</span>'}
-        </p>
-      </div>
-    `;
+      </p>
+    `);
         this.clusterBtns.render();
-        header.appendChild(this.clusterBtns.buttons);
-        this.view.appendChild(header);
+        headerWrap.append(left, this.clusterBtns.buttons);
+        this.view.appendChild(headerWrap);
     }
 }
 export const Dashboard = new DashboardView();

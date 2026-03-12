@@ -1,3 +1,5 @@
+import { RecMetadata } from "../models/primitives.js";
+
 export function formatBytes(bytes: number, decimals: number = 2): string {
     if (bytes === 0) return '0 B';
     const k = 1024;
@@ -15,7 +17,7 @@ export function formatDuration(seconds: number): string {
   return `${mm}:${ss} sec`;
 }
 
-export function formatTime(dateInput: string | number | Date): string {
+export function fmtTime(dateInput: string | number | Date): string {
   const date = new Date(dateInput);
   return new Intl.DateTimeFormat('en-US', {
     hour: '2-digit',
@@ -24,4 +26,18 @@ export function formatTime(dateInput: string | number | Date): string {
   }).format(date).toLowerCase(); 
 }
 
+export function fmtDate(dateInput: string | number | Date): string {
+  const date = new Date(dateInput);
+  
+  return new Intl.DateTimeFormat('en-GB', { // 'en-GB' defaults to Day Month Year
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(date).toLowerCase(); 
+}
+
+export function fmtRecordingName(meta: RecMetadata): string {
+  const filename = `${meta.speaker}-${fmtTime(meta.createdAt)}-${fmtDate(meta.createdAt)}.${meta.recName.split('.').pop()}`
+  return filename.replaceAll(' ', '-');
+}
 

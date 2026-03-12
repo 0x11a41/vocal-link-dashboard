@@ -14,11 +14,23 @@ export function formatDuration(seconds) {
     const ss = String(secs).padStart(2, '0');
     return `${mm}:${ss} sec`;
 }
-export function formatTime(dateInput) {
+export function fmtTime(dateInput) {
     const date = new Date(dateInput);
     return new Intl.DateTimeFormat('en-US', {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
     }).format(date).toLowerCase();
+}
+export function fmtDate(dateInput) {
+    const date = new Date(dateInput);
+    return new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    }).format(date).toLowerCase();
+}
+export function fmtRecordingName(meta) {
+    const filename = `${meta.speaker}-${fmtTime(meta.createdAt)}-${fmtDate(meta.createdAt)}.${meta.recName.split('.').pop()}`;
+    return filename.replaceAll(' ', '-');
 }

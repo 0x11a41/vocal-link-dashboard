@@ -37,7 +37,9 @@ export function MutableTextBox({ initial, onsave, classes = [] }) {
         input.onblur = () => finish(true);
         container.appendChild(input);
         input.focus();
-        input.select();
+        const dotIndex = textToEdit.lastIndexOf('.');
+        const selectionEnd = dotIndex > 0 ? dotIndex : textToEdit.length;
+        input.setSelectionRange(0, selectionEnd);
     };
     renderView(initial);
     return container;

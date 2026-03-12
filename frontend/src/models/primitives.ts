@@ -2,7 +2,7 @@
 // ================ NETWORKING ================
 // ============================================
 
-export const VERSION = "v0.81-alpha";
+export const VERSION = "v0.82-alpha";
 export const PORT = 6210;
 export const BROADCAST = "all";
 
@@ -20,6 +20,8 @@ export enum WSErrors {
   INVALID_BODY = "invalid_body",
   ACTION_NOT_ALLOWED = "action_not_allowed",
   SESSION_NOT_FOUND = "session_not_found",
+  INVALID_EXTENSION = "invalid_extension",
+  ITEM_NOT_FOUND = "item_not_found",
 }
 
 export enum WSEvents {
@@ -40,6 +42,7 @@ export enum WSEvents {
   REC_STAGE = "rec_stage",
   REC_STAGED = "rec_staged",
   REC_AMEND = "rec_amend",
+  REC_RENAME = "rec_rename",
 }
 
 export enum WSActions {
@@ -55,7 +58,6 @@ export enum WSActions {
   PAUSE_ALL = "pause_all",
   RESUME_ALL = "resume_all",
   CANCEL_ALL = "cancel_all",
-  REC_RENAME = "rec_rename",
 }
 
 export enum WSClockSync {

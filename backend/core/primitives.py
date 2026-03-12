@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from typing import Optional, Union, List
 
 
-VERSION = "v0.81-alpha"
+VERSION = "v0.82-alpha"
 
 PORT = 6210
 BROADCAST = "all"
@@ -40,6 +40,8 @@ class WSErrors(str, Enum):
     INVALID_BODY = "invalid_body" # couldn't validate body
     ACTION_NOT_ALLOWED = "action_not_allowed"
     SESSION_NOT_FOUND = "session_not_found"
+    INVALID_EXTENSION = "invalid_extension"
+    ITEM_NOT_FOUND = "item_not_found"
 
 class WSEvents(str, Enum): # these are facts that should be notified
     DASHBOARD_INIT = "dashboard_init" # dashboard[None]::server 
@@ -76,7 +78,6 @@ class WSActions(str, Enum): # these are intents of session or dashboard
     RESUME_ALL = "resume_all"
     CANCEL_ALL = "cancel_all"
 
-    REC_RENAME = "rec_rename" # TODO
 
 
 class WSClockSync(str, Enum): # sync channel

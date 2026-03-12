@@ -308,7 +308,6 @@ class RecordingsHandler:
         log.info(f"Deleted all records and files for RID: {rid}")
         return True
 
-
     async def rename(self, rid: str, new_name: str) -> Optional[P.RecMetadata]:
         async with self._lock:
             meta = self._recordings.get(rid)
@@ -330,7 +329,6 @@ class RecordingsHandler:
             except Exception as e:
                 log.error(f"Unexpected error during rename of {rid}: {e}")
                 return None
-
 
     async def exist(self, rid: str) -> bool:
         async with self._lock:
