@@ -15,7 +15,7 @@ export class ViewSelector {
     this.menu.innerHTML = `
       <li data-key="${Views.DASHBOARD}">Dashboard</li>
       <li data-key="${Views.RECORDINGS}">Recordings</li>
-      <li data-key="${Views.SETTINGS}">Settings</li>
+      <li data-key="${Views.CONFIGURE}">Configure</li>
     `;
     this.bindNavigation();
   }
@@ -56,7 +56,7 @@ export class ViewSelector {
         recordings.render();
         break;
 
-      case Views.SETTINGS:
+      case Views.CONFIGURE:
         this.mainPanel.appendChild(SettingsView());
         break;
     }

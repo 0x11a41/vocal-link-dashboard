@@ -1,26 +1,46 @@
 import { URL } from "../models/constants.js";
 class ServerStateManager {
-    data = {
-        name: "Loading...",
-        ip: "0.0.0.0",
-        version: "v0.0",
-        activeSessions: 0
-    };
-    constructor() {
-        this.updateServerInfo();
-        setInterval(() => this.updateServerInfo(), 100000);
+    _info = null;
+    get info() {
+        return this._info;
     }
-    async updateServerInfo() {
+    get conf() {
+        return this._info?.conf ?? null;
+    }
+    constructor() {
+        this.refresh();
+    }
+    async refresh() {
         try {
-            const response = await fetch(`${URL}/dashboard`);
-            if (!response.ok)
-                throw new Error("Failed to fetch");
-            this.data = await response.json();
-            window.dispatchEvent(new CustomEvent('server-update', { detail: this.data }));
+            const res = await fetch(`${URL}/dashboard`);
+            if (!res.ok)
+                throw new Error("Failed to fetch dashboard");
+            const data = (await res.json());
+            this._info = data;
         }
         catch (err) {
             console.error("Dashboard sync error:", err);
-            this.data.name = "Unknown (Offline)";
+        }
+    }
+    async updateConf(patch) {
+        if (!this._info)
+            return;
+        const nextConf = {
+            ...this._info.conf,
+            ...patch,
+        };
+        try {
+            const res = await fetch(`${URL}/dashboard`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(nextConf),
+            });
+            if (!res.ok)
+                throw new Error("Failed to update config");
+            this._info.conf = nextConf;
+        }
+        catch (err) {
+            console.error("Config update error:", err);
         }
     }
 }

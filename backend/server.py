@@ -89,10 +89,15 @@ async def getServerInfo():
     return await app.server_info()
 
 
+@api.put("/config", response_model=P.ServerInfo)
+async def updateServerInfo(conf: P.ServerConf):
+    await app.update_conf(conf)
+    return await app.server_info()
+
 
 @api.get("/dashboard/qr")
 async def get_server_qr():
-    payload = P.QRData(name=app.name, ip=app.ip)
+    payload = P.QRData(name=app.info.conf.name, ip=app.info.ip)
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_M,

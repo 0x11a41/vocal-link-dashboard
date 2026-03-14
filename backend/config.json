@@ -1,0 +1,13 @@
+{
+  "name": "PodPulse",
+  "color": "#5CE796",
+  "fmt": ".m4a",
+  "whisperModel": "small",
+  "noiseStrength": 0.75,
+  "amplitudeStrength": -18,
+  "filterBassBoost": 6.0,
+  "airBoost": 4.0,
+  "compressorThreshold": -20.0,
+  "compressorRatio": 4.0,
+  "intends": "class EventTriggers:\n    pass"
+}

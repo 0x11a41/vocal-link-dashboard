@@ -2,7 +2,7 @@
 // ================ NETWORKING ================
 // ============================================
 
-export const VERSION = "v0.82-alpha";
+export const VERSION = "v0.83-alpha";
 export const PORT = 6210;
 export const BROADCAST = "all";
 
@@ -38,11 +38,9 @@ export enum WSEvents {
   PAUSED = "paused",
   RESUMED = "resumed",
   DROPPED = "dropped",
-  // Recording events
   REC_STAGE = "rec_stage",
   REC_STAGED = "rec_staged",
   REC_AMEND = "rec_amend",
-  REC_RENAME = "rec_rename",
 }
 
 export enum WSActions {
@@ -73,6 +71,40 @@ export enum SessionStates {
 }
 
 // ============================================
+// ================ SERVER CONF ===============
+// ============================================
+
+export enum AudioFormat {
+  M4A = ".m4a",
+  MP3 = ".mp3",
+  OGG = ".ogg",
+}
+
+export enum AccentColor {
+  ORANGE = "#E7965C",
+  BLUE = "#5C96E7",
+  GREEN = "#5CE796",
+  PURPLE = "#965CE7",
+  GRAY = "#4A5568",
+}
+
+export interface ServerConf {
+  name: string;
+  color: AccentColor;
+  fmt: AudioFormat;
+
+  whisperModel: string;
+  noiseStrength: number;
+  amplitudeStrength: number;
+  filterBassBoost: number;
+  airBoost: number;
+  compressorThreshold: number;
+  compressorRatio: number;
+
+  intends: string;
+}
+
+// ============================================
 // ================ DATA MODELS ===============
 // ============================================
 
@@ -88,10 +120,10 @@ export interface SessionMetadata {
 }
 
 export interface ServerInfo {
-  name: string;
   ip: string;
   version: string;
   activeSessions: number;
+  conf: ServerConf;
 }
 
 export enum RecStates {
@@ -160,6 +192,10 @@ export interface RecStageInfo {
   sizeBytes: number;
 }
 
+export interface MergeRequest {
+  rids: string[];
+}
+
 // ============================================
 // ================ PAYLOAD UNION =============
 // ============================================
@@ -175,6 +211,7 @@ export type WSBodyTypes =
   | ClockSyncReport
   | RecMetadata
   | RecStageInfo
+  | MergeRequest
   | null;
 
 export type WSMsgTypes = WSActions | WSEvents | WSClockSync | WSErrors;
@@ -254,5 +291,5 @@ export const Payloads = {
 export enum Views {
   DASHBOARD = "dashboard",
   RECORDINGS = "recordings",
-  SETTINGS = "settings",
+  CONFIGURE = "configure",
 }

@@ -51,13 +51,13 @@ export class VLApp {
       <div class="qrcode-wrapper">
         <img src="${URL}/dashboard/qr" alt="Server QR Code">
         <div class="label">scan to join session</div>
-        <div class="ip-address">${server.data.ip}</div> 
+        <div class="ip-address">${server.info?.ip ?? 'x.x.x.x'}</div> 
       </div>
     `;
 
     this.sidePanel.appendChild(this.viewSelector.menu);
     this.sidePanel.insertAdjacentHTML('beforeend',
-      `<i class="version">vocal-link-dashboard ${server.data.version}</i>`
+      `<i class="version">vocal-link-dashboard ${server.info?.version}</i>`
     );
   }
 

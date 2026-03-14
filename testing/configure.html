@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>VocalLink - Configure</title>
+
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;700;800&display=swap" rel="stylesheet">
+
+		<style>
+			:root {
+				--primary: #ee9b6a;
+				--primary-light: #fbe6d8;
+				--bg: #f4f7f6;
+				--card-bg: #ffffff;
+				--text-main: #2d3436;
+				--text-muted: #636e72;
+				--border: #dfe6e9;
+				--code-bg: #2d3436;
+				--code-text: #f8f8f2;
+			}
+			
+			body {
+				font-family: 'Inter', sans-serif;
+				background-color: var(--bg);
+				margin: 0;
+				display: flex;
+				color: var(--text-main);
+			}
+			
+			/* Sidebar Styling */
+			aside {
+				width: 240px;
+				height: 100vh;
+				background: white;
+				border-right: 1px solid var(--border);
+				position: fixed;
+				padding: 20px;
+				box-sizing: border-box;
+			}
+			
+			.sidebar-brand {
+				color: var(--primary);
+				letter-spacing: -1px;
+				margin-top: 0;
+				margin-bottom: 30px;
+			}
+			
+			.sidebar-nav {
+				font-size: 14px;
+				line-height: 2.5;
+				cursor: pointer;
+			}
+			
+			.nav-active {
+				font-weight: 800;
+			}
+			
+			/* Main Content Layout */
+			main {
+				margin-left: 240px;
+				padding: 40px;
+				width: 100%;
+				max-width: 1000px;
+				box-sizing: border-box;
+			}
+			
+			.settings-header { margin-bottom: 30px; }
+			.settings-header h1 { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; margin: 0; }
+			.settings-subtitle { color: var(--text-muted); font-size: 14px; margin-top: 8px; }
+			
+			.settings-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+				gap: 24px;
+			}
+			
+			/* Cards */
+			.card {
+				background: var(--card-bg);
+				border-radius: 16px;
+				border: 1px solid var(--border);
+				padding: 24px;
+				box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+			}
+			
+			.card-full {
+				grid-column: 1 / -1;
+			}
+			
+			.card-title {
+				font-weight: 800;
+				font-size: 14px;
+				text-transform: uppercase;
+				letter-spacing: 1px;
+				color: var(--text-muted);
+				margin-top: 0;
+				margin-bottom: 20px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+			
+			/* Form Elements */
+			.setting-item { margin-bottom: 20px; }
+			.setting-item:last-child { margin-bottom: 0; }
+			.setting-label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+			.setting-desc { font-size: 12px; color: var(--text-muted); margin-top: 0; margin-bottom: 10px; line-height: 1.4; }
+			
+			select, input[type="text"], input[type="number"] {
+				width: 100%;
+				padding: 10px;
+				border-radius: 8px;
+				border: 1px solid var(--border);
+				font-family: inherit;
+				font-size: 14px;
+				outline: none;
+				box-sizing: border-box;
+			}
+			
+			/* Color Picker */
+			.color-picker { display: flex; gap: 10px; align-items: center; }
+			.color-circle {
+				width: 24px;
+				height: 24px;
+				border-radius: 50%;
+				cursor: pointer;
+				border: 2px solid transparent;
+			}
+			.color-circle.active { border-color: var(--text-main); }
+			
+			.color-1 { background-color: #ee9b6a; }
+			.color-2 { background-color: #6a89ee; }
+			.color-3 { background-color: #6aee9b; }
+			.color-4 { background-color: #ee6a6a; }
+			
+			.hex-input { width: 80px !important; margin-left: auto; }
+			
+			/* Sliders */
+			.slider-group { display: flex; align-items: center; gap: 15px; }
+			input[type="range"] { flex-grow: 1; accent-color: var(--primary); }
+			.slider-val { font-size: 12px; font-weight: 800; width: 35px; text-align: right; }
+			
+			/* Code Area */
+			.code-area {
+				font-family: 'Fira Code', 'Courier New', monospace;
+				background: var(--code-bg);
+				color: var(--code-text);
+				width: 100%;
+				height: 250px;
+				padding: 15px;
+				border-radius: 12px;
+				border: none;
+				font-size: 13px;
+				line-height: 1.6;
+				resize: vertical;
+				box-sizing: border-box;
+			}
+			
+			/* Buttons */
+			.btn-save {
+				background: var(--primary);
+				color: white;
+				border: none;
+				padding: 12px 30px;
+				border-radius: 8px;
+				font-weight: 700;
+				cursor: pointer;
+				float: right;
+				margin-top: 20px;
+				transition: transform 0.2s, filter 0.2s;
+			}
+			
+			.btn-save:hover {
+				transform: translateY(-2px);
+				filter: brightness(1.1);
+			}
+		</style>
+	</head>
+	<body>
+
+		<aside>
+			<h2 class="sidebar-brand">VocalLink</h2>
+			<nav class="sidebar-nav">
+				<div>Dashboard</div>
+				<div>Recordings</div>
+				<div class="nav-active">Configure</div>
+			</nav>
+		</aside>
+
+		<main>
+			<div class="settings-header">
+				<h1>Configuration</h1>
+				<p class="settings-subtitle">Fine-tune your recording node and automation triggers.</p>
+			</div>
+
+			<div class="settings-grid">
+
+				<div class="card card-full">
+					<h3 class="card-title">Python Event Triggers</h3>
+					<p class="setting-desc">Define custom logic for recording lifecycle events. These scripts run locally on the VocalNode.</p>
+					<textarea class="code-area">class EventTriggers:
+						def onStart():
+						# Triggered when recording begins
+						print("Recording Started...")
+						
+						def onStop():
+						# Triggered when recording ends
+						print("Recording Saved.")
+						
+						def onPause():
+						pass
+						
+						def onResume():
+						pass</textarea>
+				</div>
+
+				<div class="card">
+					<h3 class="card-title">Audio Toolkit (Processing)</h3>
+					<div class="setting-item">
+						<label class="setting-label">Noise Reduction Strength</label>
+						<div class="slider-group">
+							<input type="range" min="0" max="1" step="0.05" value="0.75">
+							<span class="slider-val">0.75</span>
+						</div>
+					</div>
+					<div class="setting-item">
+						<label class="setting-label">Target Broadcast Loudness (dBFS)</label>
+						<div class="slider-group">
+							<input type="range" min="-24" max="-12" step="1" value="-18">
+							<span class="slider-val">-18</span>
+						</div>
+					</div>
+					<div class="setting-item">
+						<label class="setting-label">Whisper Model Size</label>
+						<select>
+							<option>Tiny (Fastest)</option>
+							<option>Base</option>
+							<option selected>Small (Balanced)</option>
+							<option>Medium (High Accuracy)</option>
+						</select>
+					</div>
+				</div>
+
+				<div class="card">
+					<h3 class="card-title">General & UI</h3>
+					<div class="setting-item">
+						<label class="setting-label">Accent Color</label>
+						<div class="color-picker">
+							<div class="color-circle color-1 active"></div>
+							<div class="color-circle color-2"></div>
+							<div class="color-circle color-3"></div>
+							<div class="color-circle color-4"></div>
+							<input type="text" placeholder="#HEX" class="hex-input">
+						</div>
+					</div>
+					<div class="setting-item">
+						<label class="setting-label">Default Recording Format</label>
+						<select>
+							<option>.m4a (High Efficiency)</option>
+							<option>.mp3 (Universal)</option>
+							<option>.wav (Lossless)</option>
+							<option>.ogg (Opus)</option>
+						</select>
+					</div>
+				</div>
+			</div>
+
+			<button class="btn-save">Save Changes</button>
+		</main>
+	</body>
+</html>

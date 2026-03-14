@@ -4,8 +4,8 @@ from fastapi import WebSocket
 from pydantic import ValidationError
 from zeroconf.asyncio import AsyncZeroconf, AsyncServiceInfo
 
-from backend.utils.utils import get_local_ip, get_random_name, now_ms
 import backend.core.primitives as P
+from backend.utils.utils import get_local_ip, now_ms
 from backend.utils.logging import log
 from backend.handlers.DashboardHandler import DashboardHandler
 from backend.handlers.SessionsHandler import SessionsHandler
@@ -26,25 +26,126 @@ async def send_error(ws: WebSocket, type: P.WSErrors):
     msg = P.WSPayload(kind=P.WSKind.ERROR, msgType=type).model_dump()
     log.info(msg)
     await ws.send_json(msg)
-   
 
 
 class AppState:
-    def __init__(self, server_name: Optional[str] = None):
-        self.ip:str = get_local_ip()
-        self.port:int = P.PORT
-        self.name:str = server_name or get_random_name()
+    def __init__(self):
+        self.port: int = P.PORT
+
+        conf = P.ServerConf.load()
+        self.info = P.ServerInfo(
+            ip=get_local_ip(),
+            conf=conf,
+        )
 
         self.dashboard: DashboardHandler = DashboardHandler()
         self.sessions: SessionsHandler = SessionsHandler()
         self.recordings: RecordingsHandler = RecordingsHandler()
-
-        # a service will run as a background thread and notifies the
-        # session or dashboard on task completion.
         self.services: Services = Services(self.dashboard, self.recordings)
 
         self.mdns: Optional[AsyncZeroconf] = None
         self.mdns_conf: Optional[AsyncServiceInfo] = None
+
+        self.intends = None
+        self.reload_indends()
+
+    
+    def reload_indends(self):
+        class DefaultTriggers:
+            def onStart(self): pass
+            def onStop(self): pass
+            def onPause(self): pass
+            def onResume(self): pass
+
+        try:
+            namespace = {}
+            exec(self.info.conf.intends, {"__builtins__": __builtins__}, namespace)
+
+            trigger_class = namespace.get("EventTriggers")
+            if trigger_class and isinstance(trigger_class, type):
+                self.intends = trigger_class()
+                log.info("EventTriggers hot-reloaded successfully.")
+            else:
+                log.warning("Class 'EventTriggers' not found in intents. Using defaults.")
+                self.intends = DefaultTriggers()
+        except Exception as e:
+            log.error(f"Failed to hot-reload intents: {e}")
+            self.intends = DefaultTriggers()
+
+
+    async def update_conf(self, conf: P.ServerConf):
+        if self.info.conf.name != conf.name:
+            await self.rename(P.Rename(name=conf.name))
+
+        self.info.conf = conf
+        self.info.conf.save()
+
+        self.reload_indends()
+        log.info("Server configuration successfully updated.")
+            
+
+
+    async def server_info(self) -> P.ServerInfo:
+        self.info.activeSessions = await self.sessions.getActiveCount()
+        return self.info
+
+
+    def _make_mdns_conf(self) -> AsyncServiceInfo:
+        return AsyncServiceInfo(
+            type_="_vocalink._tcp.local.",
+            name=f"{self.info.conf.name}._vocalink._tcp.local.",
+            addresses=[socket.inet_aton(self.info.ip)],
+            port=self.port,
+            properties={
+                b"service": b"vocalink",
+                b"name": self.info.conf.name.encode('utf-8')
+            }
+        )
+
+
+    async def start_mdns(self):
+        self.mdns = AsyncZeroconf(interfaces=[self.info.ip])
+        self.mdns_conf = self._make_mdns_conf()
+        await self.mdns.async_register_service(self.mdns_conf)
+
+
+    async def rename(self, data: P.Rename):
+        if not self.mdns:
+            return
+            
+        old_name = self.info.conf.name
+        
+        self.info.conf.name = data.name
+        self.info.conf.save()
+
+        try:
+            if self.mdns_conf:
+                await self.mdns.async_unregister_service(self.mdns_conf)
+        
+            self.mdns_conf = self._make_mdns_conf()
+            await self.mdns.async_register_service(self.mdns_conf)
+            log.info(f"[SERVER] Renamed from '{old_name}' to '{data.name}'")
+
+        except Exception as e:
+            # Revert on failure
+            self.info.conf.name = old_name 
+            self.info.conf.save()
+            log.error(f"[SERVER] mDNS Rename Failed: {e}")
+            return
+    
+        await self.sessions.broadcast(P.WSPayload(
+                            kind=P.WSKind.EVENT,
+                            msgType=P.WSEvents.DASHBOARD_RENAME,
+                            body=data
+                        ))
+
+
+    async def shutdown(self):
+        if not self.mdns:
+            return
+        if self.mdns_conf:
+            await self.mdns.async_unregister_service(self.mdns_conf)
+        await self.mdns.async_close()
 
 
     async def _eval_triggerTime(self) -> int:
@@ -75,67 +176,7 @@ class AppState:
             delay = max(MIN_DELAY, int(max_rtt * 1.5) + SAFETY_MS)
 
         return now + delay
-
-
-    async def server_info(self) -> P.ServerInfo:
-        return P.ServerInfo(
-            name=self.name,
-            ip=self.ip,
-            activeSessions = await self.sessions.getActiveCount()
-        )
-
-    def _make_mdns_conf(self) -> AsyncServiceInfo:
-        return AsyncServiceInfo(
-            type_="_vocalink._tcp.local.",
-            name=f"{self.name}._vocalink._tcp.local.",
-            addresses=[socket.inet_aton(self.ip)],
-            port=self.port,
-            properties={
-                b"service": b"vocalink",
-                b"name": self.name
-            }
-        )
-
-
-    async def start_mdns(self):
-        self.mdns = AsyncZeroconf()
-        self.mdns_conf = self._make_mdns_conf()
-        await self.mdns.async_register_service(self.mdns_conf)
-
-
-    async def rename(self, data: P.Rename):
-        if not self.mdns:
-            return
-        old_name = self.name
-        self.name = data.name
-
-        try:
-            if self.mdns_conf:
-                await self.mdns.async_unregister_service(self.mdns_conf)
-        
-            self.mdns_conf = self._make_mdns_conf()
-            await self.mdns.async_register_service(self.mdns_conf)
-            log.info(f"[SERVER] Renamed from '{old_name}' to '{self.name}'")
-
-        except Exception as e:
-            self.name = old_name
-            log.error(f"[SERVER] mDNS Rename Failed: {e}")
-            return
     
-        await self.sessions.broadcast(P.WSPayload(
-                            kind=P.WSKind.EVENT,
-                            msgType=P.WSEvents.DASHBOARD_RENAME,
-                            body=data
-                        ))
-
-    
-    async def shutdown(self):
-        if not self.mdns:
-            return
-        if self.mdns_conf:
-            await self.mdns.async_unregister_service(self.mdns_conf)
-        await self.mdns.async_close()
-
 
     async def handle_events(self, payload: P.WSPayload, ws: WebSocket):
         log.info(P.WSPayload.model_dump(payload))
@@ -146,8 +187,7 @@ class AppState:
 
         if event_type == P.WSEvents.DASHBOARD_INIT:
             await self.dashboard.assign(ws)            
-            log.info("dashboard online.")
-
+            log.info("Dashboard online.")
 
         elif event_type == P.WSEvents.DASHBOARD_RENAME:
             try:
@@ -162,7 +202,6 @@ class AppState:
 
             await self.rename(rename)
 
-
         elif event_type == P.WSEvents.SESSION_UPDATE:
             try:
                 new_meta = P.SessionMetadata.model_validate(payload.body)
@@ -173,13 +212,12 @@ class AppState:
             updated_meta = await self.sessions.updateMeta(new_meta)
             if updated_meta:
                 await self.dashboard.notify(P.WSPayload(
-                                                kind = P.WSKind.EVENT,
-                                                msgType = P.WSEvents.SESSION_UPDATE,
-                                                body = updated_meta
-                                            ))
+                                        kind = P.WSKind.EVENT,
+                                        msgType = P.WSEvents.SESSION_UPDATE,
+                                        body = updated_meta
+                                    ))
             else:
                 await send_error(ws, P.WSErrors.SESSION_NOT_FOUND)
-
 
         elif event_type == P.WSEvents.SESSION_ACTIVATE:
             try:
@@ -210,13 +248,11 @@ class AppState:
             await self.sessions.send_to_one(meta.id, res)
             await self.dashboard.notify(res)
 
-
         elif event_type in (
                 P.WSEvents.SUCCESS,
                 P.WSEvents.FAIL
             ):
             await self.dashboard.notify(payload)
-
 
         elif event_type in (
                 P.WSEvents.STARTED,
@@ -231,7 +267,6 @@ class AppState:
                 return
             await self.dashboard.notify(payload)
 
-
         elif event_type == P.WSEvents.SESSION_STATE_REPORT:
             try:
                 P.StateReport.model_validate(payload.body)
@@ -239,7 +274,6 @@ class AppState:
                 await send_error(ws, P.WSErrors.INVALID_BODY)
                 return
             await self.dashboard.notify(payload)
-
 
         elif event_type == P.WSEvents.REC_STAGE:
             try:
@@ -264,15 +298,12 @@ class AppState:
             await self.sessions.send_to_one(recMeta.sessionId, payload)
             await self.dashboard.notify(payload)
 
-
         else:
             await send_error(ws, P.WSErrors.INVALID_EVENT)
             try:
                 await ws.close(code=1007)
             except Exception:
                 pass
-
-
 
     async def handle_actions(self, payload: P.WSPayload, ws: WebSocket):
         log.info(P.WSPayload.model_dump(payload))
@@ -293,18 +324,29 @@ class AppState:
             await send_error(ws, P.WSErrors.INVALID_BODY)
             return
 
-        if action_type in (
-            P.WSActions.START,
-            P.WSActions.STOP,
-            P.WSActions.PAUSE,
-            P.WSActions.RESUME,
-            P.WSActions.CANCEL,
-            P.WSActions.GET_STATE,
-        ):
+        async def forward():
             if await self.sessions.is_active(target.id):
                 await self.sessions.send_to_one(target.id, payload)
             else:
-                await send_error(ws, P.WSErrors.SESSION_NOT_FOUND)
+                await self.dashboard.error(P.WSErrors.SESSION_NOT_FOUND)
+
+        if action_type == P.WSActions.START:
+            await forward()
+
+        elif action_type == P.WSActions.STOP:
+            await forward()
+
+        elif action_type == P.WSActions.PAUSE:
+            await forward()
+
+        elif action_type == P.WSActions.RESUME:
+            await forward()
+
+        elif action_type == P.WSActions.CANCEL:
+            await forward()
+
+        elif action_type == P.WSActions.GET_STATE:
+            await forward()
 
         elif action_type == P.WSActions.DROP:
             if not await self.sessions.exists(target.id):
@@ -318,7 +360,6 @@ class AppState:
                 body = P.WSEventTarget(id=target.id)
             ))
 
-
         elif action_type in ACTION_MAP:
             action = ACTION_MAP[action_type]
             if action != P.WSActions.CANCEL:
@@ -328,20 +369,17 @@ class AppState:
                                         msgType = action,
                                         body = target
                                     ))
-            
-
         else:
             await send_error(ws, P.WSErrors.INVALID_ACTION)
-                
+
 
     async def handle_sync(self, payload: P.WSPayload, ws: WebSocket):
-        # log.info(P.WSPayload.model_dump(payload))
         if payload.kind != P.WSKind.SYNC:
             return
 
         id = self.sessions.get_id(ws)
         if not id:
-            log.warning("caught inactive session attempting syncing")
+            log.warning("Caught inactive session attempting syncing")
             return
 
         if payload.msgType == P.WSClockSync.TIK:
@@ -359,14 +397,12 @@ class AppState:
                                       body = P.ClockSyncTok(t1=t1, t2=t2, t3=now_ms())
                                   ))
 
-
         elif payload.msgType == P.WSClockSync.SYNC_REPORT:
             try:
                 report = P.ClockSyncReport.model_validate(payload.body)
             except ValidationError:
                 await send_error(ws, P.WSErrors.INVALID_BODY)
                 return
-
 
             meta = await self.sessions.update_sync(id, report)
             if meta:
@@ -376,8 +412,6 @@ class AppState:
                                             body = meta
                                         ))
 
-        
-
     async def handle_disconnect(self, ws: WebSocket):
         if ws == await self.dashboard.ws():
             await self.dashboard.drop(ws)
@@ -386,7 +420,7 @@ class AppState:
 
         id = self.sessions.get_id(ws)
         if not id:
-            log.info("unknown session disconnected.")
+            log.info("Unknown session disconnected.")
             return
 
         active = await self.sessions.is_active(id)

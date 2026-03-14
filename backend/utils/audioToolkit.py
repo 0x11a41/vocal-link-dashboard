@@ -17,13 +17,28 @@ class AudioToolkit:
         ".wav": {"format": "wav"}
     }
 
-
-    def __init__(self, model_size: str = "small", device: str = "cpu", compute_type: str = "int8"):
+    def __init__(
+        self, 
+        model_size: str = "small", 
+        noise_strength: float = 0.75,
+        target_dbfs: float = -18.0,
+        bass_boost_db: float = 6.0,
+        air_boost_db: float = 4.0,
+        compressor_threshold: float = -20.0,
+        compressor_ratio: float = 4.0,
+        device: str = "cpu", 
+        compute_type: str = "int8"
+    ):
         log.info(f"Loading Whisper model ({model_size}) on {device}...")
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
+        self.noise_strength = noise_strength
+        self.target_dbfs = target_dbfs
+        self.bass_boost = bass_boost_db
+        self.air_boost = air_boost_db
+        self.comp_thresh = compressor_threshold
+        self.comp_ratio = compressor_ratio
 
-
-    def _reduce_noise(self, audio: AudioSegment, strength: float = 0.75) -> AudioSegment:
+    def _reduce_noise(self, audio: AudioSegment) -> AudioSegment:
         channels = audio.channels
         sr = audio.frame_rate
         samples = np.array(audio.get_array_of_samples()).astype(np.float32)
@@ -35,7 +50,7 @@ class AudioToolkit:
         reduced = nr.reduce_noise(
             y=samples, 
             sr=sr, 
-            prop_decrease=strength,
+            prop_decrease=self.noise_strength, # Controlled by constructor
             stationary=False,        
             n_fft=2048,             
             time_mask_smooth_ms=64, 
@@ -55,49 +70,35 @@ class AudioToolkit:
 
         return effects.normalize(cleaned_audio)
 
-
     def _apply_studio_filter(self, audio: AudioSegment) -> AudioSegment:
         audio = high_pass_filter(audio, 80)
 
-        bass_warmth = audio.low_pass_filter(250).apply_gain(4.5) 
-        audio = audio.overlay(bass_warmth)
+        bass = audio.low_pass_filter(250).apply_gain(self.bass_boost)
+        audio = audio.overlay(bass)
 
-        air = audio.high_pass_filter(6000).apply_gain(3)
+        air = audio.high_pass_filter(6000).apply_gain(self.air_boost)
         audio = audio.overlay(air)
 
         return effects.compress_dynamic_range(
             audio, 
-            threshold=-22.0, 
-            ratio=3.5,
-            attack=10.0, 
-            release=150.0
+            threshold=self.comp_thresh, 
+            ratio=self.comp_ratio,
+            attack=5.0,
+            release=100.0
         )
 
-
-    def _amplify(self, audio: AudioSegment, target_dbfs: float = -18.0) -> AudioSegment:
+    def _amplify(self, audio: AudioSegment) -> AudioSegment:
         if audio.dBFS == float("-inf"):
             return audio
 
-        dynamic_range = audio.max_dBFS - audio.dBFS
-        if dynamic_range > 12:
-            audio = effects.compress_dynamic_range(
-                audio,
-                threshold=-22.0,
-                ratio=1.8,
-                attack=15.0,
-                release=200.0
-            )
-
         current_dbfs = audio.dBFS
-
-        gain_needed = target_dbfs - current_dbfs
-        gain_needed = max(min(gain_needed, 12.0), -12.0)  # limit boost
-
+        gain_needed = self.target_dbfs - current_dbfs
+        
+        gain_needed = max(min(gain_needed, 15.0), -15.0) 
         audio = audio.apply_gain(gain_needed)
 
-        ceiling = -1.0
-        if audio.max_dBFS > ceiling:
-            audio = audio.apply_gain(ceiling - audio.max_dBFS)
+        if audio.max_dBFS > -0.5:
+            audio = audio.apply_gain(-0.5 - audio.max_dBFS)
 
         return audio
 

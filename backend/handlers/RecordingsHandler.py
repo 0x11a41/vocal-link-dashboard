@@ -106,7 +106,7 @@ class RecordingsHandler:
             temp_path = path + ".tmp"
         except ValueError as e:
             log.error(f"Invalid extension for {rid}: {e}")
-            self.set_original(rid, P.RecStates.NA)
+            await self.set_original(rid, P.RecStates.NA)
             return meta
 
         try:

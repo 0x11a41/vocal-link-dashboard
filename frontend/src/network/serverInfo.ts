@@ -1,28 +1,56 @@
 import { URL } from "../models/constants.js";
-import { ServerInfo } from "../models/primitives.js";
+import { ServerInfo, ServerConf } from "../models/primitives.js";
+
 
 class ServerStateManager {
-  public data: ServerInfo = {
-      name: "Loading...",
-      ip: "0.0.0.0",
-      version: "v0.0",
-      activeSessions: 0
-  };
+  private _info: ServerInfo | null = null;
 
-  constructor() {
-      this.updateServerInfo();
-      setInterval(() => this.updateServerInfo(), 100000);
+  get info(): ServerInfo | null {
+    return this._info;
   }
 
-  public async updateServerInfo() {
+  get conf(): ServerConf | null {
+    return this._info?.conf ?? null;
+  }
+
+  constructor() {
+    this.refresh();
+  }
+
+  async refresh(): Promise<void> {
     try {
-      const response = await fetch(`${URL}/dashboard`);
-      if (!response.ok) throw new Error("Failed to fetch");
-      this.data = await response.json();
-      window.dispatchEvent(new CustomEvent('server-update', { detail: this.data }));
+      const res = await fetch(`${URL}/dashboard`);
+      if (!res.ok) throw new Error("Failed to fetch dashboard");
+
+      const data = (await res.json()) as ServerInfo;
+
+      this._info = data;
     } catch (err) {
       console.error("Dashboard sync error:", err);
-      this.data.name = "Unknown (Offline)";
+    }
+  }
+
+
+  async updateConf(patch: Partial<ServerConf>): Promise<void> {
+    if (!this._info) return;
+
+    const nextConf: ServerConf = {
+      ...this._info.conf,
+      ...patch,
+    };
+
+    try {
+      const res = await fetch(`${URL}/dashboard`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(nextConf),
+      });
+
+      if (!res.ok) throw new Error("Failed to update config");
+
+      this._info.conf = nextConf;
+    } catch (err) {
+      console.error("Config update error:", err);
     }
   }
 }

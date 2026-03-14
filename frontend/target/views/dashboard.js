@@ -45,7 +45,7 @@ class DashboardView {
         const left = document.createElement('div');
         left.className = "head";
         const title = MutableTextBox({
-            initial: server.data.name,
+            initial: server.info?.conf?.name ?? "backend offline",
             onsave: () => { },
             classes: ['title']
         });
@@ -53,7 +53,7 @@ class DashboardView {
         left.insertAdjacentHTML('beforeend', `
       <p class="status">
         status:
-        ${server.data.activeSessions < 0
+        ${(server.info?.activeSessions ?? 0) < 0
             ? '<span class="danger">Offline</span>'
             : '<span class="success">Active</span>'}
       </p>
