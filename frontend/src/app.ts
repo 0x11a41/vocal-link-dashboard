@@ -100,6 +100,13 @@ export class VLApp {
   }
 }
 
+const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
+function updateTheme(isDark: boolean) {
+  document.body.classList.toggle('dark-theme', isDark);
+}
+darkMode.addEventListener('change', (e) => updateTheme(e.matches));
+updateTheme(darkMode.matches);
+
 const app = new VLApp();
 await app.setup();
 app.render();

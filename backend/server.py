@@ -246,7 +246,7 @@ async def get_all_recordings():
 async def rename_recording(rid: str, newName: str):
     updated_meta = await app.recordings.rename(rid, newName)
     if not updated_meta:
-        app.dashboard.error(P.WSErrors.INVALID_EXTENSION)
+        await app.dashboard.error(P.WSErrors.INVALID_EXTENSION)
         raise HTTPException(status_code=400, detail="Rename failed")
 
     await app.services.notify_amend(updated_meta)
