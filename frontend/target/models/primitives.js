@@ -1,4 +1,3 @@
-export const VERSION = "v0.83-alpha";
 export const PORT = 6210;
 export const BROADCAST = "all";
 export var WSKind;
@@ -65,20 +64,6 @@ export var SessionStates;
     SessionStates["RUNNING"] = "running";
     SessionStates["PAUSED"] = "paused";
 })(SessionStates || (SessionStates = {}));
-export var AudioFormat;
-(function (AudioFormat) {
-    AudioFormat["M4A"] = ".m4a";
-    AudioFormat["MP3"] = ".mp3";
-    AudioFormat["OGG"] = ".ogg";
-})(AudioFormat || (AudioFormat = {}));
-export var AccentColor;
-(function (AccentColor) {
-    AccentColor["ORANGE"] = "#E7965C";
-    AccentColor["BLUE"] = "#5C96E7";
-    AccentColor["GREEN"] = "#5CE796";
-    AccentColor["PURPLE"] = "#965CE7";
-    AccentColor["GRAY"] = "#4A5568";
-})(AccentColor || (AccentColor = {}));
 export var RecStates;
 (function (RecStates) {
     RecStates["OK"] = "ok";

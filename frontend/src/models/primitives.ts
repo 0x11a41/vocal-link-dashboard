@@ -2,7 +2,6 @@
 // ================ NETWORKING ================
 // ============================================
 
-export const VERSION = "v0.83-alpha";
 export const PORT = 6210;
 export const BROADCAST = "all";
 
@@ -74,24 +73,12 @@ export enum SessionStates {
 // ================ SERVER CONF ===============
 // ============================================
 
-export enum AudioFormat {
-  M4A = ".m4a",
-  MP3 = ".mp3",
-  OGG = ".ogg",
-}
-
-export enum AccentColor {
-  ORANGE = "#E7965C",
-  BLUE = "#5C96E7",
-  GREEN = "#5CE796",
-  PURPLE = "#965CE7",
-  GRAY = "#4A5568",
-}
-
 export interface ServerConf {
   name: string;
-  color: AccentColor;
-  fmt: AudioFormat;
+  accentColors: string[];
+  accentActive: number;
+  fmts: string[];
+  fmtActive: number;
 
   whisperModel: string;
   noiseStrength: number;

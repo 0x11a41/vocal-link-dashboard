@@ -6,7 +6,7 @@ from typing import Optional, Union, List
 from backend.utils.utils import get_random_name
 
 
-VERSION = "v0.83-alpha"
+VERSION = "v0.84-alpha"
 
 CONFIG_PATH = Path("backend/config.json")
 PORT = 6210
@@ -24,22 +24,12 @@ class SessionMetadata(BaseModel):
     lastSync: Optional[int] = None
 
 
-class AudioFormat(str, Enum):
-    M4A = ".m4a"
-    MP3 = ".mp3"
-    OGG = ".ogg"
-
-class AccentColor(str, Enum):
-    ORANGE = "#E7965C"
-    BLUE   = "#5C96E7"
-    GREEN  = "#5CE796"
-    PURPLE = "#965CE7"
-    GRAY   = "#4A5568"
-
 class ServerConf(BaseModel):
     name: str = Field(default_factory=get_random_name, min_length=1, max_length=50)
-    color: AccentColor = Field(default=AccentColor.GREEN)
-    fmt: AudioFormat = Field(default=AudioFormat.M4A)
+    accentColors: List[str] = [ "#E7965C", "#5C96E7", "#5CE796", "#965CE7", "#4A5568" ]
+    accentActive: int = Field(default=0, ge=0, le=4)
+    fmts: List[str] = [ ".m4a", ".mp3", ".ogg" ]
+    fmtActive: int = Field(default=0, ge=0, le=2)
     
     whisperModel: str = Field(default="small")
     noiseStrength: float = Field(default=0.75, ge=0.0, le=1.0)
@@ -236,4 +226,3 @@ class EnhanceProps:
     AMPLIFY: int = 1
     REDUCE_NOISE: int = 2
     STUDIO_FILTER: int = 4
-    

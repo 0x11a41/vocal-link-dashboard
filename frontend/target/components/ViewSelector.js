@@ -1,6 +1,6 @@
 import { Views } from '../models/primitives.js';
 import { Dashboard } from '../views/dashboard.js';
-import { SettingsView } from "../views/settings.js";
+import { ConfView } from "../views/conf.js";
 import { recordings } from "../views/recordings.js";
 export class ViewSelector {
     currentView;
@@ -46,7 +46,7 @@ export class ViewSelector {
                 recordings.render();
                 break;
             case Views.CONFIGURE:
-                this.mainPanel.appendChild(SettingsView());
+                this.mainPanel.appendChild(ConfView());
                 break;
         }
     }
