@@ -17,6 +17,8 @@ class ServerStateManager {
                 throw new Error("Failed to fetch dashboard");
             const data = (await res.json());
             this._info = data;
+            const hexColor = this._info.conf.accentColors[this._info.conf.accentActive];
+            document.documentElement.style.setProperty('--accent', hexColor);
         }
         catch (err) {
             console.error("Dashboard sync error:", err);

@@ -40,7 +40,7 @@ class AppState:
 
         self.dashboard: DashboardHandler = DashboardHandler()
         self.sessions: SessionsHandler = SessionsHandler()
-        self.recordings: RecordingsHandler = RecordingsHandler()
+        self.recordings: RecordingsHandler = RecordingsHandler(self.info.conf)
         self.services: Services = Services(self.dashboard, self.recordings)
 
         self.mdns: Optional[AsyncZeroconf] = None
@@ -79,6 +79,8 @@ class AppState:
 
         self.info.conf = conf
         self.info.conf.save()
+        self.recordings.audio.props = conf
+        self.recordings.audio.sync_params()
 
         self.reload_indends()
         log.info("Server configuration successfully updated.")

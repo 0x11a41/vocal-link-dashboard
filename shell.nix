@@ -26,6 +26,7 @@ pkgs.mkShell {
     python3Packages.psutil
     python3Packages.noisereduce
     python3Packages.numpy
+    python3Packages.torch
     python3Packages.python-multipart
   ];
 

@@ -1,13 +1,24 @@
 {
-  "name": "PodPulse",
-  "color": "#5CE796",
-  "fmt": ".m4a",
-  "whisperModel": "small",
-  "noiseStrength": 0.75,
-  "amplitudeStrength": -18,
-  "filterBassBoost": 6.0,
-  "airBoost": 4.0,
-  "compressorThreshold": -20.0,
-  "compressorRatio": 4.0,
-  "intends": "class EventTriggers:\n    pass"
+    "name": "PodNest",
+    "accentColors": [
+        "#E7965C",
+        "#5C96E7",
+        "#5CE796",
+        "#965CE7",
+        "#4A5568"
+    ],
+    "accentActive": 0,
+    "fmts": [
+        ".m4a",
+        ".mp3",
+        ".ogg"
+    ],
+    "fmtActive": 0,
+    "noiseStrength": 0.75,
+    "amplitudeStrength": -17,
+    "filterBassBoost": 6.0,
+    "airBoost": 4.0,
+    "compressorThreshold": -20.0,
+    "compressorRatio": 4.0,
+    "intends": "class EventTriggers:\n\tdef onStart():\n\t\tprint(\"Recording Started...\")\n\tdef onStop():\n\t\tprint(\"Recording Saved.\")\n\tdef onPause():\n\t\tpass\n\tdef onResume():\n\t\tpass"
 }

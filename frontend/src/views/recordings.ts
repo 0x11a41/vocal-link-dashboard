@@ -4,7 +4,7 @@ import { button } from '../components/button.js';
 import { checkbox } from '../components/checkbox.js';
 import { modalDialog } from '../components/modalDialog.js';
 import { URL } from '../models/constants.js';
-import { fmtDate, fmtRecordingName, fmtTime } from '../utils/formatting.js';
+import { fmtRecordingName } from '../utils/formatting.js';
 
 class RecordingsView {
     public view = document.createElement('section');
@@ -216,4 +216,4 @@ class RecordingsView {
     }
 }
 
-export const recordings = new RecordingsView();
+export const Recordings = new RecordingsView();

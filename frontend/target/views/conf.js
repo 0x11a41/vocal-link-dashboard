@@ -1,24 +1,133 @@
-export function ConfView() {
+import { server } from "../network/serverInfo.js";
+import { ColorPicker } from "../components/ColorPicker.js";
+import { Slider } from "../components/Slider.js";
+import { DropDownMenu } from "../components/DropDownMenu.js";
+function createConfRow({ label, element }) {
+    const confRow = document.createElement('div');
+    confRow.className = 'row';
+    const left = document.createElement('div');
+    left.className = 'left';
+    left.insertAdjacentHTML('beforeend', `<p>${label}</p>`);
+    const right = document.createElement('div');
+    right.className = 'right';
+    right.appendChild(element);
+    confRow.append(left, right);
+    return confRow;
+}
+function createConfSection({ title, desc = null, elements }) {
+    const confSection = document.createElement('div');
+    confSection.className = 'conf-section';
+    const h4 = document.createElement('h4');
+    h4.textContent = title;
+    confSection.appendChild(h4);
+    if (desc) {
+        const p = document.createElement('p');
+        p.className = 'desc';
+        p.textContent = desc;
+        confSection.appendChild(p);
+    }
+    for (const element of elements) {
+        confSection.appendChild(element);
+    }
+    return confSection;
+}
+class ConfView {
+    view = document.createElement('section');
+    constructor() {
+        this.view.className = "conf-view stack";
+    }
+    render() {
+        this.view.replaceChildren();
+        this.createInterfaceSection();
+        this.createAudioProcessingSection();
+    }
+    createInterfaceSection() {
+        const colorPicker = ColorPicker({
+            colors: server.conf?.accentColors ?? ['#E7965C'],
+            active: server.conf?.accentActive ?? 0,
+            onselect: (i) => this.setAccentColor(i)
+        });
+        const accentRow = createConfRow({
+            label: 'Accent color',
+            element: colorPicker
+        });
+        const confSection = createConfSection({
+            title: 'Interface',
+            elements: [accentRow]
+        });
+        this.view.appendChild(confSection);
+    }
+    createAudioProcessingSection() {
+        const rows = [];
+        const noiseSlider = Slider({
+            min: 0.0,
+            max: 1.0,
+            step: 0.05,
+            initialValue: server.conf?.noiseStrength ?? 0.75,
+            onchange: (val) => { server.updateConf({ noiseStrength: val }); }
+        });
+        rows.push(createConfRow({ label: 'Noise reduction strength', element: noiseSlider }));
+        const amplitudeSlider = Slider({
+            min: -24,
+            max: -12,
+            step: 1,
+            initialValue: server.conf?.amplitudeStrength ?? -18,
+            onchange: (val) => { server.updateConf({ amplitudeStrength: val }); }
+        });
+        rows.push(createConfRow({ label: 'Amplitude boost strength', element: amplitudeSlider }));
+        const bassBoostSlider = Slider({
+            min: 0,
+            max: 12,
+            step: 0.5,
+            initialValue: server.conf?.filterBassBoost ?? 6,
+            onchange: (val) => { server.updateConf({ filterBassBoost: val }); }
+        });
+        rows.push(createConfRow({ label: "Bass boost level", element: bassBoostSlider }));
+        const airBoostSlider = Slider({
+            min: 0,
+            max: 10,
+            step: 0.5,
+            initialValue: server.conf?.airBoost ?? 4,
+            onchange: (val) => { server.updateConf({ airBoost: val }); }
+        });
+        rows.push(createConfRow({ label: "Air boost level", element: airBoostSlider }));
+        const compressorThresholdSlider = Slider({
+            min: -40,
+            max: -10,
+            step: 1,
+            initialValue: server.conf?.compressorThreshold ?? -10,
+            onchange: (val) => { server.updateConf({ compressorThreshold: val }); }
+        });
+        rows.push(createConfRow({ label: "Compressor threshold", element: compressorThresholdSlider }));
+        const compressorRatioSlider = Slider({
+            min: 1.0,
+            max: 10,
+            step: 0.2,
+            initialValue: server.conf?.compressorRatio ?? 4.0,
+            onchange: (val) => { server.updateConf({ compressorRatio: val }); }
+        });
+        rows.push(createConfRow({ label: "Compressor Ratio", element: compressorRatioSlider }));
+        const fmtDropDown = DropDownMenu({
+            options: server.conf?.fmts ?? ['error'],
+            active: server.conf?.fmtActive ?? 0,
+            onchange: (val) => { server.updateConf({ fmtActive: val }); }
+        });
+        rows.push(createConfRow({ label: "Preferred audio format", element: fmtDropDown }));
+        const section = createConfSection({ title: 'Audio Processing', elements: rows });
+        this.view.appendChild(section);
+    }
+    setAccentColor(i) {
+        server.updateConf({ accentActive: i });
+        const hexColor = server.conf?.accentColors[i];
+        if (hexColor)
+            document.documentElement.style.setProperty('--accent', hexColor);
+    }
+}
+export const Conf = new ConfView();
+function CofView() {
     const settingsView = document.createElement('section');
     settingsView.classList.add("conf-view", "stack");
     settingsView.innerHTML = `
-    <div class="conf-section">
-      <h4>Appearance</h4>
-      <div class="row">
-        <div class="left">
-          <p>Accent color</p>
-        </div>
-        <div class="right">
-  				<div class="color-picker">
-  					<div class="color active" style="background: #E7965C;"></div>
-  					<div class="color" style="background: #877;"></div>
-  					<div class="color" style="background: #7e7;"></div>
-  					<div class="color" style="background: #77a;"></div>
-  					<div class="color" style="background: #87f;"></div>
-  				</div>
-        </div>
-      </div>
-    </div>  
 
     <div class="conf-section">
       <h4>Audio processing</h4>

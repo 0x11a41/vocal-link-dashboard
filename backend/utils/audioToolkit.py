@@ -1,4 +1,5 @@
 import os
+import torch
 import numpy as np
 from typing import List, Tuple
 from pydub import AudioSegment, effects
@@ -9,34 +10,31 @@ from faster_whisper import WhisperModel
 import backend.core.primitives as P
 from backend.utils.logging import log
 
-class AudioToolkit:
-    SUPPORTED_FORMATS = {
-        ".m4a": {"format": "mp4", "codec": "aac", "bitrate": "192k"},
-        ".mp3": {"format": "mp3", "codec": "libmp3lame", "bitrate": "192k"},
-        ".ogg": {"format": "ogg", "codec": "libopus", "bitrate": "128k"},
-        ".wav": {"format": "wav"}
-    }
+SUPPORTED_FORMATS = {
+    ".m4a": {"format": "mp4", "codec": "aac", "bitrate": "192k"},
+    ".mp3": {"format": "mp3", "codec": "libmp3lame", "bitrate": "192k"},
+    ".ogg": {"format": "ogg", "codec": "libopus", "bitrate": "128k"},
+    ".wav": {"format": "wav"}
+}
 
-    def __init__(
-        self, 
-        model_size: str = "small", 
-        noise_strength: float = 0.75,
-        target_dbfs: float = -18.0,
-        bass_boost_db: float = 6.0,
-        air_boost_db: float = 4.0,
-        compressor_threshold: float = -20.0,
-        compressor_ratio: float = 4.0,
-        device: str = "cpu", 
-        compute_type: str = "int8"
-    ):
-        log.info(f"Loading Whisper model ({model_size}) on {device}...")
-        self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
-        self.noise_strength = noise_strength
-        self.target_dbfs = target_dbfs
-        self.bass_boost = bass_boost_db
-        self.air_boost = air_boost_db
-        self.comp_thresh = compressor_threshold
-        self.comp_ratio = compressor_ratio
+device = "cuda" if torch.cuda.is_available() else "cpu"
+compute_type = "float16" if device == "cuda" else "int8"
+model_size = "small"
+log.info(f"Loading Whisper model ({model_size}) on {device}...")
+model = WhisperModel(model_size, device=device, compute_type=compute_type)
+
+class AudioToolkit:
+    def __init__(self, props: P.ServerConf = P.ServerConf()):
+        self.props = props
+        self.sync_params()
+
+    def sync_params(self):
+        self.noise_strength = self.props.noiseStrength
+        self.target_dbfs = self.props.amplitudeStrength
+        self.bass_boost = self.props.filterBassBoost
+        self.air_boost = self.props.airBoost
+        self.comp_thresh = self.props.compressorThreshold
+        self.comp_ratio = self.props.compressorRatio
 
     def _reduce_noise(self, audio: AudioSegment) -> AudioSegment:
         channels = audio.channels
@@ -50,7 +48,7 @@ class AudioToolkit:
         reduced = nr.reduce_noise(
             y=samples, 
             sr=sr, 
-            prop_decrease=self.noise_strength, # Controlled by constructor
+            prop_decrease=self.noise_strength, 
             stationary=False,        
             n_fft=2048,             
             time_mask_smooth_ms=64, 
@@ -61,23 +59,24 @@ class AudioToolkit:
             reduced = reduced.T.flatten()
         
         reduced = np.clip(reduced * 32767, -32768, 32767).astype(np.int16)
-        cleaned_audio = AudioSegment(
+        return AudioSegment(
             reduced.tobytes(), 
             frame_rate=sr, 
             sample_width=2, 
             channels=channels
         )
 
-        return effects.normalize(cleaned_audio)
 
     def _apply_studio_filter(self, audio: AudioSegment) -> AudioSegment:
         audio = high_pass_filter(audio, 80)
 
-        bass = audio.low_pass_filter(250).apply_gain(self.bass_boost)
-        audio = audio.overlay(bass)
+        if self.bass_boost > 0:
+            bass = audio.low_pass_filter(250).apply_gain(self.bass_boost)
+            audio = audio.overlay(bass)
 
-        air = audio.high_pass_filter(6000).apply_gain(self.air_boost)
-        audio = audio.overlay(air)
+        if self.air_boost > 0:
+            air = audio.high_pass_filter(6000).apply_gain(self.air_boost)
+            audio = audio.overlay(air)
 
         return effects.compress_dynamic_range(
             audio, 
@@ -87,13 +86,12 @@ class AudioToolkit:
             release=100.0
         )
 
+
     def _amplify(self, audio: AudioSegment) -> AudioSegment:
         if audio.dBFS == float("-inf"):
             return audio
 
-        current_dbfs = audio.dBFS
-        gain_needed = self.target_dbfs - current_dbfs
-        
+        gain_needed = self.target_dbfs - audio.dBFS
         gain_needed = max(min(gain_needed, 15.0), -15.0) 
         audio = audio.apply_gain(gain_needed)
 
@@ -105,9 +103,9 @@ class AudioToolkit:
 
     def _export(self, audio: AudioSegment, path: str):
         ext = os.path.splitext(path)[1].lower()
-        config = self.SUPPORTED_FORMATS.get(ext, {"format": "wav"})
+        config = SUPPORTED_FORMATS.get(ext, {"format": "wav"})
         audio.export(path, **config)
-    
+
 
     def enhance(self, input_path: str, output_path: str, props: int) -> Tuple[float, int]:
         if not os.path.exists(input_path):
@@ -128,7 +126,7 @@ class AudioToolkit:
 
 
     def transcribe(self, path: str, rid: str) -> P.TranscriptResult:
-        segments, info = self.model.transcribe(path, beam_size=5, vad_filter=True)
+        segments, info = model.transcribe(path, beam_size=5, vad_filter=True)
         
         results = []
         for s in segments:
@@ -162,4 +160,3 @@ class AudioToolkit:
         combined = effects.normalize(combined)
         self._export(combined, output)
         return len(combined) / 1000, os.path.getsize(output)
-

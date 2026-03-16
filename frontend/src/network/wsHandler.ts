@@ -1,7 +1,7 @@
 import { WSKind, WSEvents, WSPayload, SessionMetadata, WSEventTarget, StateReport, RecMetadata} from '../models/primitives.js';
 import { SessionCard } from '../components/SessionCard.js';
 import { Dashboard } from '../views/dashboard.js';
-import { recordings } from '../views/recordings.js';
+import { Recordings } from '../views/recordings.js';
 
 interface Props {
   payload: WSPayload;
@@ -92,14 +92,14 @@ function handleEvents({payload, renderDashboard}: Props) {
 
     case WSEvents.REC_STAGED: {
       const meta = payload.body as RecMetadata;      
-      recordings.append(meta);
-      recordings.setDefaultName(meta);
+      Recordings.append(meta);
+      Recordings.setDefaultName(meta);
       break;      
     }
 
     case WSEvents.REC_AMEND: {
       const meta = payload.body as RecMetadata;
-      recordings.amend(meta.rid, meta);
+      Recordings.amend(meta.rid, meta);
       break;
     }
 

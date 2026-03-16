@@ -188,4 +188,4 @@ class RecordingsView {
         return this.cards.has(rid);
     }
 }
-export const recordings = new RecordingsView();
+export const Recordings = new RecordingsView();

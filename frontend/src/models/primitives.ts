@@ -79,15 +79,12 @@ export interface ServerConf {
   accentActive: number;
   fmts: string[];
   fmtActive: number;
-
-  whisperModel: string;
   noiseStrength: number;
   amplitudeStrength: number;
   filterBassBoost: number;
   airBoost: number;
   compressorThreshold: number;
   compressorRatio: number;
-
   intends: string;
 }
 

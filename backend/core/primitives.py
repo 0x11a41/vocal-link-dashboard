@@ -30,8 +30,6 @@ class ServerConf(BaseModel):
     accentActive: int = Field(default=0, ge=0, le=4)
     fmts: List[str] = [ ".m4a", ".mp3", ".ogg" ]
     fmtActive: int = Field(default=0, ge=0, le=2)
-    
-    whisperModel: str = Field(default="small")
     noiseStrength: float = Field(default=0.75, ge=0.0, le=1.0)
     amplitudeStrength: int = Field(default=-18, ge=-24, le=-12)
     filterBassBoost: float = Field(default=6.0, ge=0.0, le=12.0)
@@ -39,7 +37,7 @@ class ServerConf(BaseModel):
     compressorThreshold: float = Field(default=-20.0, ge=-40.0, le=-10.0)
     compressorRatio: float = Field(default=4.0, ge=1.0, le=10.0)
     
-    intends: str = Field(default="class EventTriggers:\n    pass")
+    intends: str = Field(default="class EventTriggers:\n\tdef onStart():\n\t\tprint(\"Recording Started...\")\n\tdef onStop():\n\t\tprint(\"Recording Saved.\")\n\tdef onPause():\n\t\tpass\n\tdef onResume():\n\t\tpass")
 
     def save(self, path: Path = CONFIG_PATH):
         path.write_text(self.model_dump_json(indent=4))

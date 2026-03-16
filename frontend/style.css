@@ -210,9 +210,7 @@ body {
 
 
 /* ================== Generic classess ================ */
-select,
-input[type="text"],
-input[type="number"] {
+select {
   min-width: 16ch;
   width: 100%;
   padding: .5rem;
@@ -252,12 +250,14 @@ select:hover {
 }
 
 input[type="range"] {
-  flex-grow: 1;
+  flex: 1;
+  /* slider takes remaining space */
   accent-color: var(--accent);
   height: 4px;
 }
 
 .slider-val {
+  width: 4ch;
   font-family: monospace;
   font-size: 0.9rem;
   text-align: right;
@@ -1115,6 +1115,13 @@ aside .active:hover {
   text-transform: uppercase;
 }
 
+.conf-section h4::after {
+  content: "";
+  display: block;
+  border-bottom: 1px solid var(--border);
+  margin-top: 6px;
+}
+
 .conf-section {
   margin-bottom: 0.7rem;
 }
@@ -1123,7 +1130,7 @@ aside .active:hover {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.7rem 1rem;
+  padding: 0.7rem 0rem;
 }
 
 .conf-section .row .left>p {
@@ -1153,7 +1160,6 @@ aside .active:hover {
   color: var(--text-muted);
   font-size: 0.9rem;
   margin-top: 8px;
-  padding-left: 1rem;
 }
 
 .conf-section .code-area {

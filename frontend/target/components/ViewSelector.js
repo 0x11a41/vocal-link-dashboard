@@ -1,7 +1,7 @@
 import { Views } from '../models/primitives.js';
 import { Dashboard } from '../views/dashboard.js';
-import { ConfView } from "../views/conf.js";
-import { recordings } from "../views/recordings.js";
+import { Conf } from "../views/conf.js";
+import { Recordings } from "../views/recordings.js";
 export class ViewSelector {
     currentView;
     menu = document.createElement('menu');
@@ -38,15 +38,16 @@ export class ViewSelector {
         this.mainPanel.replaceChildren();
         switch (this.currentView) {
             case Views.DASHBOARD:
-                this.mainPanel.appendChild(Dashboard.view);
                 Dashboard.render();
+                this.mainPanel.appendChild(Dashboard.view);
                 break;
             case Views.RECORDINGS:
-                this.mainPanel.appendChild(recordings.view);
-                recordings.render();
+                Recordings.render();
+                this.mainPanel.appendChild(Recordings.view);
                 break;
             case Views.CONFIGURE:
-                this.mainPanel.appendChild(ConfView());
+                Conf.render();
+                this.mainPanel.appendChild(Conf.view);
                 break;
         }
     }

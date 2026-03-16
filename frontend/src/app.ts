@@ -6,7 +6,7 @@ import { sendPayload, ws } from './network/ws.js';
 import { wsHandler } from './network/wsHandler.js';
 import { ViewSelector } from './components/ViewSelector.js';
 import { Dashboard } from './views/dashboard.js';
-import { recordings } from './views/recordings.js';
+import { Recordings } from './views/recordings.js';
 import { modalDialog } from './components/modalDialog.js';
 
 
@@ -92,7 +92,7 @@ export class VLApp {
       const recMetas: RecMetadata[] = await recResponse.json();
       
       for (const meta of recMetas) {
-        recordings.append(meta);
+        Recordings.append(meta);
       }
     } catch (err) {
       console.error("Init failed:", err);

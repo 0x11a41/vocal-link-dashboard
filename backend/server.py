@@ -89,7 +89,7 @@ async def getServerInfo():
     return await app.server_info()
 
 
-@api.put("/config", response_model=P.ServerInfo)
+@api.put("/dashboard", response_model=P.ServerInfo)
 async def updateServerInfo(conf: P.ServerConf):
     await app.update_conf(conf)
     return await app.server_info()

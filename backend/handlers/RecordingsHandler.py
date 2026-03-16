@@ -21,7 +21,7 @@ class RecordingTypes(Enum):
     TRANSCRIPT = 'transcript'
 
 class RecordingsHandler:
-    def __init__(self, root: str = "storage"):    
+    def __init__(self, conf: P.ServerConf, root: str = "storage"):    
         self.root: str = root
         if os.path.exists(self.root):
             shutil.rmtree(self.root)
@@ -29,7 +29,7 @@ class RecordingsHandler:
         self._recordings: Dict[str, P.RecMetadata] = {}
         self._lock = asyncio.Lock()
 
-        self._audio = AudioToolkit()
+        self.audio = AudioToolkit(conf)
 
         self.original_dir: str = os.path.join(root, "original")
         self.enhanced_dir: str = os.path.join(root, "enhanced")
@@ -159,7 +159,7 @@ class RecordingsHandler:
 
         try:
             transcript_result: P.TranscriptResult = await asyncio.to_thread(
-                self._audio.transcribe,
+                self.audio.transcribe,
                 original,
                 rid
             )
@@ -229,7 +229,7 @@ class RecordingsHandler:
 
         try:
             duration, size = await asyncio.to_thread(
-                self._audio.merge,
+                self.audio.merge,
                 [self._original_path(meta) for meta in metas],
                 self._original_path(merged_meta),
             )
@@ -263,7 +263,7 @@ class RecordingsHandler:
 
         try:
             await asyncio.to_thread(
-                self._audio.enhance,
+                self.audio.enhance,
                 original_path,
                 enhanced_path,
                 props

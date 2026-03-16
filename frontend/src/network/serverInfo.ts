@@ -17,7 +17,7 @@ class ServerStateManager {
     this.refresh();
   }
 
-  async refresh(): Promise<void> {
+  public async refresh(): Promise<void> {
     try {
       const res = await fetch(`${URL}/dashboard`);
       if (!res.ok) throw new Error("Failed to fetch dashboard");
@@ -25,6 +25,8 @@ class ServerStateManager {
       const data = (await res.json()) as ServerInfo;
 
       this._info = data;
+      const hexColor = this._info.conf.accentColors[this._info.conf.accentActive];
+      document.documentElement.style.setProperty('--accent', hexColor);
     } catch (err) {
       console.error("Dashboard sync error:", err);
     }
