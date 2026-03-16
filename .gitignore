@@ -5,3 +5,4 @@ __pycache__
 *.m4a
 logs
 storage
+backend/config.json

@@ -55,9 +55,9 @@ python app.py --debug
 
 ## Todo
 
-- [ ] storing server configuration
+- [x] storing server configuration
 - [ ] setting page
-- [ ] dark and light mode toggle button at top
+- [x] dark and light mode toggle button at top (automatic dark and light theme switching instead)
 - [ ] about page
 - [ ] key bindings
 - [ ] key bindings documentation
