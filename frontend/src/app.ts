@@ -15,7 +15,7 @@ export class VLApp {
   private sidePanel = document.createElement('aside');
   private mainPanel = document.createElement('main');
 
-  private viewSelector = new ViewSelector(this.mainPanel, Views.CONFIGURE);
+  private viewSelector = new ViewSelector(this.mainPanel, Views.DASHBOARD);
 
   constructor() {
     const root = document.getElementById("app");

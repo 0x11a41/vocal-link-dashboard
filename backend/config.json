@@ -1,5 +1,5 @@
 {
-    "name": "hehe boi",
+    "name": "Yet another server",
     "accentColors": [
         "#E7965C",
         "#5C96E7",
@@ -7,7 +7,7 @@
         "#965CE7",
         "#4A5568"
     ],
-    "accentActive": 1,
+    "accentActive": 3,
     "fmts": [
         ".m4a",
         ".mp3",
@@ -15,10 +15,10 @@
     ],
     "fmtActive": 0,
     "noiseStrength": 0.75,
-    "amplitudeStrength": -17,
+    "amplitudeStrength": -18,
     "filterBassBoost": 6.0,
     "airBoost": 4.0,
     "compressorThreshold": -20.0,
     "compressorRatio": 4.0,
-    "intends": "class EventTriggers:\n\tdef onStart():\n\t\tprint(\"Recording Started...\")\n\tdef onStop():\n\t\tprint(\"Recording Saved.\")\n\tdef onPause():\n\t\tpass\n\tdef onResume():\n\t\tpass"
+    "intends": "import asyncio\nimport signal\nimport time\nimport os\n\n\nclass EventTriggers:\n    def __init__(self):\n        self.proc = None\n        self.file = None\n        self.spec = [\"-m\", \"60\", \"--low-power\", \"off\", \"--audio\"]\n\n        self.output_dir = \"./storage\"\n        os.makedirs(self.output_dir, exist_ok=True)\n\n    def _new_file(self):\n        ts = time.strftime(\"%Y-%m-%d_%H%M%S\")\n        return f\"{self.output_dir}/screencast-{ts}.mp4\"\n\n    async def _start(self, extra):\n        if self.proc and self.proc.returncode is None:\n            return\n\n        self.file = self._new_file()\n\n        self.proc = await asyncio.create_subprocess_exec(\n            \"wl-screenrec\",\n            *self.spec,\n            *extra,\n            \"-f\",\n            self.file,\n            stdout=asyncio.subprocess.DEVNULL,\n            stderr=asyncio.subprocess.DEVNULL,\n        )\n\n    async def onStart(self):\n        # start recording\n        await self._start([])\n\n    async def onStop(self):\n        # stop and save\n        if self.proc and self.proc.returncode is None:\n            self.proc.send_signal(signal.SIGINT)\n            await self.proc.wait()\n\n            if self.file:\n                proc = await asyncio.create_subprocess_exec(\n                    \"notify-send\",\n                    \"-A\", \"open=Open\",\n                    \"Recording Stopped\",\n                    f\"Saved at {self.file}\",\n                    stdout=asyncio.subprocess.PIPE,\n                )\n\n                stdout, _ = await proc.communicate()\n                action = stdout.decode().strip()\n\n                if action == \"open\":\n                    await asyncio.create_subprocess_exec(\n                        \"nautilus\",\n\t\t\t\t\t\t\"/home/hk/prog/vocal-link-dashboard/storage\"\n                    )\n\n            self.proc = None\n\n    async def onPause(self):\n        # pause recording\n        if self.proc and self.proc.returncode is None:\n            self.proc.send_signal(signal.SIGSTOP)\n\n    async def onResume(self):\n        # resume recording\n        if self.proc and self.proc.returncode is None:\n            self.proc.send_signal(signal.SIGCONT)\n\n    async def onCancel(self):\n        # cancel and delete file\n        if self.proc and self.proc.returncode is None:\n            self.proc.send_signal(signal.SIGTERM)\n            await self.proc.wait()\n\n            if self.file and os.path.exists(self.file):\n                os.remove(self.file)\n\n            self.proc = None"
 }

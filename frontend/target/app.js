@@ -12,7 +12,7 @@ export class VLApp {
     root;
     sidePanel = document.createElement('aside');
     mainPanel = document.createElement('main');
-    viewSelector = new ViewSelector(this.mainPanel, Views.CONFIGURE);
+    viewSelector = new ViewSelector(this.mainPanel, Views.DASHBOARD);
     constructor() {
         const root = document.getElementById("app");
         if (!root)

@@ -37,7 +37,7 @@ class ServerConf(BaseModel):
     compressorThreshold: float = Field(default=-20.0, ge=-40.0, le=-10.0)
     compressorRatio: float = Field(default=4.0, ge=1.0, le=10.0)
     
-    intends: str = Field(default="class EventTriggers:\n\tdef onStart():\n\t\tprint(\"Recording Started...\")\n\tdef onStop():\n\t\tprint(\"Recording Saved.\")\n\tdef onPause():\n\t\tpass\n\tdef onResume():\n\t\tpass")
+    intends: str = Field(default="class EventTriggers:\n\tdef onStart(self):\n\t\t# Called when a session starts\n\t\tprint(\"onStart triggered\")\n\n\tdef onStop(self):\n\t\t# Called when a session stops normally\n\t\tprint(\"onStop triggered\")\n\n\tdef onPause(self):\n\t\t# Called when a session is paused\n\t\tprint(\"onPause triggered\")\n\n\tdef onResume(self):\n\t\t# Called when a session resumes\n\t\tprint(\"onResume triggered\")\n")
 
     def save(self, path: Path = CONFIG_PATH):
         path.write_text(self.model_dump_json(indent=4))

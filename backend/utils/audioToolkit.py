@@ -1,5 +1,4 @@
 import os
-import torch
 import numpy as np
 from typing import List, Tuple
 from pydub import AudioSegment, effects
@@ -17,11 +16,9 @@ SUPPORTED_FORMATS = {
     ".wav": {"format": "wav"}
 }
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
-compute_type = "float16" if device == "cuda" else "int8"
 model_size = "small"
-log.info(f"Loading Whisper model ({model_size}) on {device}...")
-model = WhisperModel(model_size, device=device, compute_type=compute_type)
+log.info(f"Loading Whisper model ({model_size}) on cpu...")
+model = WhisperModel(model_size, device='cpu', compute_type='int8')
 
 class AudioToolkit:
     def __init__(self, props: P.ServerConf = P.ServerConf()):

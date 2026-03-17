@@ -61,7 +61,7 @@
   --accent: #E7965C;
   --success: #4CAF50;
   --danger: #DB4C4A;
-  --border-radius: 8px;
+  --border-radius: 6px;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   --shadow-recording: 0 8px 20px rgba(0, 0, 0, 0.08);
   --card-border-highlight: rgba(255, 255, 255, 0.8);
@@ -1160,6 +1160,17 @@ aside .active:hover {
   color: var(--text-muted);
   font-size: 0.9rem;
   margin-top: 8px;
+}
+
+.conf-section .code-wrapper {
+  margin: 1rem 0;
+  position: relative;
+}
+
+.conf-section .code-wrapper button {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
 }
 
 .conf-section .code-area {

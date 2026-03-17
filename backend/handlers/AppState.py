@@ -50,30 +50,64 @@ class AppState:
         self.reload_indends()
 
     
-    def reload_indends(self):
+    def reload_indends(self) -> bool:
         class DefaultTriggers:
             def onStart(self): pass
             def onStop(self): pass
             def onPause(self): pass
             def onResume(self): pass
 
+        REQUIRED_METHODS = ["onStart", "onStop", "onPause", "onResume" ]
+
+        def is_valid_trigger_class(cls):
+            for method_name in REQUIRED_METHODS:
+                method = getattr(cls, method_name, None)
+                if not callable(method):
+                    log.warning(f"Missing or invalid method: {method_name}")
+                    return False
+            return True
+
         try:
             namespace = {}
-            exec(self.info.conf.intends, {"__builtins__": __builtins__}, namespace)
+            import asyncio
+            import signal
+            import time
+            import os
+            exec(
+                self.info.conf.intends,
+                {
+                    "__builtins__": __builtins__,
+                    "asyncio": asyncio,
+                    "signal": signal,
+                    "time": time,
+                    "os": os,
+                },
+                namespace
+            )
 
             trigger_class = namespace.get("EventTriggers")
-            if trigger_class and isinstance(trigger_class, type):
+
+            if (
+                trigger_class
+                and isinstance(trigger_class, type)
+                and is_valid_trigger_class(trigger_class)
+            ):
                 self.intends = trigger_class()
                 log.info("EventTriggers hot-reloaded successfully.")
             else:
-                log.warning("Class 'EventTriggers' not found in intents. Using defaults.")
+                log.warning("Invalid EventTriggers class. Using defaults.")
                 self.intends = DefaultTriggers()
+
+            return True
+
         except Exception as e:
             log.error(f"Failed to hot-reload intents: {e}")
             self.intends = DefaultTriggers()
 
+        return False
 
-    async def update_conf(self, conf: P.ServerConf):
+
+    async def update_conf(self, conf: P.ServerConf) -> bool:
         if self.info.conf.name != conf.name:
             await self.rename(P.Rename(name=conf.name))
 
@@ -82,8 +116,9 @@ class AppState:
         self.recordings.audio.props = conf
         self.recordings.audio.sync_params()
 
-        self.reload_indends()
+        status = self.reload_indends()
         log.info("Server configuration successfully updated.")
+        return status
             
 
 
@@ -129,7 +164,6 @@ class AppState:
             log.info(f"[SERVER] Renamed from '{old_name}' to '{data.name}'")
 
         except Exception as e:
-            # Revert on failure
             self.info.conf.name = old_name 
             self.info.conf.save()
             log.error(f"[SERVER] mDNS Rename Failed: {e}")
@@ -179,6 +213,27 @@ class AppState:
 
         return now + delay
     
+
+    async def trigger_indent(self, method_name: str):
+            if not self.intends:
+                return
+            try:
+                method = getattr(self.intends, method_name, None)
+                if method:
+                    await method()
+            except Exception as e:
+                log.error(f"User Intent Error ({method_name}): {e}")
+
+    async def handle_indents(self, event: P.WSEvents):
+        if event == P.WSEvents.STARTED:
+            await self.trigger_indent('onStart')
+        elif event == P.WSEvents.STOPPED:
+            await self.trigger_indent('onStop')
+        elif event == P.WSEvents.PAUSED:
+            await self.trigger_indent('onPause')
+        elif event == P.WSEvents.RESUMED:
+            await self.trigger_indent('onResume')
+
 
     async def handle_events(self, payload: P.WSPayload, ws: WebSocket):
         log.info(P.WSPayload.model_dump(payload))
@@ -267,6 +322,8 @@ class AppState:
             except ValidationError:
                 await send_error(ws, P.WSErrors.INVALID_BODY)
                 return
+
+            await self.handle_indents(event_type)
             await self.dashboard.notify(payload)
 
         elif event_type == P.WSEvents.SESSION_STATE_REPORT:
@@ -326,29 +383,18 @@ class AppState:
             await send_error(ws, P.WSErrors.INVALID_BODY)
             return
 
-        async def forward():
+        if action_type in (
+            P.WSActions.START,
+            P.WSActions.STOP,
+            P.WSActions.PAUSE,
+            P.WSActions.RESUME,
+            P.WSActions.CANCEL,
+            P.WSActions.GET_STATE,
+        ):
             if await self.sessions.is_active(target.id):
                 await self.sessions.send_to_one(target.id, payload)
             else:
                 await self.dashboard.error(P.WSErrors.SESSION_NOT_FOUND)
-
-        if action_type == P.WSActions.START:
-            await forward()
-
-        elif action_type == P.WSActions.STOP:
-            await forward()
-
-        elif action_type == P.WSActions.PAUSE:
-            await forward()
-
-        elif action_type == P.WSActions.RESUME:
-            await forward()
-
-        elif action_type == P.WSActions.CANCEL:
-            await forward()
-
-        elif action_type == P.WSActions.GET_STATE:
-            await forward()
 
         elif action_type == P.WSActions.DROP:
             if not await self.sessions.exists(target.id):
@@ -371,6 +417,8 @@ class AppState:
                                         msgType = action,
                                         body = target
                                     ))
+
+
         else:
             await send_error(ws, P.WSErrors.INVALID_ACTION)
 

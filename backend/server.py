@@ -89,10 +89,18 @@ async def getServerInfo():
     return await app.server_info()
 
 
-@api.put("/dashboard", response_model=P.ServerInfo)
+@api.put("/dashboard")
 async def updateServerInfo(conf: P.ServerConf):
-    await app.update_conf(conf)
+    if await app.update_conf(conf):
+        return {"status": "ok"}
+    return {'status': "failed to update indents"}
+
+
+@api.delete("/dashboard", response_model=P.ServerInfo)
+async def resetServerInfo():
+    await app.update_conf(P.ServerConf())
     return await app.server_info()
+    
 
 
 @api.get("/dashboard/qr")

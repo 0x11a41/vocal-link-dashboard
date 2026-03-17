@@ -2,35 +2,8 @@ import { server } from "../network/serverInfo.js";
 import { ColorPicker } from "../components/ColorPicker.js";
 import { Slider } from "../components/Slider.js";
 import { DropDownMenu } from "../components/DropDownMenu.js";
-function createConfRow({ label, element }) {
-    const confRow = document.createElement('div');
-    confRow.className = 'row';
-    const left = document.createElement('div');
-    left.className = 'left';
-    left.insertAdjacentHTML('beforeend', `<p>${label}</p>`);
-    const right = document.createElement('div');
-    right.className = 'right';
-    right.appendChild(element);
-    confRow.append(left, right);
-    return confRow;
-}
-function createConfSection({ title, desc = null, elements }) {
-    const confSection = document.createElement('div');
-    confSection.className = 'conf-section';
-    const h4 = document.createElement('h4');
-    h4.textContent = title;
-    confSection.appendChild(h4);
-    if (desc) {
-        const p = document.createElement('p');
-        p.className = 'desc';
-        p.textContent = desc;
-        confSection.appendChild(p);
-    }
-    for (const element of elements) {
-        confSection.appendChild(element);
-    }
-    return confSection;
-}
+import { CodeEditor } from "../components/CodeEditor.js";
+import { button } from "../components/button.js";
 class ConfView {
     view = document.createElement('section');
     constructor() {
@@ -39,7 +12,9 @@ class ConfView {
     render() {
         this.view.replaceChildren();
         this.createInterfaceSection();
+        this.createCodeArea();
         this.createAudioProcessingSection();
+        this.createResetSection();
     }
     createInterfaceSection() {
         const colorPicker = ColorPicker({
@@ -59,6 +34,12 @@ class ConfView {
     }
     createAudioProcessingSection() {
         const rows = [];
+        const fmtDropDown = DropDownMenu({
+            options: server.conf?.fmts ?? ['error'],
+            active: server.conf?.fmtActive ?? 0,
+            onchange: (val) => { server.updateConf({ fmtActive: val }); }
+        });
+        rows.push(createConfRow({ label: "Preferred audio format", element: fmtDropDown }));
         const noiseSlider = Slider({
             min: 0.0,
             max: 1.0,
@@ -107,14 +88,33 @@ class ConfView {
             onchange: (val) => { server.updateConf({ compressorRatio: val }); }
         });
         rows.push(createConfRow({ label: "Compressor Ratio", element: compressorRatioSlider }));
-        const fmtDropDown = DropDownMenu({
-            options: server.conf?.fmts ?? ['error'],
-            active: server.conf?.fmtActive ?? 0,
-            onchange: (val) => { server.updateConf({ fmtActive: val }); }
-        });
-        rows.push(createConfRow({ label: "Preferred audio format", element: fmtDropDown }));
         const section = createConfSection({ title: 'Audio Processing', elements: rows });
         this.view.appendChild(section);
+    }
+    createCodeArea() {
+        const editor = CodeEditor({
+            defaultval: server.conf?.intends ?? "pass",
+            onsave: (code) => { server.updateConf({ intends: code }); }
+        });
+        this.view.appendChild(createConfSection({
+            title: "Event triggers",
+            desc: "Define custom Python handlers that run on start, stop, pause, and resume events.",
+            elements: [editor],
+        }));
+    }
+    createResetSection() {
+        const element = createConfRow({
+            label: "Load the default configuration (WARNING this will erase the custom script)",
+            element: button({
+                label: "Reset",
+                classes: ['immutable'],
+                onClick: async () => {
+                    await server.reset();
+                    window.location.reload();
+                }
+            }),
+        });
+        this.view.appendChild(createConfSection({ title: 'Server', elements: [element] }));
     }
     setAccentColor(i) {
         server.updateConf({ accentActive: i });
@@ -124,84 +124,32 @@ class ConfView {
     }
 }
 export const Conf = new ConfView();
-function CofView() {
-    const settingsView = document.createElement('section');
-    settingsView.classList.add("conf-view", "stack");
-    settingsView.innerHTML = `
-
-    <div class="conf-section">
-      <h4>Audio processing</h4>
-      <div class="row">
-        <div class="left">
-          <p>Noise reduction strength</p>
-        </div>
-        <div class="right">
-  				<div class="slider-group">
-						<input type="range" min="0" max="1" step="0.05" value="0.75">
-						<span class="slider-val">0.75</span>
-					</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="left">
-          <p>Amplitude boost level</p>
-        </div>
-        <div class="right">
-  				<div class="slider-group">
-						<input type="range" min="-24" max="12" step="1" value="-18">
-						<span class="slider-val">-18dB</span>
-					</div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="left">
-          <p>Transcription model size</p>
-        </div>
-        <div class="right">
-  				<select>
-  					<option>Tiny (Fastest)</option>
-  					<option>Base</option>
-  					<option selected>Small (Balanced)</option>
-  					<option>Medium (High Accuracy)</option>
-  				</select>
-        </div>
-      </div>
-      <div class="row">
-        <div class="left">
-          <p>Preferred recording format</p>
-        </div>
-        <div class="right">
-  				<select>
-  					<option>.ogg</option>
-  					<option>.mp3</option>
-  					<option selected>.m4a</option>
-  				</select>
-        </div>
-      </div>
-    </div>  
-
-    <div class="conf-section">
-      <h4>Custom Event triggers</h4>
-      <p class="desc">Write custom actions in python to trigger with the ui actions.</p>
-      <div class="row">
-  			<textarea class="code-area" spellcheck="false">
-class EventTriggers:
-	def onStart():
-		# Triggered when recording begins
-		print("Recording Started...")
-
-	def onStop():
-		# Triggered when recording ends
-		print("Recording Saved.")
-
-	def onPause():
-		pass
-
-	def onResume():
-		pass
-    		</textarea>
-      </div>
-    </div>  
-  `;
-    return settingsView;
+function createConfRow({ label, element }) {
+    const confRow = document.createElement('div');
+    confRow.className = 'row';
+    const left = document.createElement('div');
+    left.className = 'left';
+    left.insertAdjacentHTML('beforeend', `<p>${label}</p>`);
+    const right = document.createElement('div');
+    right.className = 'right';
+    right.appendChild(element);
+    confRow.append(left, right);
+    return confRow;
+}
+function createConfSection({ title, desc = null, elements }) {
+    const confSection = document.createElement('div');
+    confSection.className = 'conf-section';
+    const h4 = document.createElement('h4');
+    h4.textContent = title;
+    confSection.appendChild(h4);
+    if (desc) {
+        const p = document.createElement('p');
+        p.className = 'desc';
+        p.textContent = desc;
+        confSection.appendChild(p);
+    }
+    for (const element of elements) {
+        confSection.appendChild(element);
+    }
+    return confSection;
 }

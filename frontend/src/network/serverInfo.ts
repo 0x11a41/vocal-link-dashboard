@@ -55,6 +55,18 @@ class ServerStateManager {
       console.error("Config update error:", err);
     }
   }
+
+  async reset(): Promise<void> {
+    try {
+      const res = await fetch(`${URL}/dashboard`, { method: "DELETE", });
+
+      if (!res.ok) throw new Error("Failed to reset config");
+      const data = (await res.json()) as ServerInfo;
+      this._info = data;
+    } catch (err) {
+      console.error("Config reset error:", err);
+    }
+  }
 }
 
 export const server = new ServerStateManager();
