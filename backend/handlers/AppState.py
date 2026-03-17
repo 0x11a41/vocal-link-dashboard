@@ -3,6 +3,7 @@ import socket
 from fastapi import WebSocket
 from pydantic import ValidationError
 from zeroconf.asyncio import AsyncZeroconf, AsyncServiceInfo
+import asyncio
 
 import backend.core.primitives as P
 from backend.utils.utils import get_local_ip, now_ms
@@ -186,8 +187,8 @@ class AppState:
 
     async def _eval_triggerTime(self) -> int:
         SAFETY_MS = 200
-        MIN_DELAY = 500
-        DEFAULT_DELAY = 700
+        MIN_DELAY = 400
+        DEFAULT_DELAY = 600
         MAX_SYNC_AGE = 10_000  # ms
 
         metas = await self.sessions.getMetaFromAllActive()
@@ -215,14 +216,17 @@ class AppState:
     
 
     async def trigger_indent(self, method_name: str):
-            if not self.intends:
-                return
-            try:
-                method = getattr(self.intends, method_name, None)
-                if method:
-                    await method()
-            except Exception as e:
-                log.error(f"User Intent Error ({method_name}): {e}")
+        if not self.intends:
+            return
+        try:
+            method = getattr(self.intends, method_name, None)
+            if method:
+                loop = asyncio.get_running_loop()
+                loop.create_task(method())
+        except RuntimeError:
+            log.warning("No running event loop for intent")
+        except Exception as e:
+            log.error(f"User Intent Error ({method_name}): {e}")
 
     async def handle_indents(self, event: P.WSEvents):
         if event == P.WSEvents.STARTED:
@@ -323,8 +327,10 @@ class AppState:
                 await send_error(ws, P.WSErrors.INVALID_BODY)
                 return
 
-            await self.handle_indents(event_type)
-            await self.dashboard.notify(payload)
+            await asyncio.gather(
+                self.dashboard.notify(payload),
+                self.handle_indents(event_type),
+            )
 
         elif event_type == P.WSEvents.SESSION_STATE_REPORT:
             try:

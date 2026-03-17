@@ -1123,14 +1123,14 @@ aside .active:hover {
 }
 
 .conf-section {
-  margin-bottom: 0.7rem;
+  margin-bottom: 1rem;
 }
 
 .conf-section .row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.7rem 0rem;
+  padding: 1rem 0rem;
 }
 
 .conf-section .row .left>p {
