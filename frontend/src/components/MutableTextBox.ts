@@ -4,7 +4,7 @@ interface Props {
   classes?: string[];
 }
 
-export function MutableTextBox({ initial, onsave, classes = [] }: Props) {
+export function MutableTextBox({ initial, onsave, classes=[]}: Props) {
   const container = document.createElement('div');
   container.classList.add('mutable-container', ...classes);
 
@@ -13,6 +13,7 @@ export function MutableTextBox({ initial, onsave, classes = [] }: Props) {
     const textElement = document.createElement('span');
     textElement.className = 'mutable-text';
     textElement.innerText = currentText;
+    textElement.setAttribute("data-tooltip", "Click to modify");
 
     textElement.onclick = (e) => {
       e.stopPropagation();

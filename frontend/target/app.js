@@ -8,6 +8,7 @@ import { ViewSelector } from './components/ViewSelector.js';
 import { Dashboard } from './views/dashboard.js';
 import { Recordings } from './views/recordings.js';
 import { modalDialog } from './components/modalDialog.js';
+import { TooltipManager } from './components/ToolTipManager.js';
 export class VLApp {
     root;
     sidePanel = document.createElement('aside');
@@ -34,6 +35,7 @@ export class VLApp {
                 ]
             });
         };
+        new TooltipManager();
         this.root.append(this.sidePanel, this.mainPanel);
         this.bindServerUpdates();
     }

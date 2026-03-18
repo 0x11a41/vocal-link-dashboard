@@ -17,19 +17,23 @@ export class ClusterActionsHandler {
 	private startBtn = button({
 		label: "Start",
 		classes: [ 'accent' ],
-		onClick: () => this.handleStart()
+		onClick: () => this.handleStart(),
+		tooltip: "Start/Stop all recordings"
 	});
 	private pauseBtn = button({
 		label: "Pause",
 		onClick: () => sendPayload(Payloads.action(WSActions.PAUSE_ALL, BROADCAST)),
+		tooltip: "Pause all devices"
 	})
 	private resumeBtn = button({
 		label: "Resume",
 		onClick: () => sendPayload(Payloads.action(WSActions.RESUME_ALL, BROADCAST)),
+		tooltip: "Resume all devices"
 	})
 	private cancelBtn = button({
 		label:"Cancel",
 		onClick: () => 	sendPayload(Payloads.action(WSActions.CANCEL_ALL, BROADCAST)),
+		tooltip: "Cancel all recordings"
 	})
 
 	constructor({ sessions }: Props) {

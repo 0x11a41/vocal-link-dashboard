@@ -28,7 +28,8 @@ export class SessionCard {
         this.notify(WSActions.START);
       else
         this.notify(WSActions.STOP);
-    }
+    },
+    tooltip: "Start | Stop",
   });
 
   private pauseBtn = circleButton({
@@ -40,14 +41,16 @@ export class SessionCard {
         this.notify(WSActions.PAUSE);
       else if (this.state === SessionStates.PAUSED)
         this.notify(WSActions.RESUME);
-    }
+    },
+    tooltip: "Pause | Resume",
   });
 
   private cancelBtn = circleButton({
     classes: ['close-icon'],
     radius: CANCEL_BUTTON_RADIUS,
     visibility: 'hidden',
-    onClick: () => this.notify(WSActions.CANCEL)
+    onClick: () => this.notify(WSActions.CANCEL),
+    tooltip: "Cancel",
   });
 
   constructor(meta: SessionMetadata) {
@@ -63,7 +66,9 @@ export class SessionCard {
         this.notify(WSActions.DROP);
         Dashboard.sessions.delete(meta.id);
         Dashboard.render();
-      }});
+      },
+      tooltip: "Remove device",
+    });
 
     const left = document.createElement('div');
     left.classList.add('left');

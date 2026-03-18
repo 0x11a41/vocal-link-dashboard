@@ -49,6 +49,7 @@ export class RecordingCard {
     this.audioPlayer.ontimeupdate = (time: number) => this.transcriptPanel.updateTime(time);
     this.audioPlayer.onend = () => { this.transcriptPanel.resetScroll(); }
     this.transcriptPanel.onSeekRequest = (time: number) => { this.audioPlayer.seekTo(time); }
+    this.element.setAttribute("data-tooltip", "Click to Expand | Collapse");
   }
 
   public setOnPlay(onplay: (rid: string) => void) {
@@ -143,11 +144,13 @@ export class RecordingCard {
     right.appendChild(button({
       label: 'Delete',
       classes: ['immutable'],
-      onClick: (e: PointerEvent) => { e.stopPropagation(); this.drop(); }
+      onClick: (e: PointerEvent) => { e.stopPropagation(); this.drop(); },
+      tooltip: 'Delete recording',
     }));
     right.appendChild(button({
       label: 'Save',
-      onClick: (e) => { e.stopPropagation(); this.handleSave(); } // TODO saving
+      onClick: (e) => { e.stopPropagation(); this.handleSave(); },
+      tooltip: "Save recording"
     }))
 
     miniMeta.append(title, details, badgesWrapper);

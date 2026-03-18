@@ -1260,3 +1260,22 @@ aside .active:hover {
     opacity: 1;
   }
 }
+
+
+/* ######## tooltip ######### */
+.tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: #444;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: .75rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 9999;
+}
+
+.tooltip.visible {
+  opacity: 1;
+}

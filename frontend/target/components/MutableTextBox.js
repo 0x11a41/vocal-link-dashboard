@@ -6,6 +6,7 @@ export function MutableTextBox({ initial, onsave, classes = [] }) {
         const textElement = document.createElement('span');
         textElement.className = 'mutable-text';
         textElement.innerText = currentText;
+        textElement.setAttribute("data-tooltip", "Click to modify");
         textElement.onclick = (e) => {
             e.stopPropagation();
             renderEdit(currentText);
