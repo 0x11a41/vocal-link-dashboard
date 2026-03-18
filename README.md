@@ -63,7 +63,7 @@ python app.py --debug
 - [ ] key bindings documentation
 - [ ] log section to show toast notifications
 - [ ] indicate new recordings
-- [ ] css refinements
+- [x] tooltips
 
 ## License
 
