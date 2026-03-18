@@ -25,6 +25,7 @@ export enum WSErrors {
 
 export enum WSEvents {
   DASHBOARD_INIT = "dashboard_init",
+  DASHBOARD_INITTED = 'dashboard_initted',
   DASHBOARD_RENAME = "dashboard_rename",
   SESSION_UPDATE = "session_update",
   SESSION_ACTIVATE = "session_activate",
@@ -135,6 +136,10 @@ export interface RecMetadata {
 // ================ PAYLOAD BODIES ============
 // ============================================
 
+export interface RestAuth {
+  key: string;
+}
+
 export interface Rename {
   name: string;
 }
@@ -196,6 +201,7 @@ export type WSBodyTypes =
   | RecMetadata
   | RecStageInfo
   | MergeRequest
+  | RestAuth
   | null;
 
 export type WSMsgTypes = WSActions | WSEvents | WSClockSync | WSErrors;

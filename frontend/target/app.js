@@ -1,5 +1,5 @@
 import { URL } from './models/constants.js';
-import { Views, Payloads, WSActions } from './models/primitives.js';
+import { Views, Payloads, WSEvents, WSActions } from './models/primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import { server } from './network/serverInfo.js';
 import { sendPayload, ws } from './network/ws.js';
@@ -18,10 +18,11 @@ export class VLApp {
         if (!root)
             throw new Error("#app root element not found");
         this.root = root;
-        ws.onmessage = (ev) => wsHandler({
+        ws.onmessage = async (ev) => await wsHandler({
             payload: JSON.parse(ev.data),
-            renderDashboard: () => this.viewSelector.render(),
+            refresh: () => this.render(),
         });
+        ws.onopen = () => ws.send(JSON.stringify(Payloads.event(WSEvents.DASHBOARD_INIT)));
         ws.onclose = () => {
             Dashboard.sessions.clear();
             Dashboard.render();
@@ -90,4 +91,3 @@ darkMode.addEventListener('change', (e) => updateTheme(e.matches));
 updateTheme(darkMode.matches);
 const app = new VLApp();
 await app.setup();
-app.render();

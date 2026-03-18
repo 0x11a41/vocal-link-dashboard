@@ -79,6 +79,7 @@ class WSErrors(str, Enum):
 
 class WSEvents(str, Enum): # these are facts that should be notified
     DASHBOARD_INIT = "dashboard_init" # dashboard[None]::server 
+    DASHBOARD_INITTED = 'dashboard_initted' # server[RestAuth]::dashboard
     DASHBOARD_RENAME = "dashboard_rename" # dashboard[Rename]::server::session
     # all events listed below will contain an "id" field inside body 
     SESSION_UPDATE = "session_update" # session[SessionMetadata]::server::dashboard
@@ -113,6 +114,9 @@ class WSActions(str, Enum): # these are intents of session or dashboard
     CANCEL_ALL = "cancel_all"
 
 
+
+class RestAuth(BaseModel):
+    key: str
 
 class WSClockSync(str, Enum): # sync channel
     TIK = "tik" # session[ClockSync]::server
@@ -194,6 +198,7 @@ class WSPayload(BaseModel):
         ClockSyncReport,
         RecMetadata,
         RecStageInfo,
+        RestAuth,
     ]] = None
 
 

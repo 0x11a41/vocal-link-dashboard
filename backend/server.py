@@ -1,12 +1,14 @@
-from fastapi import FastAPI, WebSocket, HTTPException, BackgroundTasks
+from fastapi import FastAPI, WebSocket, HTTPException, BackgroundTasks, Body
 from fastapi import  UploadFile, File, Response, status, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from pydantic import ValidationError
 from typing import List
+import json
 import uuid
 import qrcode
 import io
@@ -16,6 +18,7 @@ from backend.handlers.AppState import AppState, send_error
 import backend.core.primitives as P
 from backend.utils.logging import log
 from backend.handlers.RecordingsHandler import RecordingTypes
+import backend.utils.cypher as cypher
 
 
 app = AppState() # source of truth
@@ -84,22 +87,46 @@ async def list_sessions():
 
 
 
-@api.get("/dashboard", response_model=P.ServerInfo)
+@api.get("/dashboard")
 async def getServerInfo():
-    return await app.server_info()
+    serverInfo = await app.server_info()
+
+    if not app.dashboard.key:
+        return PlainTextResponse("", status_code=204)
+
+    encrypted = cypher.encode(json.dumps(serverInfo.model_dump()), app.dashboard.key)
+    return PlainTextResponse(encrypted)
 
 
 @api.put("/dashboard")
-async def updateServerInfo(conf: P.ServerConf):
+async def updateServerInfo(raw: str = Body(...)):
+    if not app.dashboard.key:
+        return JSONResponse(status_code=204, content={})
+
+    try:
+        decoded = cypher.decode(raw, app.dashboard.key)
+        data = json.loads(decoded)
+        conf = P.ServerConf.model_validate(data)
+
+    except Exception:
+        return {"status": "invalid payload"}
+
     if await app.update_conf(conf):
         return {"status": "ok"}
-    return {'status': "failed to update indents"}
+
+    return {"status": "failed to update config"}
 
 
-@api.delete("/dashboard", response_model=P.ServerInfo)
+@api.delete("/dashboard")
 async def resetServerInfo():
+    if not app.dashboard.key:
+        return JSONResponse(status_code=204, content={})
+
     await app.update_conf(P.ServerConf())
-    return await app.server_info()
+
+    serv_info = await app.server_info()
+    encrypted = cypher.encode(json.dumps(serv_info.model_dump()), app.dashboard.key)
+    return PlainTextResponse(encrypted)
     
 
 

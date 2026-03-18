@@ -1,5 +1,5 @@
 import { URL } from './models/constants.js';
-import { Views, SessionMetadata, Payloads, WSActions, RecMetadata } from './models/primitives.js';
+import { Views, SessionMetadata, Payloads, WSEvents, WSActions, RecMetadata } from './models/primitives.js';
 import { SessionCard } from './components/SessionCard.js';
 import { server } from './network/serverInfo.js';
 import { sendPayload, ws } from './network/ws.js';
@@ -22,24 +22,27 @@ export class VLApp {
     if (!root) throw new Error("#app root element not found");
     this.root = root;
 
-    ws.onmessage = (ev: MessageEvent) =>
-      wsHandler({
+
+    ws.onmessage = async (ev: MessageEvent) =>
+      await wsHandler({
         payload: JSON.parse(ev.data),
-        renderDashboard: () => this.viewSelector.render(),
+        refresh: () => this.render(),
       });
 
-      ws.onclose = () => {
-        Dashboard.sessions.clear();
-        Dashboard.render();
+    ws.onopen = () => ws.send(JSON.stringify(Payloads.event(WSEvents.DASHBOARD_INIT)));
 
-        modalDialog({
-          msg: "Error! Connection closed unexpectedly.",
-          opts: [
-            {label: "Reload", handler: () => window.location.reload()},
-            {label: "Exit", handler: () => window.close()}
-          ]
-        });
-      };
+    ws.onclose = () => {
+      Dashboard.sessions.clear();
+      Dashboard.render();
+
+      modalDialog({
+        msg: "Error! Connection closed unexpectedly.",
+        opts: [
+          {label: "Reload", handler: () => window.location.reload()},
+          {label: "Exit", handler: () => window.close()}
+        ]
+      });
+    };
 
     this.root.append(this.sidePanel, this.mainPanel);
     this.bindServerUpdates();
@@ -109,4 +112,3 @@ updateTheme(darkMode.matches);
 
 const app = new VLApp();
 await app.setup();
-app.render();

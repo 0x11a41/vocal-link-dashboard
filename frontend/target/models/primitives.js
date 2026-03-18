@@ -21,6 +21,7 @@ export var WSErrors;
 export var WSEvents;
 (function (WSEvents) {
     WSEvents["DASHBOARD_INIT"] = "dashboard_init";
+    WSEvents["DASHBOARD_INITTED"] = "dashboard_initted";
     WSEvents["DASHBOARD_RENAME"] = "dashboard_rename";
     WSEvents["SESSION_UPDATE"] = "session_update";
     WSEvents["SESSION_ACTIVATE"] = "session_activate";

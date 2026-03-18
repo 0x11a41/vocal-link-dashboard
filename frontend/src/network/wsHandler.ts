@@ -1,21 +1,30 @@
-import { WSKind, WSEvents, WSPayload, SessionMetadata, WSEventTarget, StateReport, RecMetadata} from '../models/primitives.js';
+import { WSKind, WSEvents, WSPayload, SessionMetadata, WSEventTarget, StateReport, RecMetadata, RestAuth} from '../models/primitives.js';
 import { SessionCard } from '../components/SessionCard.js';
 import { Dashboard } from '../views/dashboard.js';
 import { Recordings } from '../views/recordings.js';
+import { server } from './serverInfo.js';
 
 interface Props {
   payload: WSPayload;
-  renderDashboard: () => void;
+  refresh: () => void;
 }
 
-function handleEvents({payload, renderDashboard}: Props) {
+async function handleEvents({payload, refresh}: Props) {
   switch (payload.msgType) {
+
+    case WSEvents.DASHBOARD_INITTED: {
+      const body = payload.body as RestAuth;
+      server.assignKey(body.key);
+      await server.setup();
+      refresh();
+      break;
+    }
 
     case WSEvents.SESSION_ACTIVATED: {
       const body = payload.body as SessionMetadata;
       if (!Dashboard.sessions.has(body.id)) {
         Dashboard.sessions.set(body.id, new SessionCard(body));
-        renderDashboard();
+        refresh();
       }
       break;
     }
@@ -26,7 +35,7 @@ function handleEvents({payload, renderDashboard}: Props) {
       Dashboard.clusterBtns.render();
       session?.card.remove();
       Dashboard.sessions.delete(body.id);
-      renderDashboard();
+      refresh();
       break;
     }
 
@@ -111,13 +120,13 @@ function handleEvents({payload, renderDashboard}: Props) {
 }
 
 
-export function wsHandler({payload, renderDashboard: refresh}: Props): void {
+export async function wsHandler({payload, refresh: refresh}: Props): Promise<void> {
   switch (payload.kind) {
     case WSKind.ERROR: console.error("Server error:", payload.msgType); break;
 
-    case WSKind.EVENT: handleEvents({
+    case WSKind.EVENT: await handleEvents({
         payload: payload,
-        renderDashboard: refresh
+        refresh: refresh
       });
       break;
 

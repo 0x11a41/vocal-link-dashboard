@@ -3,12 +3,14 @@ from fastapi import WebSocket
 import asyncio
 import backend.core.primitives as P
 from backend.utils.logging import log
+import backend.utils.cypher as cypher
 
 
 class DashboardHandler:
     def __init__(self):
         self._dashboard: Optional[WebSocket] = None
         self.lock = asyncio.Lock()
+        self.key: Optional[str] = None
 
 
     async def ws(self) -> Optional[WebSocket]:
@@ -24,12 +26,14 @@ class DashboardHandler:
                 except Exception:
                     pass 
             self._dashboard = ws
+        self.key = cypher.get_key(length=18)
 
 
     async def drop(self, ws: WebSocket):
         async with self.lock:
             if self._dashboard == ws:
                 self._dashboard = None
+            self.key = None
 
 
     async def notify(self, payload: P.WSPayload):

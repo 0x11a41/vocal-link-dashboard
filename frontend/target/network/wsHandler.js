@@ -2,13 +2,21 @@ import { WSKind, WSEvents } from '../models/primitives.js';
 import { SessionCard } from '../components/SessionCard.js';
 import { Dashboard } from '../views/dashboard.js';
 import { Recordings } from '../views/recordings.js';
-function handleEvents({ payload, renderDashboard }) {
+import { server } from './serverInfo.js';
+async function handleEvents({ payload, refresh }) {
     switch (payload.msgType) {
+        case WSEvents.DASHBOARD_INITTED: {
+            const body = payload.body;
+            server.assignKey(body.key);
+            await server.setup();
+            refresh();
+            break;
+        }
         case WSEvents.SESSION_ACTIVATED: {
             const body = payload.body;
             if (!Dashboard.sessions.has(body.id)) {
                 Dashboard.sessions.set(body.id, new SessionCard(body));
-                renderDashboard();
+                refresh();
             }
             break;
         }
@@ -18,7 +26,7 @@ function handleEvents({ payload, renderDashboard }) {
             Dashboard.clusterBtns.render();
             session?.card.remove();
             Dashboard.sessions.delete(body.id);
-            renderDashboard();
+            refresh();
             break;
         }
         case WSEvents.SESSION_UPDATE: {
@@ -91,15 +99,15 @@ function handleEvents({ payload, renderDashboard }) {
             break;
     }
 }
-export function wsHandler({ payload, renderDashboard: refresh }) {
+export async function wsHandler({ payload, refresh: refresh }) {
     switch (payload.kind) {
         case WSKind.ERROR:
             console.error("Server error:", payload.msgType);
             break;
         case WSKind.EVENT:
-            handleEvents({
+            await handleEvents({
                 payload: payload,
-                renderDashboard: refresh
+                refresh: refresh
             });
             break;
         default:

@@ -1,56 +1,70 @@
 import { URL } from "../models/constants.js";
+import { encode, decode } from "../utils/cypher.js";
 class ServerStateManager {
     _info = null;
+    key = null;
     get info() {
         return this._info;
     }
     get conf() {
         return this._info?.conf ?? null;
     }
-    constructor() {
-        this.refresh();
+    assignKey(key) {
+        this.key = key;
     }
-    async refresh() {
-        try {
-            const res = await fetch(`${URL}/dashboard`);
-            if (!res.ok)
-                throw new Error("Failed to fetch dashboard");
-            const data = (await res.json());
-            this._info = data;
-            const hexColor = this._info.conf.accentColors[this._info.conf.accentActive];
-            document.documentElement.style.setProperty('--accent', hexColor);
+    async setup() {
+        if (!this.key) {
+            throw new Error("Key not assigned");
         }
-        catch (err) {
-            console.error("Dashboard sync error:", err);
-        }
+        const res = await fetch(`${URL}/dashboard`);
+        if (!res.ok)
+            throw new Error("Failed to fetch dashboard");
+        const raw = await res.text();
+        const data = JSON.parse(decode(raw, this.key));
+        this._info = data;
+        const hexColor = this._info.conf.accentColors[this._info.conf.accentActive];
+        document.documentElement.style.setProperty('--accent', hexColor);
     }
     async updateConf(patch) {
-        if (!this._info)
+        if (!this.info)
             return;
+        const key = this.key;
+        if (!key)
+            throw new Error("Key not assigned");
         const nextConf = {
-            ...this._info.conf,
+            ...this.info.conf,
             ...patch,
         };
+        const encrypted = encode(JSON.stringify(nextConf), key);
         try {
             const res = await fetch(`${URL}/dashboard`, {
                 method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(nextConf),
+                headers: { "Content-Type": "text/plain" },
+                body: encrypted,
             });
-            if (!res.ok)
+            const text = await res.text();
+            const data = text ? JSON.parse(text) : null;
+            if (!res.ok || data?.status !== "ok") {
                 throw new Error("Failed to update config");
-            this._info.conf = nextConf;
+            }
+            this.info.conf = nextConf;
         }
         catch (err) {
             console.error("Config update error:", err);
         }
     }
     async reset() {
+        if (!this.key) {
+            throw new Error("Key not assigned");
+        }
         try {
-            const res = await fetch(`${URL}/dashboard`, { method: "DELETE", });
+            const res = await fetch(`${URL}/dashboard`, { method: "DELETE" });
             if (!res.ok)
                 throw new Error("Failed to reset config");
-            const data = (await res.json());
+            const raw = await res.text();
+            if (!raw)
+                return;
+            const data = JSON.parse(decode(raw, this.key));
             this._info = data;
         }
         catch (err) {

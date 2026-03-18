@@ -247,8 +247,15 @@ class AppState:
         event_type = payload.msgType
 
         if event_type == P.WSEvents.DASHBOARD_INIT:
-            await self.dashboard.assign(ws)            
-            log.info("Dashboard online.")
+            await self.dashboard.assign(ws)
+            key = self.dashboard.key
+            if key:
+                await self.dashboard.notify(P.WSPayload(
+                                    kind=P.WSKind.EVENT,
+                                    msgType=P.WSEvents.DASHBOARD_INITTED,
+                                    body=P.RestAuth(key=key)
+                                  ))
+                log.info("Dashboard online.")
 
         elif event_type == P.WSEvents.DASHBOARD_RENAME:
             try:
