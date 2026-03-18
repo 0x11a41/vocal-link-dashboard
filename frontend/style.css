@@ -706,6 +706,7 @@ aside .active:hover {
   flex: 1;
   height: 100%;
   min-height: 0;
+  overflow: auto;
 }
 
 /* ====================================== */
@@ -1107,7 +1108,6 @@ aside .active:hover {
   min-width: 48ch;
   max-width: 84ch;
   width: 100%;
-  overflow: auto;
 }
 
 .conf-section h4 {
