@@ -31,14 +31,16 @@ export class AudioPlayer {
             playBtn: circleButton({
                 classes: ['play-icon'],
                 onClick: () => this.togglePlay(),
-                radius: 48
+                radius: 48,
+                tooltip: "Play | Pause"
             }),
             progressFill: document.createElement('div'),
             currentTimeSpan: document.createElement('span'),
             saveBtn: button({
                 label: 'SAVE',
                 classes: ['btn-small'],
-                onClick: async () => await downloadFile(this.audio.src, this.meta.recName, this.ui.saveBtn)
+                onClick: async () => await downloadFile(this.audio.src, this.meta.recName, this.ui.saveBtn),
+                tooltip: "save active preview"
             }),
         };
         this.ui.progressFill.className = 'progress-fill';

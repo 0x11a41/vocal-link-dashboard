@@ -130,7 +130,8 @@ class ConfView {
         onClick: async () => {
           await server.reset();
           window.location.reload();
-        }
+        },
+        tooltip: "Reset server configuration"
       }),
     });
 

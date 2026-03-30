@@ -3,6 +3,7 @@ import { SessionCard } from '../components/SessionCard.js';
 import { Dashboard } from '../views/dashboard.js';
 import { Recordings } from '../views/recordings.js';
 import { server } from './serverInfo.js';
+import { log } from '../components/logger.js';
 async function handleEvents({ payload, refresh }) {
     switch (payload.msgType) {
         case WSEvents.DASHBOARD_INITTED: {
@@ -10,6 +11,7 @@ async function handleEvents({ payload, refresh }) {
             server.assignKey(body.key);
             await server.setup();
             refresh();
+            log.info(server.info && server.info.version || "");
             break;
         }
         case WSEvents.SESSION_ACTIVATED: {
@@ -17,6 +19,7 @@ async function handleEvents({ payload, refresh }) {
             if (!Dashboard.sessions.has(body.id)) {
                 Dashboard.sessions.set(body.id, new SessionCard(body));
                 refresh();
+                log.info(`${body.name} joined.`);
             }
             break;
         }
@@ -27,6 +30,7 @@ async function handleEvents({ payload, refresh }) {
             session?.card.remove();
             Dashboard.sessions.delete(body.id);
             refresh();
+            log.info(`${session?.meta.name} disconnected`);
             break;
         }
         case WSEvents.SESSION_UPDATE: {
@@ -40,6 +44,7 @@ async function handleEvents({ payload, refresh }) {
             if (session) {
                 session.start();
                 Dashboard.clusterBtns.render();
+                log.info(`${session.meta.name} is recording...`);
             }
             break;
         }
@@ -49,6 +54,7 @@ async function handleEvents({ payload, refresh }) {
             if (session) {
                 session.stop();
                 Dashboard.clusterBtns.render();
+                log.info(`${session.meta.name} stopped recording.`);
             }
             break;
         }
@@ -58,6 +64,7 @@ async function handleEvents({ payload, refresh }) {
             if (session) {
                 session.resume();
                 Dashboard.clusterBtns.render();
+                log.info(`${session.meta.name} resumed`);
             }
             break;
         }
@@ -67,6 +74,7 @@ async function handleEvents({ payload, refresh }) {
             if (session) {
                 session.pause();
                 Dashboard.clusterBtns.render();
+                log.info(`${session.meta.name} paused`);
             }
             break;
         }
@@ -86,11 +94,13 @@ async function handleEvents({ payload, refresh }) {
             const meta = payload.body;
             Recordings.append(meta);
             Recordings.setDefaultName(meta);
+            log.info(`waiting for audio file...`);
             break;
         }
         case WSEvents.REC_AMEND: {
             const meta = payload.body;
             Recordings.amend(meta.rid, meta);
+            log.info(`Recording amended.`);
             break;
         }
         case WSEvents.SUCCESS:

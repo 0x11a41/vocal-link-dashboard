@@ -1,6 +1,7 @@
 export function ColorPicker({ colors, active, onselect }) {
     const colorPicker = document.createElement('div');
     colorPicker.className = 'color-picker';
+    colorPicker.setAttribute("data-tooltip", "Click to use this color");
     let activeColor = null;
     colors.forEach((color, i) => {
         const choice = document.createElement('div');

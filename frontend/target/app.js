@@ -9,6 +9,7 @@ import { Dashboard } from './views/dashboard.js';
 import { Recordings } from './views/recordings.js';
 import { modalDialog } from './components/modalDialog.js';
 import { TooltipManager } from './components/ToolTipManager.js';
+import { log } from './components/logger.js';
 export class VLApp {
     root;
     sidePanel = document.createElement('aside');
@@ -49,7 +50,7 @@ export class VLApp {
       </div>
     `;
         this.sidePanel.appendChild(this.viewSelector.menu);
-        this.sidePanel.insertAdjacentHTML('beforeend', `<i class="version">vocal-link-dashboard ${server.info?.version}</i>`);
+        this.sidePanel.appendChild(log.element);
     }
     bindServerUpdates() {
         window.addEventListener("server-update", (e) => {

@@ -9,6 +9,7 @@ import { Dashboard } from './views/dashboard.js';
 import { Recordings } from './views/recordings.js';
 import { modalDialog } from './components/modalDialog.js';
 import { TooltipManager } from './components/ToolTipManager.js';
+import { log } from './components/logger.js';
 
 
 export class VLApp {
@@ -61,9 +62,7 @@ export class VLApp {
     `;
 
     this.sidePanel.appendChild(this.viewSelector.menu);
-    this.sidePanel.insertAdjacentHTML('beforeend',
-      `<i class="version">vocal-link-dashboard ${server.info?.version}</i>`
-    );
+    this.sidePanel.appendChild(log.element);
   }
 
   private bindServerUpdates(): void {

@@ -9,6 +9,6 @@ export function checkbox({checked = false, onCheck}: checkboxProps): HTMLInputEl
   chkbox.checked = checked;
   chkbox.onchange = () => onCheck(chkbox.checked); 
   chkbox.onclick = (e) => {e.stopPropagation()};
-  chkbox.setAttribute("data-tooltip", "");
+  chkbox.setAttribute("data-tooltip", "Select | Deselect");
   return chkbox;
 }

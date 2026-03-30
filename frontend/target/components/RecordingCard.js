@@ -42,7 +42,6 @@ export class RecordingCard {
         this.audioPlayer.ontimeupdate = (time) => this.transcriptPanel.updateTime(time);
         this.audioPlayer.onend = () => { this.transcriptPanel.resetScroll(); };
         this.transcriptPanel.onSeekRequest = (time) => { this.audioPlayer.seekTo(time); };
-        this.element.setAttribute("data-tooltip", "Click to Expand | Collapse");
     }
     setOnPlay(onplay) {
         this.audioPlayer.onplay = onplay;
@@ -129,6 +128,7 @@ export class RecordingCard {
         miniMeta.append(title, details, badgesWrapper);
         left.append(chkbox, miniMeta);
         header.append(left, right);
+        header.setAttribute("data-tooltip", "Click to Expand | Collapse");
         return header;
     }
     handleSave() {
