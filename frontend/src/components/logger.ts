@@ -22,7 +22,6 @@ class Logger {
     logLine.appendChild(messageSpan);
     
     this.element.appendChild(logLine);
-    
     this.element.scrollTop = this.element.scrollHeight;
   }
 

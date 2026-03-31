@@ -26,7 +26,7 @@ class SessionMetadata(BaseModel):
 
 class ServerConf(BaseModel):
     name: str = Field(default_factory=get_random_name, min_length=1, max_length=50)
-    accentColors: List[str] = [ "#E7965C", "#5C96E7", "#5CE796", "#965CE7", "#4A5568" ]
+    accentColors: List[str] = [ "#E7965C", "#0EA5E9", "#10B981", "#8B5CF6", "#F43F5E" ]
     accentActive: int = Field(default=0, ge=0, le=4)
     fmts: List[str] = [ ".m4a", ".mp3", ".ogg" ]
     fmtActive: int = Field(default=0, ge=0, le=2)
